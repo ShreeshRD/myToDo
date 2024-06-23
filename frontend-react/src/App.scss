@@ -1,0 +1,449 @@
+.addShadow {
+  box-shadow: rgba(0, 0, 0, 0.3) 0px 3px 8px;
+}
+
+@import url("https://fonts.googleapis.com/css?family=Roboto:400,700,900");
+
+// General settings
+html {
+  box-sizing: border-box;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+  user-select: none;
+}
+
+.app-container {
+  margin: 0;
+  padding: 0;
+  font-family: "Roboto", sans-serif;
+  color: #202020;
+  background-color: #ffffff;
+  transition: all 0.3s;
+}
+
+.app-container.dark {
+  color: #eeeeee;
+  background-color: #5a5a5a;
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+}
+
+// Variables
+$generic-box-shadow: rgba(0, 0, 0, 0.1) 0px 0px 0px 1px,
+  rgba(0, 0, 0, 0.1) 0px 4px 11px;
+$generic-border: 1px solid #f1f1f1;
+$generic-bg: #db4c3f;
+
+/* Mixins
+  ============================================ */
+@mixin box-overlay() {
+  box-shadow: $generic-box-shadow;
+  position: absolute;
+  width: 100%;
+  z-index: 1;
+  top: 85px;
+  border-radius: 3px;
+}
+
+@mixin va($va-align: center) {
+  display: flex;
+  align-items: center;
+
+  @if $va-align !=center {
+    justify-content: left;
+  }
+
+  @else {
+    justify-content: center;
+  }
+}
+
+@mixin no-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+}
+
+@mixin btn($width) {
+  width: $width;
+  background-color: $generic-bg;
+  color: #fff !important;
+  border: 1px solid transparent;
+  margin-right: 5px;
+  margin-top: 10px;
+  font-weight: bold;
+  font-size: 13px !important;
+  line-height: 17px;
+  padding: 6px 12px 7px 12px;
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+  border-radius: 3px !important;
+  text-decoration: none !important;
+  text-align: center;
+  cursor: pointer;
+}
+
+@mixin cancel() {
+  color: #555;
+  cursor: pointer;
+  font-size: 14px;
+  margin: 2px 5px;
+}
+
+@mixin transparent-button() {
+  background-color: transparent;
+  border: 0;
+}
+
+@mixin task-item() {
+  list-style-type: none;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  line-height: 18px;
+  color: #333;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  font-size: 14px;
+  list-style-type: none;
+  border-bottom: 1px solid #f0f0f0;
+  padding-left: 10px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #f9f9f9;
+  }
+}
+
+@mixin mq($from) {
+  @media (max-width: $from) {
+    @content;
+  }
+}
+
+/* App
+  ============================================ */
+.App {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-container {
+  display: flex;
+  width: 100%;
+}
+
+/* Header
+  ============================================ */
+.myheader {
+  border-bottom: 2px solid #eeeeee;
+  width: 100%;
+  padding-bottom: 10px;
+  padding-left: 30px;
+  top: 0;
+  position: fixed;
+  transition: all 0.3s;
+
+  h1 {
+    padding-top: 35px;
+    padding-bottom: 10px;
+    text-align: left;
+  }
+}
+
+.myheader.dark {
+  border-bottom: 2px solid #494949;
+}
+
+/* Sidebar
+  ============================================ */
+.sidebarButton {
+  position: absolute;
+  top: 1vh;
+  left: calc(18vw - 40px);
+  visibility: hidden;
+  transition: all 0.3s;
+}
+
+.sidebarButton.hidden {
+  left: 2px;
+}
+
+.sidebarIcon {
+  position: relative;
+  font-size: 28px;
+  color: grey;
+  visibility: visible;
+  z-index: 1;
+}
+
+.sidebarIcon.dark {
+  color: #b1b0b0;
+}
+
+.darkmodeButton {
+  position: absolute;
+  top: 1vh;
+  left: calc(18vw - 80px);
+  visibility: hidden;
+}
+
+.darkmodeIcon {
+  font-size: 28px !important;
+  visibility: visible;
+  color: grey;
+  z-index: 1;
+}
+
+.darkmodeIcon.dark {
+  color: #b1b0b0;
+}
+
+.sidebar {
+  width: 18vw;
+  height: 100vh;
+  padding-top: 74px;
+  position: absolute;
+  background-color: #fcfaf8;
+  left: 0;
+  transition: all 0.3s;
+}
+
+.sidebar.hidden {
+  left: -100%;
+}
+
+.sidebar.dark {
+  background-color: #494949;
+  color: #eeeeee;
+}
+
+li {
+  padding: 7px 12px;
+
+  &:hover {
+    cursor: pointer;
+    background-color: #e6e5ff;
+  }
+}
+
+.dark {
+  li {
+    padding: 7px 12px;
+
+    &:hover {
+      cursor: pointer;
+      background-color: #676767;
+    }
+  }
+}
+
+/* MUI Icons
+  ============================================ */
+.add-icon {
+  color: blue;
+}
+
+// .checkbox_icon_unchecked {}
+
+// .checkbox_icon_hover {}
+
+.checkbox_icon_checked {
+  color: blue;
+}
+
+
+/* ToDoItems
+  ============================================ */
+.content {
+  margin-left: 18vw;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+
+.content.hidden {
+  margin-left: 0vw;
+}
+
+.content.dark {
+  color: #eeeeee;
+}
+
+.weekItems {
+  display: flex;
+  margin-top: 165px;
+  overflow-x: auto;
+  overflow-y: auto;
+  white-space: nowrap;
+  height: calc(100vh - 165px)
+}
+
+.tasks {
+  padding: 0px 7px;
+  padding-top: 0px;
+}
+
+.task_items {
+  height: calc(100% - 60px);
+}
+
+.tasks_footer {
+  display: contents;
+  color: grey;
+}
+
+.tasks_footer.dark {
+  color: #eeeeee; //Dark
+}
+
+.todo_item {
+  padding: 10px 7px;
+  width: 260px;
+  margin: 8px;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.rounded_box {
+  border: 1px solid rgba(0, 0, 0, .12);
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, .04);
+  border-radius: 7px;
+  justify-content: space-between;
+  cursor: default;
+  background-color: rgb(255, 255, 255);
+}
+
+.rounded_box:hover {
+  border-color: rgba(0, 0, 0, .2);
+  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, .1);
+}
+
+.rounded_box.dark {
+  background-color: rgb(125, 125, 125);
+}
+
+.rounded_box.dark:hover {
+  border-color: rgba(0, 0, 0, .5);
+  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, .25);
+}
+
+.todo_delete {
+  visibility: hidden;
+  display: contents;
+  color: rgb(78, 78, 78);
+}
+
+.rounded_box:hover .todo_delete {
+  visibility: visible;
+}
+
+.todo_delete:hover .todo_delete_icon {
+  color: rgb(215, 0, 0);
+  cursor: pointer;
+  /* Change the color of the icon to red on hover */
+}
+
+.task_label {
+  white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  cursor: default;
+  padding-left: 4px;
+}
+
+.MuiCheckbox-root:hover {
+  cursor: pointer;
+  /* Set the cursor to pointer when hovering over the Checkbox */
+}
+
+.inactive {
+  pointer-events: none;
+  /* Ensure they cannot receive pointer events */
+}
+
+/* Create task popup
+======================================*/
+.taskPopup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.1);
+  z-index: 1;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.createTask {
+  position: relative;
+  padding: 32px;
+  background-color: white;
+  // background-color: #b1b0b0; //Dark
+  width: 640px;
+  height: 150px;
+  border-radius: 10px;
+  z-index: 1;
+
+  .close-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+  }
+}
+
+.no-background {
+  background: none;
+  /* Remove background */
+  border: none;
+  /* Remove border */
+  outline: none;
+  /* Remove outline */
+  padding: 5px;
+  /* Add some padding */
+  font-size: 16px;
+  /* Adjust font size */
+  color: #000;
+  /* Set text color */
+  width: 100%;
+}
+
+/* Optional: Style for when the input is focused */
+.no-background:focus {
+  outline: none;
+  /* Ensure no outline on focus */
+}
+
+.bottom-btns {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  white-space: nowrap;
+}
+
+.cancel-btn {
+  border: 1px solid grey;
+}
+
+.cancel-btn:hover {
+  background-color: #b1b0b0;
+}
+
+.hide-btn {
+  display: contents;
+}

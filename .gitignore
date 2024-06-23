@@ -1,0 +1,4 @@
+.idea/
+.vscode/
+frontend-react/node_modules/
+Backend-SpringBoot/target/
