@@ -39,6 +39,8 @@ function App() {
 	const [popupDate, setPopupDate] = useState("");
 	// Variables
 	const [taskDays, setTaskDays] = useState([]);
+	const [completedTasks, setCompletedTasks] = useState([]);
+	const [overdueTasks, setOverdueTasks] = useState({ overdue: [] });
 	const [startDate, setStartDate] = useState(dayjs());
 
 	const callPopup = (date) => {
@@ -61,19 +63,52 @@ function App() {
 		try {
 			const response = await getTasks("bydate");
 			setTaskDays(response.itemsByDate);
+			const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
+
+			const newCompletedTasks = {};
+			const newOverdueTasks = { overdue: [] };
+			for (const date in response.itemsByDate) {
+				if (date < today) {
+					// If date has passed
+					const tasks = response.itemsByDate[date];
+					tasks.forEach(task => {
+						if (task.complete) {
+							if (!newCompletedTasks[date]) {
+								newCompletedTasks[date] = [];
+							}
+							newCompletedTasks[date].push(task);
+						} else {
+							newOverdueTasks["overdue"].push(task);
+						}
+					});
+				}
+			}
+			setCompletedTasks(newCompletedTasks);
+			setOverdueTasks(newOverdueTasks);
 		} catch (error) {
-			console.error("Error fetching Tasks:", error);
+			console.error("Error fetching tasks:", error);
 		}
 	};
 
 	const updateTask = async (id, field, value, date) => {
 		try {
 			await updateField(id, field, value);
+			if (field === "complete" && value && date < dayjs().format("YYYY-MM-DD")) {
+				const updatedOverdue = { ...overdueTasks };
+				updatedOverdue.overdue = updatedOverdue.overdue.map((task) =>
+					task.id === id ? { ...task, [field]: value } : task
+				);
+				setOverdueTasks(updatedOverdue);
+				setTimeout(() => {
+					const finalOverdue = { ...updatedOverdue };
+					finalOverdue.overdue = finalOverdue.overdue.filter(task => task.id !== id);
+					setOverdueTasks(finalOverdue);
+				}, 1000);
+			}
 			const updatedTaskDays = { ...taskDays };
-			const updateTaskDay = updatedTaskDays[date].map((task) =>
+			updatedTaskDays[date] = updatedTaskDays[date].map((task) =>
 				task.id === id ? { ...task, [field]: value } : task
 			);
-			updatedTaskDays[date] = updateTaskDay;
 			setTaskDays(updatedTaskDays);
 		} catch (error) {
 			console.error(`Error updating task with id ${id}:`, error);
@@ -92,9 +127,17 @@ function App() {
 		try {
 			const success = await deleteTask(taskId);
 			if (success) {
+				if (date < dayjs().format("YYYY-MM-DD")) {
+					const updatedOverdue = overdueTasks;
+					updatedOverdue.overdue = updatedOverdue.overdue.filter((task) => task.id !== taskId);
+					setOverdueTasks(updatedOverdue);
+				}
 				const updatedTaskDays = { ...taskDays };
-				const updateTaskDay = updatedTaskDays[date].filter((task) => task.id !== taskId);
-				updatedTaskDays[date] = updateTaskDay;
+				updatedTaskDays[date] = updatedTaskDays[date].filter((task) => task.id !== taskId);
+				updatedTaskDays[date].forEach((task, index) => {
+					task.dayOrder = index + 1;
+					updateBackend(task.id, "dayOrder", index + 1);
+				});
 				setTaskDays(updatedTaskDays);
 			} else {
 				console.log('Failed to delete task');
@@ -105,10 +148,31 @@ function App() {
 	};
 
 	const handleDragEnd = (result) => {
-		if (!result.destination) {
+		if (!result.destination || result.destination.droppableId === "tasks__list100") {
 			return;
 		}
-		if (result.source.droppableId === result.destination.droppableId && result.source.index !== result.destination.index) {
+		else if (result.source.droppableId === "tasks__list100") {
+			// If source item is from overdue list
+			const destChar = result.destination.droppableId.charAt(result.destination.droppableId.length - 1);
+			const destDate = startDate.add(parseInt(destChar, 10), 'day').format('YYYY-MM-DD');
+
+			const updatedTaskDays = { ...taskDays };
+			updatedTaskDays[destDate] ??= [];
+			const newTasks = updatedTaskDays[destDate];
+			const [removed] = overdueTasks.splice(result.source.index, 1);
+			removed.taskDate = destDate;
+			newTasks.splice(result.destination.index, 0, removed);
+			newTasks.forEach((task, index) => {
+				task.dayOrder = index + 1;
+			});
+			setTaskDays(updatedTaskDays);
+			// Update backend
+			updateBackend(removed.id, "taskDate", destDate);
+			newTasks.forEach((task, index) => {
+				updateBackend(task.id, "dayOrder", index + 1);
+			});
+		}
+		else if (result.source.droppableId === result.destination.droppableId && result.source.index !== result.destination.index) {
 			const lastChar = result.source.droppableId.charAt(result.source.droppableId.length - 1);
 			const date = startDate.add(parseInt(lastChar, 10), 'day').format('YYYY-MM-DD');
 
@@ -134,7 +198,7 @@ function App() {
 			const updatedTaskDays = { ...taskDays };
 			const sourceTasks = updatedTaskDays[sourceDate];
 			const [removed] = sourceTasks.splice(result.source.index, 1);
-			removed.date = destDate;
+			removed.taskDate = destDate;
 			updatedTaskDays[destDate] ??= [];
 			const destTasks = updatedTaskDays[destDate];
 			destTasks.splice(result.destination.index, 0, removed);
@@ -174,6 +238,7 @@ function App() {
 						removeTask={removeTask}
 						handleDragEnd={handleDragEnd}
 						taskDays={taskDays}
+						overdueTasks={overdueTasks}
 						startDate={startDate}
 					/>) : viewPage === 'Today' ? (
 						<ComingSoon />

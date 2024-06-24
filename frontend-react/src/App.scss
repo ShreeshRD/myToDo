@@ -344,6 +344,14 @@ li {
   box-shadow: 0 2px 8px 0 rgba(0, 0, 0, .25);
 }
 
+.rounded_box.overdue {
+  background-color: rgb(255, 170, 170);
+}
+
+.rounded_box.dark.overdue {
+  background-color: rgb(155, 82, 82);
+}
+
 .todo_delete {
   visibility: hidden;
   display: contents;
