@@ -142,15 +142,33 @@ $generic-bg: #db4c3f;
   width: 100%;
 }
 
+/* Content
+  ============================================ */
+.content {
+  margin-left: 18vw;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+
+.content.hidden {
+  margin-left: 0vw;
+}
+
+.content.dark {
+  color: #eeeeee;
+}
+
 /* Header
   ============================================ */
 .myheader {
+  display: flex;
+  justify-content: space-between;
   border-bottom: 2px solid #eeeeee;
   width: 100%;
   padding-bottom: 10px;
-  padding-left: 30px;
   top: 0;
-  position: fixed;
   transition: all 0.3s;
 
   h1 {
@@ -162,6 +180,10 @@ $generic-bg: #db4c3f;
 
 .myheader.dark {
   border-bottom: 2px solid #494949;
+}
+
+.headerItem {
+  padding: 0px 5%;
 }
 
 /* Sidebar
@@ -264,25 +286,8 @@ li {
 
 /* ToDoItems
   ============================================ */
-.content {
-  margin-left: 18vw;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  transition: all 0.3s;
-}
-
-.content.hidden {
-  margin-left: 0vw;
-}
-
-.content.dark {
-  color: #eeeeee;
-}
-
 .weekItems {
   display: flex;
-  margin-top: 165px;
   overflow-x: auto;
   overflow-y: auto;
   white-space: nowrap;

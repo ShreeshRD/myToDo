@@ -10,10 +10,16 @@ export default class ToDoDay extends Component {
     render() {
         const { tasks, date, id } = this.props;
         const dateObject = new Date(date);
-        const day = dateObject.getDate();
-        const month = dateObject.toLocaleString("default", { month: "short" });
-        const formattedDate = `${day} ${month}`;
-        const suffix = id === 0 ? " ‧ Today" : id === 1 ? " ‧ Tomorrow" : "";
+        const formattedDate = dateObject.toLocaleString("default", { day: "numeric", weekday: "short" });
+        // Check if the date is today or tomorrow
+        const today = new Date();
+        const tomorrow = new Date();
+        tomorrow.setDate(today.getDate() + 1);
+
+        const isToday = dateObject.toDateString() === today.toDateString();
+        const isTomorrow = dateObject.toDateString() === tomorrow.toDateString();
+
+        const suffix = isToday ? " ‧ Today" : isTomorrow ? " ‧ Tomorrow" : "";
 
         return (
             <div className="tasks">
