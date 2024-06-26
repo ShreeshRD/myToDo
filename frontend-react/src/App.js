@@ -1,5 +1,7 @@
 import Sidebar from "./components/layout/Sidebar";
 import Upcoming from "./Upcoming";
+import Today from "./Today";
+import Completed from "./Completed"
 import ComingSoon from "./ComingSoon";
 import CreateTaskPopup from "./components/CreateTaskPopup";
 import React, { useState, useEffect } from "react";
@@ -42,6 +44,8 @@ function App() {
 	const [completedTasks, setCompletedTasks] = useState([]);
 	const [overdueTasks, setOverdueTasks] = useState({ overdue: [] });
 	const [startDate, setStartDate] = useState(dayjs());
+	const [completedDate, setCompletedDate] = useState(dayjs().subtract(7, 'day'));
+	const dummySetDate = () => { };
 
 	const callPopup = (date) => {
 		setPopupDate(date);
@@ -63,7 +67,7 @@ function App() {
 		try {
 			const response = await getTasks("bydate");
 			setTaskDays(response.itemsByDate);
-			const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
+			const today = dayjs().format("YYYY-MM-DD")
 
 			const newCompletedTasks = {};
 			const newOverdueTasks = { overdue: [] };
@@ -85,6 +89,7 @@ function App() {
 			}
 			setCompletedTasks(newCompletedTasks);
 			setOverdueTasks(newOverdueTasks);
+			// console.log(overdueTasks);
 		} catch (error) {
 			console.error("Error fetching tasks:", error);
 		}
@@ -159,7 +164,7 @@ function App() {
 			const updatedTaskDays = { ...taskDays };
 			updatedTaskDays[destDate] ??= [];
 			const newTasks = updatedTaskDays[destDate];
-			const [removed] = overdueTasks.splice(result.source.index, 1);
+			const [removed] = overdueTasks.overdue.splice(result.source.index, 1);
 			removed.taskDate = destDate;
 			newTasks.splice(result.destination.index, 0, removed);
 			newTasks.forEach((task, index) => {
@@ -229,21 +234,51 @@ function App() {
 				<Sidebar setShowPopup={setShowPopup} show={showSidebar} setDarkMode={setDarkMode} darkmode={darkMode} setViewPage={setViewPage} />
 				{showPopup && (<CreateTaskPopup setTrigger={setShowPopup} onPopupClose={onPopupClose} date={popupDate} />)}
 				<div className={`content${showSidebar ? '' : ' hidden'}${darkMode ? ' dark' : ''}`}>
-					<Header darkmode={darkMode} useDate={startDate} setDate={setStartDate} viewPage={viewPage} />
-					{viewPage === 'Upcoming' ? (<Upcoming
-						showPopup={showPopup}
-						darkMode={darkMode}
-						callPapaPopup={callPopup}
-						updateTask={updateTask}
-						removeTask={removeTask}
-						handleDragEnd={handleDragEnd}
-						taskDays={taskDays}
-						overdueTasks={overdueTasks}
-						startDate={startDate}
-					/>) : viewPage === 'Today' ? (
-						<ComingSoon />
+					{viewPage === 'Upcoming' ? (
+						<>
+							<Header darkmode={darkMode} useDate={startDate} setDate={setStartDate} viewPage={viewPage} />
+							<Upcoming
+								showPopup={showPopup}
+								darkMode={darkMode}
+								callPapaPopup={callPopup}
+								updateTask={updateTask}
+								removeTask={removeTask}
+								handleDragEnd={handleDragEnd}
+								taskDays={taskDays}
+								overdueTasks={overdueTasks}
+								startDate={startDate}
+							/>
+						</>
+					) : viewPage === 'Today' ? (
+						<>
+							<Header darkmode={darkMode} useDate={dayjs()} setDate={dummySetDate} viewPage={viewPage} />
+							<Today
+								showPopup={showPopup}
+								darkMode={darkMode}
+								callPapaPopup={callPopup}
+								updateTask={updateTask}
+								removeTask={removeTask}
+								handleDragEnd={handleDragEnd}
+								taskDays={taskDays}
+								overdueTasks={overdueTasks}
+								startDate={dayjs()}
+							/>
+						</>
 					) : viewPage === 'Completed' ? (
-						<ComingSoon />
+						<>
+							<Header darkmode={darkMode} useDate={completedDate} setDate={setCompletedDate} viewPage={viewPage} />
+							<Completed
+								showPopup={showPopup}
+								darkMode={darkMode}
+								callPapaPopup={callPopup}
+								updateTask={updateTask}
+								removeTask={removeTask}
+								handleDragEnd={handleDragEnd}
+								taskDays={completedTasks}
+								overdueTasks={overdueTasks}
+								startDate={completedDate}
+							/>
+						</>
 					) : viewPage === 'Calendar' ? (
 						<ComingSoon />
 					) : "Something went wrong"

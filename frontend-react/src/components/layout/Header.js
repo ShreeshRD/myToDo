@@ -11,14 +11,14 @@ function Header({ darkmode, useDate, setDate, viewPage }) {
 				<h1>
 					<b>{viewPage}</b>
 				</h1>
-				<LocalizationProvider dateAdapter={AdapterDayjs}>
+				{setDate.name !== "dummySetDate" && (<LocalizationProvider dateAdapter={AdapterDayjs}>
 					<DatePicker
 						label=""
 						defaultValue={dayjs()}
 						value={useDate}
 						onChange={(newDate) => setDate(newDate)}
 					/>
-				</LocalizationProvider>
+				</LocalizationProvider>)}
 			</div>
 			<div className="headerItem">
 				<h1><b>{useDate.format('MMMM')}</b></h1>

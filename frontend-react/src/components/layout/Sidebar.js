@@ -29,7 +29,7 @@ function Sidebar({ setShowPopup, show, setDarkMode, darkmode, setViewPage }) {
         </li>
         <li onClick={() => setViewPage('Completed')}>
           <DoneAllIcon />
-          <span> Completed</span>
+          <span> Completed last week</span>
         </li>
       </ul>
     </div>

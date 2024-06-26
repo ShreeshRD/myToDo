@@ -16,12 +16,8 @@
 	<properties>
 		<java.version>21</java.version>
 	</properties>
+	<packaging>jar</packaging>
 	<dependencies>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-thymeleaf</artifactId>
-			<version>3.3.0</version>
-		</dependency>
 		<dependency>
 			<groupId>mysql</groupId>
 			<artifactId>mysql-connector-java</artifactId>

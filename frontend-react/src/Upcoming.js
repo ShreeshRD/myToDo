@@ -11,12 +11,12 @@ function Upcoming({ showPopup, darkMode, callPapaPopup, updateTask, removeTask, 
     return (
         <DragDropContext onDragEnd={handleDragEnd}>
             <div className={`weekItems ${showPopup ? 'inactive' : ''}`}>
-                {overdueTasks["overdue"].length > 0 && (
+                {overdueTasks.overdue.length > 0 && (
                     <ToDoDay
                         key={-1}
                         id={100}
                         date="Overdue"
-                        tasks={overdueTasks["overdue"]}
+                        tasks={overdueTasks.overdue}
                         updateTask={updateTask}
                         delTask={removeTask}
                         callPop={callPapaPopup}
