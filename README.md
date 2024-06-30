@@ -1,10 +1,13 @@
 Demo website:
+
 Note - Refreshing the page will reset the data.
 https://shreeshrd.github.io/myToDo/
 
 Installation notes:
 Front end and backend interact through a REST API.
-Front end is a clone of a popular To Do list app. Run it with:
+Front end is a clone of a popular To Do list app. 
+
+Run it with:
 ```
 npm i
 npm start
