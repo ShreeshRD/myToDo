@@ -67,6 +67,7 @@ function App() {
 		try {
 			const response = await getTasks("bydate");
 			setTaskDays(response.itemsByDate);
+			console.log(response.itemsByDate);
 			const today = dayjs().format("YYYY-MM-DD")
 
 			const newCompletedTasks = {};

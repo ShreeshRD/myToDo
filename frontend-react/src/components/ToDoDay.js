@@ -51,7 +51,9 @@ export default class ToDoDay extends Component {
                                                 checkedIcon={<RiCheckboxCircleFill className="checkbox_icon_checked" />}
                                             />
                                             <div className="task_label">
-                                                <span>{task.name}</span>
+                                                <span className={task.complete ? 'strikethrough' : ''}>
+                                                    {task.name}
+                                                </span>
                                             </div>
                                             <button
                                                 className="todo_delete"

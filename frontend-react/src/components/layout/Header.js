@@ -11,6 +11,8 @@ function Header({ darkmode, useDate, setDate, viewPage }) {
 				<h1>
 					<b>{viewPage}</b>
 				</h1>
+			</div>
+			<div className="headerItem">
 				{setDate.name !== "dummySetDate" && (<LocalizationProvider dateAdapter={AdapterDayjs}>
 					<DatePicker
 						label=""

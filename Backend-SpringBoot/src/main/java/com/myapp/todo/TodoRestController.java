@@ -18,7 +18,8 @@ import org.springframework.web.bind.annotation.*;
         "http://192.168.1.8:3000",
         "http://192.168.1.9:3000",
         "http://192.168.1.10:3000",
-        "http://localhost:3000"
+        "http://localhost:3000",
+        "http://localhost:3001"
 }, maxAge = 3600)
 //@CrossOrigin(origins = "*")
 @RestController

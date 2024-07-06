@@ -41,94 +41,6 @@ $generic-box-shadow: rgba(0, 0, 0, 0.1) 0px 0px 0px 1px,
 $generic-border: 1px solid #f1f1f1;
 $generic-bg: #db4c3f;
 
-/* Mixins
-  ============================================ */
-@mixin box-overlay() {
-  box-shadow: $generic-box-shadow;
-  position: absolute;
-  width: 100%;
-  z-index: 1;
-  top: 85px;
-  border-radius: 3px;
-}
-
-@mixin va($va-align: center) {
-  display: flex;
-  align-items: center;
-
-  @if $va-align !=center {
-    justify-content: left;
-  }
-
-  @else {
-    justify-content: center;
-  }
-}
-
-@mixin no-select {
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  user-select: none;
-}
-
-@mixin btn($width) {
-  width: $width;
-  background-color: $generic-bg;
-  color: #fff !important;
-  border: 1px solid transparent;
-  margin-right: 5px;
-  margin-top: 10px;
-  font-weight: bold;
-  font-size: 13px !important;
-  line-height: 17px;
-  padding: 6px 12px 7px 12px;
-  position: relative;
-  display: inline-block;
-  white-space: nowrap;
-  border-radius: 3px !important;
-  text-decoration: none !important;
-  text-align: center;
-  cursor: pointer;
-}
-
-@mixin cancel() {
-  color: #555;
-  cursor: pointer;
-  font-size: 14px;
-  margin: 2px 5px;
-}
-
-@mixin transparent-button() {
-  background-color: transparent;
-  border: 0;
-}
-
-@mixin task-item() {
-  list-style-type: none;
-  display: -webkit-box;
-  display: -ms-flexbox;
-  display: flex;
-  line-height: 18px;
-  color: #333;
-  padding-top: 10px;
-  padding-bottom: 10px;
-  font-size: 14px;
-  list-style-type: none;
-  border-bottom: 1px solid #f0f0f0;
-  padding-left: 10px;
-  cursor: pointer;
-
-  &:hover {
-    background-color: #f9f9f9;
-  }
-}
-
-@mixin mq($from) {
-  @media (max-width: $from) {
-    @content;
-  }
-}
-
 /* App
   ============================================ */
 .App {
@@ -169,12 +81,12 @@ $generic-bg: #db4c3f;
   border-bottom: 2px solid #eeeeee;
   width: 100%;
   padding-bottom: 10px;
-  top: 0;
   transition: all 0.3s;
+  height: 105px;
+  align-items: center;
+  padding-top: 20px;
 
   h1 {
-    padding-top: 35px;
-    padding-bottom: 10px;
     text-align: left;
   }
 }
@@ -270,21 +182,6 @@ li {
   }
 }
 
-/* MUI Icons
-  ============================================ */
-.add-icon {
-  color: blue;
-}
-
-// .checkbox_icon_unchecked {}
-
-// .checkbox_icon_hover {}
-
-.checkbox_icon_checked {
-  color: blue;
-}
-
-
 /* ToDoItems
   ============================================ */
 .weekItems {
@@ -292,17 +189,19 @@ li {
   overflow-x: auto;
   overflow-y: auto;
   white-space: nowrap;
-  height: calc(100vh - 165px)
+  height: calc(100vh - 105px)
 }
 
 .tasks {
   padding: 0px 7px;
-  padding-top: 0px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
 }
 
-.task_items {
-  height: calc(100% - 60px);
-}
+// .task_items {
+//   height: calc(100% - 60px);
+// }
 
 .tasks_footer {
   display: contents;
@@ -312,6 +211,9 @@ li {
 .tasks_footer.dark {
   color: #eeeeee; //Dark
 }
+
+/* ToDo Item
+============================================ */
 
 .todo_item {
   padding: 10px 7px;
@@ -327,7 +229,7 @@ li {
   box-shadow: 0 2px 4px 0 rgba(0, 0, 0, .04);
   border-radius: 7px;
   justify-content: space-between;
-  cursor: default;
+  cursor: grab;
   background-color: rgb(255, 255, 255);
 }
 
@@ -353,6 +255,20 @@ li {
   background-color: rgb(155, 82, 82);
 }
 
+/* Checkbox */
+.add-icon {
+  color: blue;
+}
+
+// .checkbox_icon_unchecked {}
+
+// .checkbox_icon_hover {}
+
+.checkbox_icon_checked {
+  color: blue;
+}
+
+/* Delete */
 .todo_delete {
   visibility: hidden;
   display: contents;
@@ -369,18 +285,17 @@ li {
   /* Change the color of the icon to red on hover */
 }
 
+/* Text / Task title */
 .task_label {
   white-space: normal;
   overflow: hidden;
   text-overflow: ellipsis;
   width: 100%;
-  cursor: default;
   padding-left: 4px;
 }
 
-.MuiCheckbox-root:hover {
-  cursor: pointer;
-  /* Set the cursor to pointer when hovering over the Checkbox */
+.strikethrough {
+  text-decoration: line-through;
 }
 
 .inactive {
