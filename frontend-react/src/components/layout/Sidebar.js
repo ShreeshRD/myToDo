@@ -3,8 +3,13 @@ import { MdCalendarViewWeek } from "react-icons/md";
 import AddIcon from "@mui/icons-material/Add";
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
+import { CiHashtag } from "react-icons/ci";
+import { IoIosArrowDown } from "react-icons/io";
+import './sidebar.scss'
+import { useState } from "react";
 
-function Sidebar({ setShowPopup, show, setDarkMode, darkmode, setViewPage }) {
+function Sidebar({ setShowPopup, show, setDarkMode, darkmode, setViewPage, projects }) {
+  const [dropdown, setDropdown] = useState(true);
   return (
     <div className={`sidebar${show ? '' : ' hidden'}${darkmode ? ' dark' : ''}`}>
       <button className="darkmodeButton" onClick={() => setDarkMode(!darkmode)}>
@@ -31,6 +36,12 @@ function Sidebar({ setShowPopup, show, setDarkMode, darkmode, setViewPage }) {
           <DoneAllIcon />
           <span> Completed last week</span>
         </li>
+      </ul>
+      <ul className="sidebar__projects">
+        <div>My Projects<span style={{ cursor: 'pointer' }}><AddIcon /> <IoIosArrowDown onClick={() => setDropdown(!dropdown)} /></span></div>
+        {dropdown && (projects.map((project, index) => (
+          <li key={index}><CiHashtag /> {project}</li>
+        )))}
       </ul>
     </div>
   );

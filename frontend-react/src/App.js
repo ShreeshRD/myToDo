@@ -8,9 +8,11 @@ import React, { useState, useEffect } from "react";
 import { BsLayoutSidebar } from "react-icons/bs";
 import Header from "./components/layout/Header";
 import dayjs from "dayjs";
-import { getTasks, updateField, deleteTask } from "./service";
+import { getTasks, updateField, deleteTask, addTask } from "./service";
 
 function App() {
+	//TODO
+	const projects = ["Home", "Office", "Personal"];
 	// UI modes
 	const [showSidebar, setShowSidebar] = useState(() => {
 		const savedShowSidebar = localStorage.getItem('showSidebar');
@@ -56,8 +58,9 @@ function App() {
 		fetchTasks();
 	}, []);
 
-	const onPopupClose = (updated = false) => {
-		if (updated) {
+	const onPopupClose = async (taskName, dateChoice, projectChoice = "None", priority = 0, repeatType = "NONE", repeatDuration = 0) => {
+		if (taskName.trim() !== '') {
+			await addTask(taskName, dateChoice, projectChoice, priority, repeatType, repeatDuration);
 			fetchTasks();
 		}
 		setPopupDate("");
@@ -66,16 +69,16 @@ function App() {
 	const fetchTasks = async () => {
 		try {
 			const response = await getTasks("bydate");
-			setTaskDays(response.itemsByDate);
-			console.log(response.itemsByDate);
+			// setTaskDays(response.itemsByDate);
 			const today = dayjs().format("YYYY-MM-DD")
 
 			const newCompletedTasks = {};
 			const newOverdueTasks = { overdue: [] };
+			const newTaskDays = {};
 			for (const date in response.itemsByDate) {
+				const tasks = response.itemsByDate[date];
 				if (date < today) {
 					// If date has passed
-					const tasks = response.itemsByDate[date];
 					tasks.forEach(task => {
 						if (task.complete) {
 							if (!newCompletedTasks[date]) {
@@ -87,10 +90,26 @@ function App() {
 						}
 					});
 				}
+				else {
+					tasks.forEach(task => {
+						if (task.complete) {
+							if (!newCompletedTasks[date]) {
+								newCompletedTasks[date] = [];
+							}
+							newCompletedTasks[date].push(task);
+						}
+						else {
+							if (!newTaskDays[date]) {
+								newTaskDays[date] = [];
+							}
+							newTaskDays[date].push(task);
+						}
+					});
+				}
 			}
 			setCompletedTasks(newCompletedTasks);
 			setOverdueTasks(newOverdueTasks);
-			// console.log(overdueTasks);
+			setTaskDays(newTaskDays);
 		} catch (error) {
 			console.error("Error fetching tasks:", error);
 		}
@@ -98,20 +117,25 @@ function App() {
 
 	const updateTask = async (id, field, value, date) => {
 		try {
-			await updateField(id, field, value);
-			if (field === "complete" && value && date < dayjs().format("YYYY-MM-DD")) {
-				const updatedOverdue = { ...overdueTasks };
-				updatedOverdue.overdue = updatedOverdue.overdue.map((task) =>
-					task.id === id ? { ...task, [field]: value } : task
-				);
-				setOverdueTasks(updatedOverdue);
-				setTimeout(() => {
-					const finalOverdue = { ...updatedOverdue };
-					finalOverdue.overdue = finalOverdue.overdue.filter(task => task.id !== id);
-					setOverdueTasks(finalOverdue);
-				}, 1000);
-			}
+			const taskItem = await updateField(id, field, value);
 			const updatedTaskDays = { ...taskDays };
+			if (field === "complete" && date < dayjs().format("YYYY-MM-DD")) {
+				const updatedOverdue = { ...overdueTasks };
+				// Change the date
+				date = dayjs().format("YYYY-MM-DD");
+				await updateField(id, "taskDate", date);
+				taskItem.taskDate = date;
+				const existingTasks = updatedTaskDays[date] || [];
+				taskItem.dayOrder = existingTasks.length + 1;
+				updatedTaskDays[date] = [...existingTasks, taskItem];
+				// Remove from overdue list
+				const finalOverdue = { ...updatedOverdue };
+				finalOverdue.overdue = finalOverdue.overdue.filter(task => task.id !== id);
+				setOverdueTasks(finalOverdue);
+			}
+			if (field === "complete" && value && taskItem.repeatType !== "NONE") {
+				addNextRepeat(taskItem);
+			}
 			updatedTaskDays[date] = updatedTaskDays[date].map((task) =>
 				task.id === id ? { ...task, [field]: value } : task
 			);
@@ -129,24 +153,85 @@ function App() {
 		}
 	}
 
+	const addNextRepeat = async (task) => {
+		const { taskDate, repeatType, repeatDuration } = task;
+		let date = dayjs(taskDate);
+
+		switch (repeatType) {
+			case "EVERY_X_DAYS":
+				date = date.add(repeatDuration, 'day');
+				break;
+			case "EVERY_X_WEEKS":
+				date = date.add(repeatDuration, 'week');
+				break;
+			case "EVERY_X_MONTHS":
+				date = date.add(repeatDuration, 'month');
+				break;
+			case "SPECIFIC_WEEKDAYS":
+				const binaryString = repeatDuration.toString(2).padStart(7, '0');
+				let nextDayFound = false;
+				while (!nextDayFound) {
+					date = date.add(1, 'day');
+					const dayIndex = (date.day() + 6) % 7;
+					if (binaryString[dayIndex] === '1') {
+						nextDayFound = true;
+					}
+				}
+				break;
+			default:
+				break;
+		}
+
+		const newDate = date.format('YYYY-MM-DD');
+		task.taskDate = newDate;
+
+		try {
+			await addTask(task.name, newDate, task.category, task.priority, repeatType, repeatDuration);
+			// addTasktoFront(task);
+			fetchTasks();
+		} catch (error) {
+			console.error('Error adding task:', error);
+		}
+	};
+
+	const addTasktoFront = (task) => {
+		console.log(task.taskDate)
+		const updatedTaskDays = { ...taskDays };
+		const existingTasks = updatedTaskDays[task.taskDate] || [];
+		task.dayOrder = existingTasks.length + 1;
+		updatedTaskDays[task.taskDate] = [...existingTasks, task];
+		setTaskDays(updatedTaskDays);
+	}
+
 	const removeTask = async (taskId, date) => {
 		try {
-			const success = await deleteTask(taskId);
-			if (success) {
+			const task_completed = await deleteTask(taskId);
+			console.log("Deleted:", task_completed, date, dayjs().format("MM-DD"))
+			if (task_completed) {
+				const newCompletedTasks = { ...completedTasks };
+				newCompletedTasks[date] = newCompletedTasks[date].filter((task) => task.id !== taskId);
+				newCompletedTasks[date].forEach((task, index) => {
+					task.dayOrder = index + 1;
+					updateBackend(task.id, "dayOrder", index + 1);
+				});
+				setCompletedTasks(newCompletedTasks);
+			}
+			else {
 				if (date < dayjs().format("YYYY-MM-DD")) {
+					console.log("Deleting", taskId);
 					const updatedOverdue = overdueTasks;
 					updatedOverdue.overdue = updatedOverdue.overdue.filter((task) => task.id !== taskId);
 					setOverdueTasks(updatedOverdue);
 				}
-				const updatedTaskDays = { ...taskDays };
-				updatedTaskDays[date] = updatedTaskDays[date].filter((task) => task.id !== taskId);
-				updatedTaskDays[date].forEach((task, index) => {
-					task.dayOrder = index + 1;
-					updateBackend(task.id, "dayOrder", index + 1);
-				});
-				setTaskDays(updatedTaskDays);
-			} else {
-				console.log('Failed to delete task');
+				else {
+					const updatedTaskDays = { ...taskDays };
+					updatedTaskDays[date] = updatedTaskDays[date].filter((task) => task.id !== taskId);
+					updatedTaskDays[date].forEach((task, index) => {
+						task.dayOrder = index + 1;
+						updateBackend(task.id, "dayOrder", index + 1);
+					});
+					setTaskDays(updatedTaskDays);
+				}
 			}
 		} catch (error) {
 			console.error(`Error deleting task with id ${taskId}:`, error);
@@ -232,8 +317,8 @@ function App() {
 				<button className={`sidebarButton${showSidebar ? '' : ' hidden'}`} onClick={() => setShowSidebar(!showSidebar)}>
 					<BsLayoutSidebar className={`sidebarIcon${darkMode ? ' dark' : ''}`} />
 				</button>
-				<Sidebar setShowPopup={setShowPopup} show={showSidebar} setDarkMode={setDarkMode} darkmode={darkMode} setViewPage={setViewPage} />
-				{showPopup && (<CreateTaskPopup setTrigger={setShowPopup} onPopupClose={onPopupClose} date={popupDate} />)}
+				<Sidebar setShowPopup={setShowPopup} show={showSidebar} setDarkMode={setDarkMode} darkmode={darkMode} setViewPage={setViewPage} projects={projects} />
+				{showPopup && (<CreateTaskPopup setTrigger={setShowPopup} onPopupClose={onPopupClose} date={popupDate} projects={projects} />)}
 				<div className={`content${showSidebar ? '' : ' hidden'}${darkMode ? ' dark' : ''}`}>
 					{viewPage === 'Upcoming' ? (
 						<>

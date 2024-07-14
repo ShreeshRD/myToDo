@@ -42,11 +42,32 @@ public class TodoRestController {
         return repository.findAll();
     }
 
+//    @PostMapping("/add")
+//    public @ResponseBody Result addItem(@RequestParam String category, @RequestParam String name, @RequestParam LocalDate taskDate) {
+//        List<TodoItem> existingTasks = repository.findByTaskDate(taskDate);
+//        int nextOrder = existingTasks.size() + 1;
+//        TodoItem item = new TodoItem(taskDate, nextOrder, category, name);
+//        TodoItem saved = repository.save(item);
+//        return new Result("Added", saved);
+//    }
+
     @PostMapping("/add")
-    public @ResponseBody Result addItem(@RequestParam String category, @RequestParam String name, @RequestParam LocalDate taskDate) {
+    public @ResponseBody Result addItem(
+            @RequestParam String category,
+            @RequestParam String name,
+            @RequestParam LocalDate taskDate,
+            @RequestParam(required = false) TodoItem.RepeatPattern repeatType,
+            @RequestParam(required = false) Integer repeatDuration,
+            @RequestParam(required = false) Integer priority) {
+
         List<TodoItem> existingTasks = repository.findByTaskDate(taskDate);
         int nextOrder = existingTasks.size() + 1;
+
         TodoItem item = new TodoItem(taskDate, nextOrder, category, name);
+        item.setRepeatType(repeatType != null ? repeatType : TodoItem.RepeatPattern.NONE);
+        item.setRepeatDuration(repeatDuration != null ? repeatDuration : 0);
+        item.setPriority(priority != null ? priority : 0);
+
         TodoItem saved = repository.save(item);
         return new Result("Added", saved);
     }
@@ -74,6 +95,15 @@ public class TodoRestController {
                 case "complete":
                     item.setComplete(Boolean.parseBoolean(value));
                     break;
+                case "priority":
+                    item.setPriority(Integer.parseInt(value));
+                    break;
+                case "repeatType":
+                    item.setRepeatType(TodoItem.RepeatPattern.valueOf(value));
+                    break;
+                case "repeatDuration":
+                    item.setRepeatDuration(Integer.parseInt(value));
+                    break;
                 default:
                     return new Result("Error: Invalid field", null);
             }
@@ -84,18 +114,20 @@ public class TodoRestController {
     }
 
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        try {
-            repository.deleteById(id);
-            return ResponseEntity.noContent().build(); // Successful deletion
-        } catch (Exception e) {
-            System.err.println("Error deleting item: " + e.getMessage());
-            // Consider returning a more specific status code for the error
-            return ResponseEntity.badRequest().build();
+    public boolean delete(@PathVariable Long id) {
+        Optional<TodoItem> optItem = repository.findById(id);
+        if (optItem.isPresent()) {
+            TodoItem item = optItem.get();
+        repository.deleteById(id);
+        return item.isComplete(); // Successful deletion
         }
+        else {
+        System.err.println("Error deleting item: " + id);
+        }
+        return false;
     }
 
-    class Result {
+    public static class  Result {
         private String status;
         private TodoItem item;
 
@@ -124,5 +156,4 @@ public class TodoRestController {
             this.status = status;
         }
     }
-
 }

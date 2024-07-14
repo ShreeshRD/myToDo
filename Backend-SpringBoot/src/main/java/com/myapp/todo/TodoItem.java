@@ -23,6 +23,9 @@ public class TodoItem {
     private String category;
     private String name;
     private boolean complete;
+    private RepeatPattern repeatType;
+    private Integer repeatDuration;
+    private Integer priority;
 
     public TodoItem() {}
 
@@ -92,4 +95,37 @@ public class TodoItem {
         this.complete = complete;
         return;
     }
+
+    public RepeatPattern getRepeatType() {
+        return repeatType;
+    }
+
+    public void setRepeatType(RepeatPattern repeatType) {
+        this.repeatType = repeatType;
+    }
+
+    public enum RepeatPattern {
+        NONE,
+        EVERY_X_DAYS,
+        EVERY_X_WEEKS,
+        EVERY_X_MONTHS,
+        SPECIFIC_WEEKDAYS
+    }
+
+    public Integer getRepeatDuration() {
+        return repeatDuration;
+    }
+
+    public void setRepeatDuration(Integer repeatDuration) {
+        this.repeatDuration = repeatDuration;
+    }
+
+    public Integer getPriority() {
+        return priority;
+    }
+
+    public void setPriority(Integer priority) {
+        this.priority = priority;
+    }
 }
+
