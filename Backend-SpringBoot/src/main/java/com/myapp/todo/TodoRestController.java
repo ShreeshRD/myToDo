@@ -7,21 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@CrossOrigin(origins = {
-        "http://192.168.1.1:3000",
-        "http://192.168.1.2:3000",
-        "http://192.168.1.3:3000",
-        "http://192.168.1.4:3000",
-        "http://192.168.1.5:3000",
-        "http://192.168.1.6:3000",
-        "http://192.168.1.7:3000",
-        "http://192.168.1.8:3000",
-        "http://192.168.1.9:3000",
-        "http://192.168.1.10:3000",
-        "http://localhost:3000",
-        "http://localhost:3001"
-}, maxAge = 3600)
-//@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:3000")
 @RestController
 @RequestMapping(path = "/todo")
 public class TodoRestController {
@@ -41,15 +27,6 @@ public class TodoRestController {
         Iterable<TodoItem> todoList = repository.findAll();
         return repository.findAll();
     }
-
-//    @PostMapping("/add")
-//    public @ResponseBody Result addItem(@RequestParam String category, @RequestParam String name, @RequestParam LocalDate taskDate) {
-//        List<TodoItem> existingTasks = repository.findByTaskDate(taskDate);
-//        int nextOrder = existingTasks.size() + 1;
-//        TodoItem item = new TodoItem(taskDate, nextOrder, category, name);
-//        TodoItem saved = repository.save(item);
-//        return new Result("Added", saved);
-//    }
 
     @PostMapping("/add")
     public @ResponseBody Result addItem(

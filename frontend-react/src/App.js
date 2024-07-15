@@ -5,7 +5,6 @@ import Completed from "./Completed"
 import ComingSoon from "./ComingSoon";
 import CreateTaskPopup from "./components/CreateTaskPopup";
 import React, { useState, useEffect } from "react";
-import { BsLayoutSidebar } from "react-icons/bs";
 import Header from "./components/layout/Header";
 import dayjs from "dayjs";
 import { getTasks, updateField, deleteTask, addTask } from "./service";
@@ -314,10 +313,7 @@ function App() {
 	return (
 		<div className="App">
 			<div className={`app-container${darkMode ? ' dark' : ''}`}>
-				<button className={`sidebarButton${showSidebar ? '' : ' hidden'}`} onClick={() => setShowSidebar(!showSidebar)}>
-					<BsLayoutSidebar className={`sidebarIcon${darkMode ? ' dark' : ''}`} />
-				</button>
-				<Sidebar setShowPopup={setShowPopup} show={showSidebar} setDarkMode={setDarkMode} darkmode={darkMode} setViewPage={setViewPage} projects={projects} />
+				<Sidebar setShowPopup={setShowPopup} show={showSidebar} setShowSidebar={setShowSidebar} setDarkMode={setDarkMode} darkmode={darkMode} setViewPage={setViewPage} projects={projects} />
 				{showPopup && (<CreateTaskPopup setTrigger={setShowPopup} onPopupClose={onPopupClose} date={popupDate} projects={projects} />)}
 				<div className={`content${showSidebar ? '' : ' hidden'}${darkMode ? ' dark' : ''}`}>
 					{viewPage === 'Upcoming' ? (

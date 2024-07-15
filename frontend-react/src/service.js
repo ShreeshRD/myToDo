@@ -1,14 +1,6 @@
 import axios from "axios";
 
 const API_URL = "http://localhost:8080/todo";
-// const API_URL = "http://192.168.1.2:8080/todo";
-// const API_URL = "http://192.168.1.3:8080/todo";
-// const API_URL = "http://192.168.1.4:8080/todo";
-// const API_URL = "http://192.168.1.5:8080/todo";
-// const API_URL = "http://192.168.1.6:8080/todo";
-// const API_URL = "http://192.168.1.7:8080/todo";
-// const API_URL = "http://192.168.1.8:8080/todo";
-// const API_URL = "http://192.168.1.9:8080/todo";
 
 export const getTasks = (more = "") => {
 	return axios.get(API_URL + "/all" + more)

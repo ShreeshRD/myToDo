@@ -3,17 +3,21 @@ import { MdCalendarViewWeek } from "react-icons/md";
 import AddIcon from "@mui/icons-material/Add";
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
+import { BsLayoutSidebar } from "react-icons/bs";
 import { CiHashtag } from "react-icons/ci";
 import { IoIosArrowDown } from "react-icons/io";
 import './sidebar.scss'
 import { useState } from "react";
 
-function Sidebar({ setShowPopup, show, setDarkMode, darkmode, setViewPage, projects }) {
+function Sidebar({ setShowPopup, show, setShowSidebar, setDarkMode, darkmode, setViewPage, projects }) {
   const [dropdown, setDropdown] = useState(true);
   return (
     <div className={`sidebar${show ? '' : ' hidden'}${darkmode ? ' dark' : ''}`}>
       <button className="darkmodeButton" onClick={() => setDarkMode(!darkmode)}>
         <DarkModeIcon className={`darkmodeIcon${darkmode ? ' dark' : ''}`} />
+      </button>
+      <button className={`sidebarButton${show ? '' : ' hidden'}`} onClick={() => setShowSidebar(!show)}>
+        <BsLayoutSidebar className={`sidebarIcon${darkmode ? ' dark' : ''}`} />
       </button>
       <ul className="sidebar__generic">
         <li onClick={() => setShowPopup(true)}>
