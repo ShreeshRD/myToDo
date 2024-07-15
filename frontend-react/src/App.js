@@ -186,26 +186,15 @@ function App() {
 
 		try {
 			await addTask(task.name, newDate, task.category, task.priority, repeatType, repeatDuration);
-			// addTasktoFront(task);
 			fetchTasks();
 		} catch (error) {
 			console.error('Error adding task:', error);
 		}
 	};
 
-	const addTasktoFront = (task) => {
-		console.log(task.taskDate)
-		const updatedTaskDays = { ...taskDays };
-		const existingTasks = updatedTaskDays[task.taskDate] || [];
-		task.dayOrder = existingTasks.length + 1;
-		updatedTaskDays[task.taskDate] = [...existingTasks, task];
-		setTaskDays(updatedTaskDays);
-	}
-
 	const removeTask = async (taskId, date) => {
 		try {
 			const task_completed = await deleteTask(taskId);
-			console.log("Deleted:", task_completed, date, dayjs().format("MM-DD"))
 			if (task_completed) {
 				const newCompletedTasks = { ...completedTasks };
 				newCompletedTasks[date] = newCompletedTasks[date].filter((task) => task.id !== taskId);
@@ -217,8 +206,7 @@ function App() {
 			}
 			else {
 				if (date < dayjs().format("YYYY-MM-DD")) {
-					console.log("Deleting", taskId);
-					const updatedOverdue = overdueTasks;
+					const updatedOverdue = { ...overdueTasks };
 					updatedOverdue.overdue = updatedOverdue.overdue.filter((task) => task.id !== taskId);
 					setOverdueTasks(updatedOverdue);
 				}
