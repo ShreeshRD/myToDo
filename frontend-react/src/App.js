@@ -40,6 +40,7 @@ function App() {
 	// Popup
 	const [showPopup, setShowPopup] = useState(false);
 	const [popupDate, setPopupDate] = useState("");
+	const [popupTaskItem, setPopupTaskItem] = useState(null);
 	// Variables
 	const [taskDays, setTaskDays] = useState([]);
 	const [completedTasks, setCompletedTasks] = useState([]);
@@ -48,8 +49,9 @@ function App() {
 	const [completedDate, setCompletedDate] = useState(dayjs().subtract(7, 'day'));
 	const dummySetDate = () => { };
 
-	const callPopup = (date) => {
+	const callPopup = (date, task = null) => {
 		setPopupDate(date);
+		setPopupTaskItem(task);
 		setShowPopup(true);
 	}
 
@@ -57,18 +59,23 @@ function App() {
 		fetchTasks();
 	}, []);
 
-	const onPopupClose = async (taskName, dateChoice, projectChoice = "None", priority = 0, repeatType = "NONE", repeatDuration = 0) => {
+	const onPopupClose = async (deleteid = -1, taskDate, taskName = '', dateChoice, projectChoice = "None", priority = 0, repeatType = "NONE", repeatDuration = 0, taskOrder = 0) => {
 		if (taskName.trim() !== '') {
-			await addTask(taskName, dateChoice, projectChoice, priority, repeatType, repeatDuration);
-			fetchTasks();
+			if (deleteid !== -1) {
+				await removeTask(deleteid, taskDate, true);
+			}
+			let task = await addTask(taskName, dateChoice, projectChoice, priority, repeatType, repeatDuration);
+			task.dayOrder = taskOrder;
+			updateBackend(task.id, "dayOrder", taskOrder);
+			addToFrontend(task);
 		}
 		setPopupDate("");
+		setPopupTaskItem(null);
 	};
 
 	const fetchTasks = async () => {
 		try {
 			const response = await getTasks("bydate");
-			// setTaskDays(response.itemsByDate);
 			const today = dayjs().format("YYYY-MM-DD")
 
 			const newCompletedTasks = {};
@@ -85,7 +92,7 @@ function App() {
 							}
 							newCompletedTasks[date].push(task);
 						} else {
-							newOverdueTasks["overdue"].push(task);
+							newOverdueTasks.overdue.push(task);
 						}
 					});
 				}
@@ -113,6 +120,24 @@ function App() {
 			console.error("Error fetching tasks:", error);
 		}
 	};
+
+	const addToFrontend = (task) => {
+		if (task.taskDate < dayjs().format("YYYY-MM-DD")) {
+			setOverdueTasks(prevTaskDays => ({
+				...prevTaskDays,
+				overdue: [...(prevTaskDays.overdue || []), task]
+			}));
+		}
+		else {
+			setTaskDays(prevTaskDays => ({
+				...prevTaskDays,
+				[task.taskDate]: [
+					...(prevTaskDays[task.taskDate] || []),
+					task
+				]
+			}));
+		}
+	}
 
 	const updateTask = async (id, field, value, date) => {
 		try {
@@ -185,23 +210,26 @@ function App() {
 		task.taskDate = newDate;
 
 		try {
-			await addTask(task.name, newDate, task.category, task.priority, repeatType, repeatDuration);
-			fetchTasks();
+			const newTask = await addTask(task.name, newDate, task.category, task.priority, repeatType, repeatDuration);
+			addToFrontend(newTask);
 		} catch (error) {
 			console.error('Error adding task:', error);
 		}
 	};
 
-	const removeTask = async (taskId, date) => {
+	const removeTask = async (taskId, date, update = false) => {
 		try {
 			const task_completed = await deleteTask(taskId);
 			if (task_completed) {
 				const newCompletedTasks = { ...completedTasks };
 				newCompletedTasks[date] = newCompletedTasks[date].filter((task) => task.id !== taskId);
-				newCompletedTasks[date].forEach((task, index) => {
-					task.dayOrder = index + 1;
-					updateBackend(task.id, "dayOrder", index + 1);
-				});
+
+				if (!update) {
+					newCompletedTasks[date].forEach((task, index) => {
+						task.dayOrder = index + 1;
+						updateBackend(task.id, "dayOrder", index + 1);
+					});
+				}
 				setCompletedTasks(newCompletedTasks);
 			}
 			else {
@@ -213,10 +241,12 @@ function App() {
 				else {
 					const updatedTaskDays = { ...taskDays };
 					updatedTaskDays[date] = updatedTaskDays[date].filter((task) => task.id !== taskId);
-					updatedTaskDays[date].forEach((task, index) => {
-						task.dayOrder = index + 1;
-						updateBackend(task.id, "dayOrder", index + 1);
-					});
+					if (!update) {
+						updatedTaskDays[date].forEach((task, index) => {
+							task.dayOrder = index + 1;
+							updateBackend(task.id, "dayOrder", index + 1);
+						});
+					}
 					setTaskDays(updatedTaskDays);
 				}
 			}
@@ -302,7 +332,7 @@ function App() {
 		<div className="App">
 			<div className={`app-container${darkMode ? ' dark' : ''}`}>
 				<Sidebar setShowPopup={setShowPopup} show={showSidebar} setShowSidebar={setShowSidebar} setDarkMode={setDarkMode} darkmode={darkMode} setViewPage={setViewPage} projects={projects} />
-				{showPopup && (<CreateTaskPopup setTrigger={setShowPopup} onPopupClose={onPopupClose} date={popupDate} projects={projects} />)}
+				{showPopup && (<CreateTaskPopup setTrigger={setShowPopup} onPopupClose={onPopupClose} date={popupDate} projects={projects} darkmode={darkMode} task={popupTaskItem} />)}
 				<div className={`content${showSidebar ? '' : ' hidden'}${darkMode ? ' dark' : ''}`}>
 					{viewPage === 'Upcoming' ? (
 						<>

@@ -26,13 +26,13 @@ function Upcoming({ showPopup, darkMode, callPapaPopup, updateTask, removeTask, 
                 {dates.map((date, index) => {
                     const tasks = taskDays[date] || [];
                     const sortedTasks = tasks.sort((a, b) => a.dayOrder - b.dayOrder);
-                    const completedTasks = sortedTasks.filter(task => !task.complete);
+                    // const completedTasks = sortedTasks.filter(task => !task.complete);
                     return (
                         <ToDoDay
                             key={index}
                             id={index}
                             date={date}
-                            tasks={completedTasks}
+                            tasks={sortedTasks}
                             updateTask={updateTask}
                             delTask={removeTask}
                             callPop={callPapaPopup}

@@ -52,11 +52,15 @@ export default class ToDoDay extends Component {
                                             {...provided.draggableProps}
                                             {...provided.dragHandleProps}
                                             ref={provided.innerRef}
+                                            onClick={() => this.props.callPop(this.props.date, task)}
                                         >
                                             <div className="todo_item_inner">
                                                 <CustomCheckbox
                                                     checked={task.complete}
-                                                    onChange={() => this.props.updateTask(task.id, "complete", !task.complete, task.taskDate)}
+                                                    onChange={(e) => {
+                                                        e.stopPropagation();
+                                                        this.props.updateTask(task.id, "complete", !task.complete, task.taskDate);
+                                                    }}
                                                     icon={<RiCheckboxBlankCircleLine className="checkbox_icon_unchecked" />}
                                                     checkedIcon={<RiCheckboxCircleFill className="checkbox_icon_checked" />}
                                                 />
@@ -67,7 +71,10 @@ export default class ToDoDay extends Component {
                                                 </div>
                                                 <button
                                                     className="todo_delete"
-                                                    onClick={() => this.props.delTask(task.id, task.taskDate)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        this.props.delTask(task.id, task.taskDate);
+                                                    }}
                                                 >
                                                     <DeleteIcon className="todo_delete_icon" />
                                                 </button>

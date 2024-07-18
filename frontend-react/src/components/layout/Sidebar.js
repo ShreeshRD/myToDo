@@ -30,7 +30,7 @@ function Sidebar({ setShowPopup, show, setShowSidebar, setDarkMode, darkmode, se
         </li>
         <li onClick={() => setViewPage('Upcoming')}>
           <MdCalendarViewWeek />
-          <span> Next 7 Days</span>
+          <span> Upcoming</span>
         </li>
         <li onClick={() => setViewPage('Calendar')}>
           <FaRegCalendarAlt />
@@ -38,7 +38,7 @@ function Sidebar({ setShowPopup, show, setShowSidebar, setDarkMode, darkmode, se
         </li>
         <li onClick={() => setViewPage('Completed')}>
           <DoneAllIcon />
-          <span> Completed last week</span>
+          <span> Completed</span>
         </li>
       </ul>
       <ul className="sidebar__projects">

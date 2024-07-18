@@ -3,13 +3,13 @@
 .sidebarButton {
     position: absolute;
     top: 1vh;
-    left: calc(18vw - 40px);
+    right: 0.4vh;
     visibility: hidden;
     transition: all 0.3s;
 }
 
 .sidebarButton.hidden {
-    left: 100vw;
+    right: -6vh;
 }
 
 .sidebarIcon {
@@ -27,7 +27,7 @@
 .darkmodeButton {
     position: absolute;
     top: 1vh;
-    left: calc(18vw - 80px);
+    right: calc(0.4vh + 35px);
     visibility: hidden;
 }
 
@@ -53,7 +53,7 @@
 }
 
 .sidebar.hidden {
-    left: -100%;
+    left: -18vw;
 }
 
 .sidebar.dark {

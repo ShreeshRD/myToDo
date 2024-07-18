@@ -13,16 +13,19 @@ export default class CreateTaskPopup extends Component {
     const initialDate = props.date
       ? dayjs(props.date)
       : dayjs();
-    this.state = {
+    let initialState = {
+      poptype: "Add Task",
       taskName: '',
+      taskID: -1,
+      taskDate: initialDate,
       selectedDate: initialDate,
       selectedProject: 'Project',
       selectedPriority: 'Priority',
       priorities: ["P0", "P1", "P2", "P3", "P4"],
       repeatType: "Repeat Type",
-      repeatOptions: ["Off", "Every X days", "Every X weeks", "Every X months", "Specific weekdays"],
+      repeatOptions: ["Off", "Every X Days", "Every X Weeks", "Every X Months", "Specific Weekdays"],
       repeatDuration: '',
-      repeatCustom: 0,
+      repeatCustom: 1,
       error: '',
       days: [
         { day: 'Monday', checked: false },
@@ -33,11 +36,48 @@ export default class CreateTaskPopup extends Component {
         { day: 'Saturday', checked: false },
         { day: 'Sunday', checked: false },
       ],
+      order: 0,
     };
+
+    if (props.task) {
+      const task = props.task;
+      initialState = {
+        ...initialState,
+        poptype: "Update",
+        taskName: task.name,
+        taskID: task.id,
+        taskDate: task.taskDate,
+        selectedProject: task.category === "None" ? initialState.selectedProject : task.category,
+        selectedPriority: `P${task.priority}`,
+        repeatType: task.repeatType !== "NONE" ? this.formatRepeatType(task.repeatType) : initialState.repeatType,
+        repeatCustom: task.repeatType === "SPECIFIC_WEEKDAYS" ? task.repeatDuration : initialState.repeatCustom,
+        days: task.repeatType === "SPECIFIC_WEEKDAYS" ? this.processCustomRepeat(task.repeatDuration, initialState.days) : initialState.days,
+        repeatDuration: task.repeatType === "SPECIFIC_WEEKDAYS" ? '' : task.repeatDuration,
+        order: task.dayOrder,
+      };
+    }
+
+    this.state = initialState;
+  }
+
+  formatRepeatType(repeatType) {
+    return repeatType
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  }
+
+  processCustomRepeat(repeatVal, days) {
+    const binaryString = repeatVal.toString(2).padStart(7, '0');
+    const updatedDays = days.map((day, index) => ({
+      ...day,
+      checked: binaryString[index] === '1'
+    }));
+    return updatedDays;
   }
 
   createTask = async () => {
-    const { taskName, selectedDate, selectedProject, selectedPriority, repeatType, repeatDuration, repeatCustom } = this.state;
+    const { taskID, taskDate, taskName, selectedDate, selectedProject, selectedPriority, repeatType, repeatDuration, repeatCustom, order } = this.state;
     const formattedDate = selectedDate.format('YYYY-MM-DD');
     const projectToPass = selectedProject === 'Project' ? 'None' : selectedProject;
     const priorityMap = {
@@ -52,15 +92,15 @@ export default class CreateTaskPopup extends Component {
     const repeatMap = {
       'Repeat Type': 'NONE',
       'Off': 'NONE',
-      'Every X days': 'EVERY_X_DAYS',
-      'Every X weeks': 'EVERY_X_WEEKS',
-      'Every X months': 'EVERY_X_MONTHS',
-      'Specific weekdays': 'SPECIFIC_WEEKDAYS'
+      'Every X Days': 'EVERY_X_DAYS',
+      'Every X Weeks': 'EVERY_X_WEEKS',
+      'Every X Months': 'EVERY_X_MONTHS',
+      'Specific Weekdays': 'SPECIFIC_WEEKDAYS'
     };
     let repeatTypeValue = repeatMap[repeatType];
     let repeatDurationInt = repeatTypeValue === 'NONE' ? 0 : repeatDuration === '' ? 1 : parseInt(repeatDuration, 10);
     repeatDurationInt = repeatTypeValue === 'SPECIFIC_WEEKDAYS' ? repeatCustom : repeatDurationInt;
-    this.props.onPopupClose(taskName, formattedDate, projectToPass, priorityValue, repeatTypeValue, repeatDurationInt);
+    this.props.onPopupClose(taskID, taskDate, taskName, formattedDate, projectToPass, priorityValue, repeatTypeValue, repeatDurationInt, order);
     this.props.setTrigger(false);
     this.setState({ taskName: '', selectedDate: dayjs() });
   };
@@ -87,8 +127,7 @@ export default class CreateTaskPopup extends Component {
   };
 
   handleClosePopup = () => {
-    const { selectedDate } = this.state;
-    this.props.onPopupClose('', selectedDate);
+    this.props.onPopupClose();
     this.props.setTrigger(false);
   }
 
@@ -140,7 +179,7 @@ export default class CreateTaskPopup extends Component {
   render() {
     return (
       <div className="taskPopup">
-        <div className="createTask addShadow">
+        <div className={`createTask${this.props.darkmode ? ' dark' : ''}`}>
           <div className="date-component">
             <DateComponent selectedDate={this.state.selectedDate} handler={this.handleDateChange} />
           </div>
@@ -159,7 +198,7 @@ export default class CreateTaskPopup extends Component {
             <Dropdown placeholder={this.state.selectedProject} items={this.props.projects} handler={this.handleProjectSelect} />
             <Dropdown placeholder={this.state.selectedPriority} items={this.state.priorities} handler={this.handlePrioritySelect} />
             <Dropdown placeholder={this.state.repeatType} items={this.state.repeatOptions} handler={this.handleRepeatTypeSelect} />
-            {this.state.repeatType !== "Repeat Type" && this.state.repeatType !== "Off" && this.state.repeatType !== "Specific weekdays" && (
+            {this.state.repeatType !== "Repeat Type" && this.state.repeatType !== "Off" && this.state.repeatType !== "Specific Weekdays" && (
               <input
                 type="text"
                 className="no-background"
@@ -169,12 +208,12 @@ export default class CreateTaskPopup extends Component {
               />
             )}
             {this.state.error && <p className="error">{this.state.error}</p>}
-            {this.state.repeatType === "Specific weekdays" && (<div className="weekday-picker">
+            {this.state.repeatType === "Specific Weekdays" && (<div className="weekday-picker">
               {this.state.days.map((day, index) => (
                 <CustomCheckbox
                   key={day.day}
                   checked={day.checked}
-                  onChange={() => this.handleDayChange(index)}
+                  onChange={() => { this.handleDayChange(index); }}
                   icon={<FaRegCircle className="checkbox_icon_unchecked" />}
                   checkedIcon={<FaCircle className="checkbox_icon_checked" />}
                   letter={day.day[0]}
@@ -184,12 +223,12 @@ export default class CreateTaskPopup extends Component {
           </div>
           <div className="bottom-btns">
             <button
-              className="btn cancel-btn mx-2"
+              className={`btn cancel-btn${this.props.darkmode ? ' dark' : ''}`}
               onClick={this.handleClosePopup}
             >
               Cancel
             </button>
-            <button onClick={this.createTask} className="btn btn-primary">Add Task</button>
+            <button onClick={this.createTask} className="btn btn-primary add-btn">{this.state.poptype}</button>
           </div>
         </div>
       </div>

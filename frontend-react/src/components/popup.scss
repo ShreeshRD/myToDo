@@ -23,11 +23,10 @@
     height: 35vh;
     border-radius: 10px;
     z-index: 1;
+    box-shadow: rgba(0, 0, 0, 0.3) 0px 3px 8px;
 
-    .close-btn {
-        position: absolute;
-        top: 16px;
-        right: 16px;
+    &.dark {
+        background-color: #b1b0b0;
     }
 }
 
@@ -93,16 +92,23 @@
     bottom: 16px;
     right: 16px;
     white-space: nowrap;
+    width: 176px;
 }
 
 .cancel-btn {
     border: 1px solid grey;
+    margin-right: 8px;
+    width: 80px;
+
+    &:hover {
+        background-color: #b1b0b0;
+
+        &.dark {
+            background-color: rgb(108, 117, 125);
+        }
+    }
 }
 
-.cancel-btn:hover {
-    background-color: #b1b0b0;
-}
-
-.hide-btn {
-    display: contents;
+.add-btn {
+    width: 88px;
 }

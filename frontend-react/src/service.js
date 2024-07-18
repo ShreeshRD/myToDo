@@ -43,9 +43,10 @@ export const addTask = async (task, tdate, category = "None", priority = 0, repe
 				repeatDuration: repeatDuration,
 			},
 		});
-		// console.log('Task added successfully:', response.data);
+		return response.data.item;
 	} catch (error) {
 		console.error('Error adding task:', error);
+		return false;
 	}
 }
 
