@@ -22,8 +22,6 @@ export const updateField = async (id, field, value) => {
 				value: value.toString(),
 			},
 		});
-		if (field != "dayOrder")
-			console.log('Task updated successfully:', field, value);
 		return response.data.item;
 	} catch (error) {
 		console.error(`Error updating task with id ${id}:`, error);

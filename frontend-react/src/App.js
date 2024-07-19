@@ -61,12 +61,12 @@ function App() {
 
 	const onPopupClose = async (deleteid = -1, taskDate, taskName = '', dateChoice, projectChoice = "None", priority = 0, repeatType = "NONE", repeatDuration = 0, taskOrder = 0) => {
 		if (taskName.trim() !== '') {
+			let task = await addTask(taskName, dateChoice, projectChoice, priority, repeatType, repeatDuration);
 			if (deleteid !== -1) {
 				await removeTask(deleteid, taskDate, true);
+				task.dayOrder = taskOrder;
+				updateBackend(task.id, "dayOrder", taskOrder);
 			}
-			let task = await addTask(taskName, dateChoice, projectChoice, priority, repeatType, repeatDuration);
-			task.dayOrder = taskOrder;
-			updateBackend(task.id, "dayOrder", taskOrder);
 			addToFrontend(task);
 		}
 		setPopupDate("");
