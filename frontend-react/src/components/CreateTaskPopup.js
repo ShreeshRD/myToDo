@@ -52,7 +52,7 @@ export default class CreateTaskPopup extends Component {
         repeatType: task.repeatType !== "NONE" ? this.formatRepeatType(task.repeatType) : initialState.repeatType,
         repeatCustom: task.repeatType === "SPECIFIC_WEEKDAYS" ? task.repeatDuration : initialState.repeatCustom,
         days: task.repeatType === "SPECIFIC_WEEKDAYS" ? this.processCustomRepeat(task.repeatDuration, initialState.days) : initialState.days,
-        repeatDuration: task.repeatType === "SPECIFIC_WEEKDAYS" ? '' : task.repeatDuration,
+        repeatDuration: task.repeatType === "SPECIFIC_WEEKDAYS" ? '' : (task.repeatDuration === 0 ? '' : task.repeatDuration),
         order: task.dayOrder,
       };
     }
@@ -207,7 +207,6 @@ export default class CreateTaskPopup extends Component {
                 onChange={this.handleDurationChange}
               />
             )}
-            {this.state.error && <p className="error">{this.state.error}</p>}
             {this.state.repeatType === "Specific Weekdays" && (<div className="weekday-picker">
               {this.state.days.map((day, index) => (
                 <CustomCheckbox
@@ -230,6 +229,7 @@ export default class CreateTaskPopup extends Component {
             </button>
             <button onClick={this.createTask} className="btn btn-primary add-btn">{this.state.poptype}</button>
           </div>
+          {this.state.error && <p className="myerror">{this.state.error}</p>}
         </div>
       </div>
     )
