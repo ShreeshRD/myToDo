@@ -8,9 +8,11 @@ import { CiHashtag } from "react-icons/ci";
 import { IoIosArrowDown } from "react-icons/io";
 import './sidebar.scss'
 import { useState } from "react";
+import { useTasks } from "../../contexts/TaskContext";
 
-function Sidebar({ setShowPopup, show, setShowSidebar, setDarkMode, darkmode, setViewPage, projects }) {
+function Sidebar({ show, setShowSidebar, setDarkMode, darkmode, setViewPage, projects }) {
   const [dropdown, setDropdown] = useState(true);
+  const { callPopup } = useTasks();
   return (
     <div className={`sidebar${show ? '' : ' hidden'}${darkmode ? ' dark' : ''}`}>
       <button className="darkmodeButton" onClick={() => setDarkMode(!darkmode)}>
@@ -20,7 +22,7 @@ function Sidebar({ setShowPopup, show, setShowSidebar, setDarkMode, darkmode, se
         <BsLayoutSidebar className={`sidebarIcon${darkmode ? ' dark' : ''}`} />
       </button>
       <ul className="sidebar__generic">
-        <li onClick={() => setShowPopup(true)}>
+        <li onClick={() => callPopup()}>
           <AddIcon className="add-icon" />
           <span> Add Task</span>
         </li>

@@ -28,6 +28,16 @@
     background-color: rgb(255, 255, 255);
 }
 
+.todo_item_box:not(.dark) {
+    background-color: rgb(255, 255, 255);
+    color: rgb(32, 32, 32);
+}
+
+.app-container:not(.dark) .todo_item_box {
+    background-color: rgb(255, 255, 255);
+    color: rgb(32, 32, 32);
+}
+
 .todo_item_box:hover {
     border-color: rgba(0, 0, 0, .2);
     box-shadow: 0 2px 8px 0 rgba(0, 0, 0, .1);
@@ -44,6 +54,10 @@
 }
 
 .todo_item_box.overdue {
+    background-color: rgb(255, 170, 170);
+}
+
+.app-container:not(.dark) .todo_item_box.overdue {
     background-color: rgb(255, 170, 170);
 }
 

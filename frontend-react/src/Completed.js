@@ -1,8 +1,10 @@
 import React from "react";
 import ToDoDay from "./components/ToDoDay";
 import { DragDropContext } from "@hello-pangea/dnd";
+import { useTasks } from "./contexts/TaskContext";
 
-function Upcoming({ showPopup, darkMode, callPapaPopup, updateTask, removeTask, handleDragEnd, taskDays, overdueTasks, startDate }) {
+function Completed() {
+    const { showPopup, darkMode, callPopup, updateTask, removeTask, handleDragEnd, completedTasks: taskDays, overdueTasks, completedDate: startDate } = useTasks();
     const dates = Array.from({ length: 7 }, (_, index) => {
         const date = startDate.add(index, 'day');
         return date.format('YYYY-MM-DD');
@@ -22,7 +24,7 @@ function Upcoming({ showPopup, darkMode, callPapaPopup, updateTask, removeTask, 
                             tasks={sortedTasks}
                             updateTask={updateTask}
                             delTask={removeTask}
-                            callPop={callPapaPopup}
+                            callPop={callPopup}
                             darkmode={darkMode}
                         />
                     );
@@ -32,4 +34,4 @@ function Upcoming({ showPopup, darkMode, callPapaPopup, updateTask, removeTask, 
     )
 }
 
-export default Upcoming
+export default Completed

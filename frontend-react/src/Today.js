@@ -1,8 +1,10 @@
 import React from "react";
 import ToDoDay from "./components/ToDoDay";
 import { DragDropContext } from "@hello-pangea/dnd";
+import { useTasks } from "./contexts/TaskContext";
 
-function Today({ showPopup, darkMode, callPapaPopup, updateTask, removeTask, handleDragEnd, taskDays, overdueTasks, startDate }) {
+function Today() {
+    const { showPopup, darkMode, callPopup, updateTask, removeTask, handleDragEnd, taskDays, overdueTasks, startDate } = useTasks();
     const date = startDate.format('YYYY-MM-DD');
     const tasks = taskDays[date] || [];
     const sortedTasks = tasks.sort((a, b) => a.dayOrder - b.dayOrder);
@@ -18,7 +20,7 @@ function Today({ showPopup, darkMode, callPapaPopup, updateTask, removeTask, han
                         tasks={overdueTasks.overdue}
                         updateTask={updateTask}
                         delTask={removeTask}
-                        callPop={callPapaPopup}
+                        callPop={callPopup}
                         darkmode={darkMode}
                     />
                 )}
@@ -29,7 +31,7 @@ function Today({ showPopup, darkMode, callPapaPopup, updateTask, removeTask, han
                     tasks={sortedTasks}
                     updateTask={updateTask}
                     delTask={removeTask}
-                    callPop={callPapaPopup}
+                    callPop={callPopup}
                     darkmode={darkMode}
                 />
             </div>
