@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:8080/todo";
+const API_URL = `${process.env.REACT_APP_BACKEND_URL}`;
 
 export const getTasks = (more = "") => {
 	return axios.get(API_URL + "/all" + more)
