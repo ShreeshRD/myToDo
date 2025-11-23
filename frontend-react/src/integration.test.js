@@ -4,27 +4,39 @@ import App from './App';
 import dayjs from 'dayjs';
 
 // Explicitly mock useUIState before importing TaskProvider
-jest.mock('./hooks/useUIState', () => {
-  return jest.fn(() => ({
+jest.mock('./hooks/useUIState', () => ({
+  __esModule: true,
+  default: () => ({
     showSidebar: true,
     setShowSidebar: jest.fn(),
     darkMode: false,
     setDarkMode: jest.fn(),
     viewPage: 'Today',
     setViewPage: jest.fn()
-  }));
-});
+  })
+}));
 
 // Explicitly mock useTaskManagement before importing TaskProvider
-jest.mock('./hooks/useTaskManagement', () => {
-  const useState = React.useState; // Use React's useState for the mock
-  return jest.fn(() => {
-    const [tasks, setTasks] = useState([]);
-    const [completedTasks, setCompletedTasks] = useState([]);
-    const [itemsByDate, setItemsByDate] = useState({});
-
-    const addTask = (name, taskDate) => {
-        const newTask = {
+jest.mock('./hooks/useTaskManagement', () => ({
+  __esModule: true,
+  default: jest.fn().mockReturnValue({
+    tasks: [],
+    setTasks: jest.fn(),
+    taskDays: {},
+    setTaskDays: jest.fn(),
+    completedTasks: [],
+    setCompletedTasks: jest.fn(),
+    overdueTasks: { overdue: [] },
+    setOverdueTasks: jest.fn(),
+    itemsByDate: {},
+    setItemsByDate: jest.fn(),
+    startDate: {
+        format: () => '2023-10-26',
+        add: () => ({ format: () => '2023-10-27' })
+    },
+    setStartDate: jest.fn(),
+    addTask: jest.fn((name, taskDate) => {
+        return {
             id: Math.floor(Math.random() * 1000),
             name,
             taskDate,
@@ -35,82 +47,15 @@ jest.mock('./hooks/useTaskManagement', () => {
             dayOrder: 0,
             complete: false
         };
-        setTasks(prevTasks => [...prevTasks, newTask]);
-        setItemsByDate(prevItemsByDate => {
-            const newItemsByDate = { ...prevItemsByDate };
-            const date = newTask.taskDate;
-            if (!newItemsByDate[date]) {
-                newItemsByDate[date] = [];
-            }
-            newItemsByDate[date].push(newTask);
-            return newItemsByDate;
-        });
-        return newTask;
-    };
-
-    const removeTask = (taskId, taskDate, isComplete) => {
-        if (isComplete) {
-            setCompletedTasks(prevCompletedTasks => prevCompletedTasks.filter(task => task.id !== taskId));
-        } else {
-            setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
-            setItemsByDate(prevItemsByDate => {
-                const newItemsByDate = { ...prevItemsByDate };
-                if (newItemsByDate[taskDate]) {
-                    newItemsByDate[taskDate] = newItemsByDate[taskDate].filter(task => task.id !== taskId);
-                }
-                return newItemsByDate;
-            });
-        }
-    };
-
-    const updateTask = (updatedTask) => {
-        setTasks(prevTasks => prevTasks.map(task => task.id === updatedTask.id ? updatedTask : task));
-        setItemsByDate(prevItemsByDate => {
-            const newItemsByDate = { ...prevItemsByDate };
-            const date = updatedTask.taskDate;
-            if (newItemsByDate[date]) {
-                newItemsByDate[date] = newItemsByDate[date].map(task => task.id === updatedTask.id ? updatedTask : task);
-            }
-            return newItemsByDate;
-        });
-    };
-
-    const addToFrontend = (task) => {
-        if (!task || !task.taskDate) {
-            console.warn("Invalid task object in addToFrontend:", task);
-            return;
-        }
-        setTasks(prevTasks => [...prevTasks, task]);
-        setItemsByDate(prevItemsByDate => {
-            const newItemsByDate = { ...prevItemsByDate };
-            const date = task.taskDate;
-            if (!newItemsByDate[date]) {
-                newItemsByDate[date] = [];
-            }
-            newItemsByDate[date].push(task);
-            return newItemsByDate;
-        });
-    };
-
-    const updateBackend = jest.fn();
-    const fetchTasks = jest.fn(() => Promise.resolve({ itemsByDate: {}, completed: [] }));
-
-    return {
-        tasks,
-        setTasks,
-        completedTasks,
-        setCompletedTasks,
-        itemsByDate,
-        setItemsByDate,
-        addTask,
-        removeTask,
-        updateTask,
-        addToFrontend,
-        updateBackend,
-        fetchTasks
-    };
-  });
-});
+    }),
+    removeTask: jest.fn(),
+    updateTask: jest.fn(),
+    addToFrontend: jest.fn(),
+    updateBackend: jest.fn(),
+    fetchTasks: jest.fn(() => Promise.resolve({ itemsByDate: {}, completed: [] })),
+    handleDragEnd: jest.fn()
+  })
+}));
 
 import { TaskProvider } from './contexts/TaskContext';
 

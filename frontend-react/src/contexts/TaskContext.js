@@ -9,6 +9,7 @@ export const useTasks = () => useContext(TaskContext);
 
 export const TaskProvider = ({ children }) => {
     const taskManagement = useTaskManagement();
+    console.log('taskManagement in Context:', taskManagement);
     const { darkMode } = useUIState();
     const [showPopup, setShowPopup] = useState(false);
     const [popupDate, setPopupDate] = useState("");

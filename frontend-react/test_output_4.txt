@@ -1,0 +1,142 @@
+
+> todoist@0.1.0 test
+> react-scripts test --coverage --watchAll=false --watchAll=false
+
+PASS src/utils/taskUtils.test.js
+PASS src/utils/dateUtils.test.js
+PASS src/components/Dropdown.test.js
+PASS src/components/CustomCheckbox.test.js
+FAIL src/integration.test.js
+  ΓùÅ Test suite failed to run
+
+    Jest encountered an unexpected token
+
+    Jest failed to parse a file. This happens e.g. when your code or its dependencies use non-standard JavaScript syntax, or when Jest is not configured to support such syntax.
+
+    Out of the box Jest supports Babel, which will be used to transform your files into valid JS based on your Babel configuration.
+
+    By default "node_modules" folder is ignored by transformers.
+
+    Here's what you can do:
+     ΓÇó If you are trying to use ECMAScript Modules, see https://jestjs.io/docs/ecmascript-modules for how to enable it.
+     ΓÇó If you are trying to use TypeScript, see https://jestjs.io/docs/getting-started#using-typescript
+     ΓÇó To have some of your "node_modules" files transformed, you can specify a custom "transformIgnorePatterns" in your config.
+     ΓÇó If you need a custom transformation specify a "transform" option in your config.
+     ΓÇó If you simply want to mock your non-JS modules (e.g. binary assets) you can stub them out with the "moduleNameMapper" config option.
+
+    You'll find more details and examples of these config options in the docs:
+    https://jestjs.io/docs/configuration
+    For information about custom transformations, see:
+    https://jestjs.io/docs/code-transformation
+
+    Details:
+
+    C:\Users\Shreesh\Projects\Gemini\myToDo\frontend-react\node_modules\memoize\distribution\index.js:1
+    ({"Object.<anonymous>":function(module,exports,require,__dirname,__filename,jest){import mimicFunction from 'mimic-function';
+                                                                                      ^^^^^^
+
+    SyntaxError: Cannot use import statement outside a module
+
+      1 | import React, { useState } from 'react';
+    > 2 | import Calendar from 'react-calendar';
+        | ^
+      3 | import 'react-calendar/dist/Calendar.css';
+      4 | import { useTasks } from './contexts/TaskContext';
+      5 | import ToDoDay from './components/ToDoDay';
+
+      at Runtime.createScriptFromCode (node_modules/jest-runtime/build/index.js:1728:14)
+      at Object.<anonymous> (node_modules/get-user-locale/dist/index.js:1:1)
+      at Object.<anonymous> (node_modules/react-calendar/dist/Calendar/Navigation.js:3:1)
+      at Object.<anonymous> (node_modules/react-calendar/dist/Calendar.js:16:1)
+      at Object.<anonymous> (node_modules/react-calendar/dist/index.js:1:1)
+      at Object.<anonymous> (src/CalendarView.js:2:1)
+      at Object.<anonymous> (src/App.js:6:1)
+      at Object.<anonymous> (src/integration.test.js:3:1)
+
+FAIL src/App.test.js
+  ΓùÅ Test suite failed to run
+
+    Jest encountered an unexpected token
+
+    Jest failed to parse a file. This happens e.g. when your code or its dependencies use non-standard JavaScript syntax, or when Jest is not configured to support such syntax.
+
+    Out of the box Jest supports Babel, which will be used to transform your files into valid JS based on your Babel configuration.
+
+    By default "node_modules" folder is ignored by transformers.
+
+    Here's what you can do:
+     ΓÇó If you are trying to use ECMAScript Modules, see https://jestjs.io/docs/ecmascript-modules for how to enable it.
+     ΓÇó If you are trying to use TypeScript, see https://jestjs.io/docs/getting-started#using-typescript
+     ΓÇó To have some of your "node_modules" files transformed, you can specify a custom "transformIgnorePatterns" in your config.
+     ΓÇó If you need a custom transformation specify a "transform" option in your config.
+     ΓÇó If you simply want to mock your non-JS modules (e.g. binary assets) you can stub them out with the "moduleNameMapper" config option.
+
+    You'll find more details and examples of these config options in the docs:
+    https://jestjs.io/docs/configuration
+    For information about custom transformations, see:
+    https://jestjs.io/docs/code-transformation
+
+    Details:
+
+    C:\Users\Shreesh\Projects\Gemini\myToDo\frontend-react\node_modules\memoize\distribution\index.js:1
+    ({"Object.<anonymous>":function(module,exports,require,__dirname,__filename,jest){import mimicFunction from 'mimic-function';
+                                                                                      ^^^^^^
+
+    SyntaxError: Cannot use import statement outside a module
+
+      1 | import React, { useState } from 'react';
+    > 2 | import Calendar from 'react-calendar';
+        | ^
+      3 | import 'react-calendar/dist/Calendar.css';
+      4 | import { useTasks } from './contexts/TaskContext';
+      5 | import ToDoDay from './components/ToDoDay';
+
+      at Runtime.createScriptFromCode (node_modules/jest-runtime/build/index.js:1728:14)
+      at Object.<anonymous> (node_modules/get-user-locale/dist/index.js:1:1)
+      at Object.<anonymous> (node_modules/react-calendar/dist/Calendar/Navigation.js:3:1)
+      at Object.<anonymous> (node_modules/react-calendar/dist/Calendar.js:16:1)
+      at Object.<anonymous> (node_modules/react-calendar/dist/index.js:1:1)
+      at Object.<anonymous> (src/CalendarView.js:2:1)
+      at Object.<anonymous> (src/App.js:6:1)
+      at Object.<anonymous> (src/App.test.js:2:1)
+
+PASS src/components/DateComponent.test.js
+PASS src/components/CreateTaskPopup.test.js
+-----------------------|---------|----------|---------|---------|---------------------------------------------------------------------
+File                   | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                                                   
+-----------------------|---------|----------|---------|---------|---------------------------------------------------------------------
+All files              |   24.27 |     16.2 |   17.18 |   24.89 |                                                                     
+ src                   |    6.02 |        0 |       0 |    6.41 |                                                                     
+  App.js               |       0 |        0 |       0 |       0 | 15-37                                                               
+  CalendarView.js      |       0 |        0 |       0 |       0 | 10-34                                                               
+  ComingSoon.js        |       0 |      100 |       0 |       0 | 9                                                                   
+  Completed.js         |       0 |        0 |       0 |       0 | 7-19                                                                
+  Today.js             |       0 |        0 |       0 |       0 | 7-12                                                                
+  Upcoming.js          |       0 |        0 |       0 |       0 | 7-32                                                                
+  index.js             |       0 |      100 |     100 |       0 | 8-20                                                                
+  reportWebVitals.js   |       0 |        0 |       0 |       0 | 1-8                                                                 
+  service.js           |   20.83 |        0 |       0 |   20.83 | 6-12,17-28,33-47,52-57                                              
+ src/components        |   57.36 |    34.11 |   33.33 |   57.81 |                                                                     
+  CreateTaskPopup.js   |   70.21 |    37.73 |   34.78 |   70.96 | 57-59,64-69,101-107,116,125-126,133,137,141,145-150,155-157,201-204 
+  CustomCheckbox.js    |     100 |      100 |     100 |     100 |                                                                     
+  DateComponent.js     |     100 |    66.66 |     100 |     100 | 12                                                                  
+  Dropdown.js          |     100 |      100 |     100 |     100 |                                                                     
+  ToDoDay.js           |       0 |        0 |       0 |       0 | 12-94                                                               
+ src/components/layout |       0 |        0 |       0 |       0 |                                                                     
+  Header.js            |       0 |        0 |       0 |       0 | 8-20                                                                
+  Sidebar.js           |       0 |        0 |       0 |       0 | 14-49                                                               
+ src/contexts          |      12 |        0 |       0 |    12.5 |                                                                     
+  TaskContext.js       |      12 |        0 |       0 |    12.5 | 11-38                                                               
+ src/hooks             |    1.01 |        0 |       0 |    1.04 |                                                                     
+  useTaskManagement.js |    0.55 |        0 |       0 |    0.57 | 6-286                                                               
+  useUIState.js        |    5.88 |        0 |       0 |    5.88 | 4-29                                                                
+ src/utils             |     100 |      100 |     100 |     100 |                                                                     
+  dateUtils.js         |     100 |      100 |     100 |     100 |                                                                     
+  taskUtils.js         |     100 |      100 |     100 |     100 |                                                                     
+-----------------------|---------|----------|---------|---------|---------------------------------------------------------------------
+
+Test Suites: 2 failed, 6 passed, 8 total
+Tests:       34 passed, 34 total
+Snapshots:   0 total
+Time:        5.995 s, estimated 8 s
+Ran all test suites.
