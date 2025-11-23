@@ -91,3 +91,12 @@ li {
         justify-content: space-between;
     }
 }
+
+li.active {
+    background-color: #e6e5ff;
+    font-weight: bold;
+}
+
+.dark li.active {
+    background-color: #676767;
+}

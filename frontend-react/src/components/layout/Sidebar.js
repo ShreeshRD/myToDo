@@ -12,7 +12,7 @@ import { useTasks } from "../../contexts/TaskContext";
 
 function Sidebar({ show, setShowSidebar, setDarkMode, darkmode, setViewPage, projects }) {
   const [dropdown, setDropdown] = useState(true);
-  const { callPopup } = useTasks();
+  const { callPopup, toggleProject, selectedProjects } = useTasks();
   return (
     <div className={`sidebar${show ? '' : ' hidden'}${darkmode ? ' dark' : ''}`}>
       <button className="darkmodeButton" onClick={() => setDarkMode(!darkmode)}>
@@ -46,7 +46,13 @@ function Sidebar({ show, setShowSidebar, setDarkMode, darkmode, setViewPage, pro
       <ul className="sidebar__projects">
         <div>My Projects<span style={{ cursor: 'pointer' }}><AddIcon /> <IoIosArrowDown onClick={() => setDropdown(!dropdown)} /></span></div>
         {dropdown && (projects.map((project, index) => (
-          <li key={index}><CiHashtag /> {project}</li>
+          <li 
+            key={index} 
+            onClick={() => toggleProject(project)}
+            className={selectedProjects.includes(project) ? 'active' : ''}
+          >
+            <CiHashtag /> {project}
+          </li>
         )))}
       </ul>
     </div>
