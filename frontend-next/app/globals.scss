@@ -1,0 +1,144 @@
+// @import "./components/mycheckbox.scss";
+// @import "./components/popup.scss";
+// @import "./components/layout/header.scss";
+// @import "./components/layout/sidebar.scss";
+// @import "./components/todoitem.css";
+@import "../styles/calendar.scss";
+
+// General settings
+html {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+  user-select: none;
+}
+
+.app-container {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Apple Color Emoji", Helvetica, Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
+  color: #202020;
+  background-color: #ffffff;
+  transition: all 0.3s;
+}
+
+.app-container.dark {
+  color: #eeeeee;
+  background-color: #5a5a5a;
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+}
+
+// Variables
+$generic-box-shadow: rgba(0, 0, 0, 0.1) 0px 0px 0px 1px,
+  rgba(0, 0, 0, 0.1) 0px 4px 11px;
+$generic-border: 1px solid #f1f1f1;
+$generic-bg: #db4c3f;
+
+/* App
+============================================ */
+.App {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+.app-container {
+  display: flex;
+  width: 100%;
+}
+
+/* Content
+============================================ */
+.content {
+  margin-left: 18vw;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: 100%;
+  transition: all 0.3s;
+
+  &.hidden {
+    margin-left: 0vw;
+  }
+
+  &.dark {
+    color: #eeeeee;
+  }
+}
+
+/* ToDoDay
+============================================ */
+.weekItems {
+  display: flex;
+  overflow-x: auto;
+  overflow-y: auto;
+  white-space: nowrap;
+  height: calc(100vh - 105px);
+  
+  /* Custom scrollbar styling for webkit browsers */
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    transition: background 0.2s;
+    
+    &:hover {
+      background: rgba(0, 0, 0, 0.3);
+    }
+  }
+  
+  /* Firefox scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.05);
+}
+
+/* Dark mode scrollbar for weekItems */
+.app-container.dark .weekItems {
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  }
+  
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
+}
+
+.inactive {
+  pointer-events: none;
+}

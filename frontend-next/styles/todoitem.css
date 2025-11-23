@@ -1,0 +1,150 @@
+/* ToDo Item
+============================================ */
+.tasks {
+    padding: 0px 7px;
+    min-height: 100%;
+    height: max-content;
+}
+
+.todo_items_title {
+    margin: 8px;
+    box-sizing: border-box;
+}
+
+.todo_item_box {
+    font-size: 14px;
+    color: rgb(32, 32, 32);
+    padding: 10px 7px;
+    width: 260px;
+    margin: 8px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    border: 1px solid rgba(0, 0, 0, .12);
+    box-shadow: 0 2px 4px 0 rgba(0, 0, 0, .04);
+    border-radius: 8px;
+    justify-content: space-between;
+    cursor: grab;
+    background-color: rgb(255, 255, 255);
+}
+
+.todo_item_box:not(.dark) {
+    background-color: rgb(255, 255, 255);
+    color: rgb(32, 32, 32);
+}
+
+.app-container:not(.dark) .todo_item_box {
+    background-color: rgb(255, 255, 255);
+    color: rgb(32, 32, 32);
+}
+
+.todo_item_box:hover {
+    border-color: rgba(0, 0, 0, .2);
+    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, .1);
+}
+
+.todo_item_box.dark {
+    background-color: rgb(125, 125, 125);
+    color: #eeeeee;
+}
+
+.todo_item_box.dark:hover {
+    border-color: rgba(0, 0, 0, .5);
+    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, .25);
+}
+
+.todo_item_box.overdue {
+    background-color: rgb(255, 170, 170);
+}
+
+.app-container:not(.dark) .todo_item_box.overdue {
+    background-color: rgb(255, 170, 170);
+}
+
+.todo_item_box.dark.overdue {
+    background-color: rgb(155, 82, 82);
+}
+
+.todo_item_inner {
+    display: flex;
+}
+
+
+/* Checkbox */
+.checkbox_icon_checked {
+    color: blue;
+}
+
+/* Delete */
+.todo_delete {
+    visibility: hidden;
+    display: contents;
+    color: rgb(78, 78, 78);
+}
+
+.todo_item_box:hover .todo_delete {
+    visibility: visible;
+}
+
+.todo_delete_icon {
+    font-size: 20px !important;
+}
+
+.todo_delete:hover .todo_delete_icon {
+    color: rgb(215, 0, 0);
+    cursor: pointer;
+}
+
+/* Text / Task title */
+.task_label {
+    white-space: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    padding-left: 4px;
+}
+
+.strikethrough {
+    text-decoration: line-through;
+}
+
+/* Todo Item infobar
+===========================================*/
+.task_infobar {
+    padding: 4px 15px 0px 24px;
+    font-size: 13px;
+    color: rgb(189, 189, 189);
+    display: flex;
+    /* justify-content: space-between; */
+}
+
+.repeat_icon {
+    color: rgb(1, 228, 80);
+    font-size: large;
+    margin-left: 5px;
+}
+
+/* Tasks footer - Add Task 
+===========================================*/
+.footer_div {
+    padding: 10px 7px;
+    width: 260px;
+    margin: 8px;
+    display: flex;
+    box-sizing: border-box;
+    align-items: center;
+}
+
+.tasks_footer {
+    display: contents;
+    color: grey;
+}
+
+.tasks_footer.dark {
+    color: #eeeeee;
+}
+
+.add-icon {
+    color: blue;
+    font-size: 22px;
+}

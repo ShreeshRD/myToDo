@@ -1,0 +1,11 @@
+'use client'
+
+import MainView from '@/components/MainView';
+
+export default function Home() {
+  return (
+    <main>
+      <MainView />
+    </main>
+  );
+}

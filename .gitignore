@@ -1,5 +1,5 @@
 .idea/
 .vscode/
 frontend-react/node_modules/
-Backend-SpringBoot/target/
-Backend-SpringBoot/src/main/resources/
+# Backend-SpringBoot/target/
+# Backend-SpringBoot/src/main/resources/
