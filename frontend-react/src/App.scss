@@ -266,3 +266,32 @@ $generic-bg: #db4c3f;
   color: #888;
   padding-left: 4px;
 }
+
+/* Completed Calendar View
+============================================ */
+.completed-calendar-view {
+  .react-calendar__tile {
+    background-color: rgba(0, 0, 0, 0.02); // Slightly darker background for completed days
+  }
+
+  .calendar-task-item {
+    background-color: #a0a0a0; // Washed out gray
+    text-decoration: line-through;
+    opacity: 0.7;
+    
+    &.completed {
+        background-color: #a0a0a0; // Ensure override
+    }
+  }
+
+  &.dark {
+    .react-calendar__tile {
+        background-color: rgba(255, 255, 255, 0.02);
+    }
+    
+    .calendar-task-item {
+        background-color: #555;
+        color: #aaa;
+    }
+  }
+}

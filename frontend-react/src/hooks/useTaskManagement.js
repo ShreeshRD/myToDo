@@ -97,28 +97,80 @@ const useTaskManagement = () => {
     const updateTask = async (id, field, value, date) => {
         try {
             const taskItem = await updateField(id, field, value);
-            const updatedTaskDays = { ...taskDays };
-            if (field === "complete" && date < dayjs().format("YYYY-MM-DD")) {
-                const updatedOverdue = { ...overdueTasks };
-                // Change the date
-                date = dayjs().format("YYYY-MM-DD");
-                await updateField(id, "taskDate", date);
-                taskItem.taskDate = date;
-                const existingTasks = updatedTaskDays[date] || [];
-                taskItem.dayOrder = existingTasks.length + 1;
-                updatedTaskDays[date] = [...existingTasks, taskItem];
-                // Remove from overdue list
-                const finalOverdue = { ...updatedOverdue };
-                finalOverdue.overdue = finalOverdue.overdue.filter(task => task.id !== id);
-                setOverdueTasks(finalOverdue);
+            
+            if (field === "complete") {
+                const today = dayjs().format("YYYY-MM-DD");
+                const isOverdue = date < today;
+                
+                if (value === true) {
+                    // Task is being marked as complete
+                    // Update the task in place to show strikethrough
+                    if (isOverdue) {
+                        const updatedOverdue = { ...overdueTasks };
+                        updatedOverdue.overdue = updatedOverdue.overdue.map(task =>
+                            task.id === id ? { ...task, complete: true } : task
+                        );
+                        setOverdueTasks(updatedOverdue);
+                    } else {
+                        const updatedTaskDays = { ...taskDays };
+                        if (updatedTaskDays[date]) {
+                            updatedTaskDays[date] = updatedTaskDays[date].map(task =>
+                                task.id === id ? { ...task, complete: true } : task
+                            );
+                            setTaskDays(updatedTaskDays);
+                        }
+                    }
+                    
+                    // ALSO add to completedTasks so it appears in Completed section
+                    const updatedCompletedTasks = { ...completedTasks };
+                    if (!updatedCompletedTasks[date]) {
+                        updatedCompletedTasks[date] = [];
+                    }
+                    updatedCompletedTasks[date].push({ ...taskItem, complete: true });
+                    console.log('Adding task to completedTasks:', date, taskItem);
+                    console.log('Updated completedTasks:', updatedCompletedTasks);
+                    setCompletedTasks(updatedCompletedTasks);
+                    
+                    // Handle repeat tasks
+                    if (taskItem.repeatType !== "NONE") {
+                        addNextRepeat(taskItem);
+                    }
+                } else {
+                    // Task is being unmarked (uncompleted)
+                    // Update in place
+                    if (isOverdue) {
+                        const updatedOverdue = { ...overdueTasks };
+                        updatedOverdue.overdue = updatedOverdue.overdue.map(task =>
+                            task.id === id ? { ...task, complete: false } : task
+                        );
+                        setOverdueTasks(updatedOverdue);
+                    } else {
+                        const updatedTaskDays = { ...taskDays };
+                        if (updatedTaskDays[date]) {
+                            updatedTaskDays[date] = updatedTaskDays[date].map(task =>
+                                task.id === id ? { ...task, complete: false } : task
+                            );
+                            setTaskDays(updatedTaskDays);
+                        }
+                    }
+                    
+                    // Remove from completedTasks
+                    const updatedCompletedTasks = { ...completedTasks };
+                    if (updatedCompletedTasks[date]) {
+                        updatedCompletedTasks[date] = updatedCompletedTasks[date].filter(task => task.id !== id);
+                        setCompletedTasks(updatedCompletedTasks);
+                    }
+                }
+            } else {
+                // For non-complete field updates, just update the task in place
+                const updatedTaskDays = { ...taskDays };
+                if (updatedTaskDays[date]) {
+                    updatedTaskDays[date] = updatedTaskDays[date].map((task) =>
+                        task.id === id ? { ...task, [field]: value } : task
+                    );
+                    setTaskDays(updatedTaskDays);
+                }
             }
-            if (field === "complete" && value && taskItem.repeatType !== "NONE") {
-                addNextRepeat(taskItem);
-            }
-            updatedTaskDays[date] = updatedTaskDays[date].map((task) =>
-                task.id === id ? { ...task, [field]: value } : task
-            );
-            setTaskDays(updatedTaskDays);
         } catch (error) {
             console.error(`Error updating task with id ${id}:`, error);
         }
