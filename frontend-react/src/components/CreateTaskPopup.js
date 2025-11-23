@@ -173,14 +173,14 @@ function CreateTaskPopup({ projects, darkmode, date, task }) {
           <DateComponent selectedDate={selectedDate} handler={handleDateChange} />
         </div>
         <div className="task-text">
-          <input
-            type="text"
+          <textarea
             className="no-background"
             placeholder="Task Name"
             value={taskName}
             onChange={handleTaskNameChange}
             onKeyDown={handleInputKeyDown}
             ref={inputRef}
+            rows={3}
           />
         </div>
         <div className="task-options">

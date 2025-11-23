@@ -7,13 +7,13 @@ import CalendarView from "./CalendarView";
 import CreateTaskPopup from "./components/CreateTaskPopup";
 import React from "react";
 import Header from "./components/layout/Header";
-import useUIState from "./hooks/useUIState";
+import { useUI } from "./contexts/UIContext";
 import { useTasks } from "./contexts/TaskContext";
 import dayjs from "dayjs";
 
 function App() {
 	const projects = ["Home", "Office", "Personal"];
-	const { showSidebar, setShowSidebar, darkMode, setDarkMode, viewPage, setViewPage } = useUIState();
+	const { showSidebar, setShowSidebar, darkMode, setDarkMode, viewPage, setViewPage } = useUI();
 	const {
 		taskDays,
 		completedTasks,

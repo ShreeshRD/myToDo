@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState } from 'react';
 import useTaskManagement from '../hooks/useTaskManagement';
 import { addTask } from "../service";
-import useUIState from '../hooks/useUIState';
+import { useUI } from './UIContext';
 
 const TaskContext = createContext();
 
@@ -9,7 +9,7 @@ export const useTasks = () => useContext(TaskContext);
 
 export const TaskProvider = ({ children }) => {
     const taskManagement = useTaskManagement();
-    const { darkMode } = useUIState();
+    const { darkMode } = useUI();
     const [selectedProjects, setSelectedProjects] = useState([]);
     const [showPopup, setShowPopup] = useState(false);
     const [popupDate, setPopupDate] = useState("");

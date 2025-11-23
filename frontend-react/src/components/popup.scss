@@ -56,6 +56,15 @@
     top: 80px;
     display: flex;
     flex-direction: column;
+    width: calc(100% - 250px);
+    
+    textarea {
+        resize: vertical;
+        min-height: 60px;
+        max-height: 150px;
+        overflow-y: auto;
+        font-family: inherit;
+    }
 }
 
 .task-options {
