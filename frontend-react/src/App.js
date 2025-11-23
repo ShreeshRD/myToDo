@@ -4,6 +4,7 @@ import Today from "./Today";
 import Completed from "./Completed"
 import ComingSoon from "./ComingSoon";
 import CalendarView from "./CalendarView";
+import Search from "./Search";
 import CreateTaskPopup from "./components/CreateTaskPopup";
 import React from "react";
 import Header from "./components/layout/Header";
@@ -87,6 +88,8 @@ function App() {
 						</>
 					) : viewPage === 'Calendar' ? (
 						<CalendarView />
+					) : viewPage === 'Search' ? (
+						<Search />
 					) : "Something went wrong"
 					}
 				</div>

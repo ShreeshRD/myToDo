@@ -5,6 +5,7 @@ import DoneAllIcon from '@mui/icons-material/DoneAll';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import { BsLayoutSidebar } from "react-icons/bs";
 import { CiHashtag } from "react-icons/ci";
+import { FaSearch } from "react-icons/fa";
 import { IoIosArrowDown } from "react-icons/io";
 import './sidebar.scss'
 import { useState } from "react";
@@ -41,6 +42,10 @@ function Sidebar({ show, setShowSidebar, setDarkMode, darkmode, setViewPage, pro
         <li onClick={() => setViewPage('Completed')}>
           <DoneAllIcon />
           <span> Completed</span>
+        </li>
+        <li onClick={() => setViewPage('Search')}>
+          <FaSearch />
+          <span> Search</span>
         </li>
       </ul>
       <ul className="sidebar__projects">

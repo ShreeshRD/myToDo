@@ -20,16 +20,11 @@ function CalendarView() {
                 const sortedTasks = tasks.sort((a, b) => a.dayOrder - b.dayOrder);
                 return (
                     <div className="calendar-tasks">
-                        {sortedTasks.slice(0, 3).map((task, index) => (
+                        {sortedTasks.map((task, index) => (
                             <div key={task.id} className={`calendar-task-item ${task.complete ? 'completed' : ''}`}>
                                 {task.name}
                             </div>
                         ))}
-                        {sortedTasks.length > 3 && (
-                            <div className="calendar-task-more">
-                                +{sortedTasks.length - 3} more
-                            </div>
-                        )}
                     </div>
                 );
             }
