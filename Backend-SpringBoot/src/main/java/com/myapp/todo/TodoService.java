@@ -92,6 +92,9 @@ public class TodoService {
                 case "repeatDuration":
                     item.setRepeatDuration(Integer.parseInt(value));
                     break;
+                case "assignedTime":
+                    item.setAssignedTime(value.equals("null") ? null : java.time.LocalTime.parse(value));
+                    break;
                 default:
                     logger.warn("Invalid field update attempted: {}", field);
                     return new TodoOperationResult("Error: Invalid field", null);

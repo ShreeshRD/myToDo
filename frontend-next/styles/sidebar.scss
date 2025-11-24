@@ -6,6 +6,7 @@
     right: 0.4vh;
     visibility: hidden;
     transition: all 0.3s;
+    cursor: pointer;
 }
 
 .sidebarButton.hidden {
@@ -29,6 +30,7 @@
     top: 1vh;
     right: calc(0.4vh + 35px);
     visibility: hidden;
+    cursor: pointer;
 }
 
 .darkmodeIcon {
@@ -63,20 +65,34 @@
 
 li {
     padding: 7px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 
     &:hover {
-        cursor: pointer;
         background-color: #e6e5ff;
+    }
+
+    svg {
+        flex-shrink: 0;
     }
 }
 
 .dark {
     li {
         padding: 7px 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
 
         &:hover {
-            cursor: pointer;
             background-color: #676767;
+        }
+
+        svg {
+            flex-shrink: 0;
         }
     }
 }

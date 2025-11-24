@@ -4,8 +4,10 @@ import React, { useState, useEffect, useRef } from "react";
 import dayjs from "dayjs";
 import Dropdown from "./Dropdown";
 import DateComponent from "./DateComponent";
+import TimeComponent from "./TimeComponent";
 import CustomCheckbox from "./CustomCheckbox";
-import { FaRegCircle, FaCircle } from "react-icons/fa";
+import { FaRegCircle, FaCircle, FaFlag } from "react-icons/fa";
+import { BsArrowRepeat } from "react-icons/bs";
 import '../styles/popup.scss'
 import { useTasks } from "../contexts/TaskContext";
 import {
@@ -39,6 +41,7 @@ function CreateTaskPopup({ projects, darkmode, date, task }) {
   const [repeatType, setRepeatType] = useState("Repeat Type");
   const [repeatDuration, setRepeatDuration] = useState('');
   const [repeatCustom, setRepeatCustom] = useState(1);
+  const [assignedTime, setAssignedTime] = useState(null);
   const [error, setError] = useState('');
   const [days, setDays] = useState([...WEEKDAYS]);
   const [order, setOrder] = useState(0);
@@ -56,6 +59,7 @@ function CreateTaskPopup({ projects, darkmode, date, task }) {
       setDays(task.repeatType === "SPECIFIC_WEEKDAYS" ? processCustomRepeat(task.repeatDuration, [...WEEKDAYS]) : [...WEEKDAYS]);
       setRepeatDuration(task.repeatType === "SPECIFIC_WEEKDAYS" ? '' : (task.repeatDuration === 0 ? '' : task.repeatDuration));
       setOrder(task.dayOrder);
+      setAssignedTime(task.assignedTime && task.assignedTime !== "null" ? dayjs(`${task.taskDate}T${task.assignedTime}`) : null);
     }
   }, [task]);
 
@@ -65,8 +69,9 @@ function CreateTaskPopup({ projects, darkmode, date, task }) {
     const priorityValue = getPriorityValue(selectedPriority, PRIORITY_MAP);
     const repeatTypeValue = getRepeatTypeValue(repeatType, REPEAT_TYPE_MAP);
     const repeatDurationInt = getRepeatDuration(repeatTypeValue, repeatDuration, repeatCustom);
+    const timeToPass = assignedTime ? assignedTime.format('HH:mm:ss') : null;
 
-    onPopupClose(taskID, taskDate, taskName, formattedDate, projectToPass, priorityValue, repeatTypeValue, repeatDurationInt, order);
+    onPopupClose(taskID, taskDate, taskName, formattedDate, projectToPass, priorityValue, repeatTypeValue, repeatDurationInt, order, timeToPass);
     setTaskName('');
     setSelectedDate(dayjs());
   };
@@ -95,7 +100,7 @@ function CreateTaskPopup({ projects, darkmode, date, task }) {
   };
 
   const handleInputKeyDown = (event) => {
-    if (event.key === 'Enter') {
+    if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       createTask();
     } else if (event.key === 'Escape') {
@@ -113,6 +118,10 @@ function CreateTaskPopup({ projects, darkmode, date, task }) {
 
   const handleRepeatTypeSelect = (event) => {
     setRepeatType(event.target.textContent);
+  };
+
+  const handleTimeChange = (newTime) => {
+    setAssignedTime(newTime);
   };
 
   const handleDurationChange = (event) => {
@@ -140,11 +149,24 @@ function CreateTaskPopup({ projects, darkmode, date, task }) {
     };
   }, []);
 
+  const getPriorityIcon = () => {
+    let color = 'inherit';
+    if (selectedPriority === 'P1') color = '#d1453b';
+    if (selectedPriority === 'P2') color = '#eb8909';
+    if (selectedPriority === 'P3') color = '#246fe0';
+    if (selectedPriority === 'P4') color = 'grey';
+    return <FaFlag style={{ color, fontSize: '1.2rem' }} />;
+  };
+
+  const getRepeatIcon = () => {
+    return <BsArrowRepeat style={{ color: 'white', fontSize: '1.5rem' }} />;
+  };
+
   return (
     <div className="taskPopup">
       <div className={`createTask${darkmode ? ' dark' : ''}`}>
         <div className="date-component">
-          <DateComponent selectedDate={selectedDate} handler={handleDateChange} darkmode={darkmode} />
+          <DateComponent selectedDate={selectedDate} handler={handleDateChange} darkmode={false} />
         </div>
         <div className="task-text">
           <textarea
@@ -155,12 +177,20 @@ function CreateTaskPopup({ projects, darkmode, date, task }) {
             onKeyDown={handleInputKeyDown}
             ref={inputRef}
             rows={3}
+            maxLength={255}
           />
+          <div className="char-counter">
+            {taskName.length}/255
+          </div>
         </div>
         <div className="task-options">
           <Dropdown placeholder={selectedProject} items={projects} handler={handleProjectSelect} />
-          <Dropdown placeholder={selectedPriority} items={PRIORITIES} handler={handlePrioritySelect} />
-          <Dropdown placeholder={repeatType} items={REPEAT_OPTIONS} handler={handleRepeatTypeSelect} />
+          <div className="split-dropdowns">
+             <Dropdown placeholder={getPriorityIcon()} items={PRIORITIES} handler={handlePrioritySelect} />
+             <Dropdown placeholder={getRepeatIcon()} items={REPEAT_OPTIONS} handler={handleRepeatTypeSelect} />
+          </div>
+          <TimeComponent selectedTime={assignedTime} handler={handleTimeChange} darkmode={darkmode} />
+          
           {repeatType !== "Repeat Type" && repeatType !== "Off" && repeatType !== "Specific Weekdays" && (
             <input
               type="text"

@@ -138,6 +138,7 @@
 .tasks_footer {
     display: contents;
     color: grey;
+    cursor: pointer;
 }
 
 .tasks_footer.dark {

@@ -8,6 +8,7 @@ import CreateTaskPopup from "./CreateTaskPopup";
 import Upcoming from "./Upcoming";
 import Completed from "./Completed";
 import Search from "./Search";
+import TodayView from "./TodayView";
 import { useUI } from "../contexts/UIContext";
 import { useTasks } from "../contexts/TaskContext";
 import dayjs from "dayjs";
@@ -43,7 +44,7 @@ function MainView() {
 					) : viewPage === 'Today' ? (
 						<>
 							<Header darkmode={darkMode} useDate={dayjs()} setDate={dummySetDate} viewPage={viewPage} />
-                            <div style={{ padding: '20px' }}>Today View - Coming Soon</div>
+                            <TodayView />
 						</>
 					) : viewPage === 'Completed' ? (
 						<>

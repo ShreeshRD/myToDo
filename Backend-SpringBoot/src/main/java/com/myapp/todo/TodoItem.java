@@ -123,5 +123,16 @@ public class TodoItem {
     public void setPriority(Integer priority) {
         this.priority = priority;
     }
+
+    @JsonFormat(pattern = "HH:mm:ss")
+    private java.time.LocalTime assignedTime;
+
+    public java.time.LocalTime getAssignedTime() {
+        return assignedTime;
+    }
+
+    public void setAssignedTime(java.time.LocalTime assignedTime) {
+        this.assignedTime = assignedTime;
+    }
 }
 
