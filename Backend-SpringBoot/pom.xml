@@ -15,6 +15,7 @@
 	<description>Spring Boot, React project</description>
 	<properties>
 		<java.version>21</java.version>
+		<lombok.version>1.18.34</lombok.version>
 	</properties>
 	<packaging>jar</packaging>
 	<dependencies>

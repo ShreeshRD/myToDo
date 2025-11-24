@@ -1,16 +1,32 @@
 package com.myapp.todo.dto;
 
 import com.myapp.todo.TodoItem;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
 public class TodoOperationResult {
     private String status;
     private TodoItem item;
+
+    public TodoOperationResult() {
+    }
+
+    public TodoOperationResult(String status, TodoItem item) {
+        this.status = status;
+        this.item = item;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public TodoItem getItem() {
+        return item;
+    }
+
+    public void setItem(TodoItem item) {
+        this.item = item;
+    }
 }

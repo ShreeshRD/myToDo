@@ -1,8 +1,8 @@
 com\myapp\todo\WebConfig.class
 com\myapp\todo\TodoService.class
+com\myapp\todo\dto\TodoOperationResult.class
 com\myapp\todo\TodoApplication.class
 com\myapp\todo\TodoRestController.class
-com\myapp\todo\TodoRestController$Result.class
 com\myapp\todo\TodoItemRepository.class
 com\myapp\todo\TodoItem.class
 com\myapp\todo\TodoListViewModel.class

@@ -14,7 +14,10 @@ function Search() {
         ...Object.values(completedTasks).flat()
     ];
 
-    const filteredTasks = allTasks.filter(task => 
+    // Deduplicate tasks by ID to prevent duplicate key errors
+    const uniqueTasks = Array.from(new Map(allTasks.map(task => [task.id, task])).values());
+
+    const filteredTasks = uniqueTasks.filter(task => 
         task.name.toLowerCase().includes(query.toLowerCase())
     );
 
