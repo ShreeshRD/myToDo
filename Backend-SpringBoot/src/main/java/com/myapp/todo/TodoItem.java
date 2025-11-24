@@ -66,7 +66,6 @@ public class TodoItem {
 
     public void setName(String name) {
         this.name = name;
-        return;
     }
 
     public String getCategory() {
@@ -75,7 +74,6 @@ public class TodoItem {
 
     public void setCategory(String category) {
         this.category = category;
-        return;
     }
 
     public Long getId() {
@@ -84,7 +82,6 @@ public class TodoItem {
 
     public void setId(Long id) {
         this.id = id;
-        return;
     }
 
     public boolean isComplete() {
@@ -93,7 +90,6 @@ public class TodoItem {
 
     public void setComplete(boolean complete) {
         this.complete = complete;
-        return;
     }
 
     public RepeatPattern getRepeatType() {

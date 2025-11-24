@@ -126,4 +126,94 @@
 .myerror {
     position: absolute;
     bottom: 0;
+    color: red;
+    font-size: 12px;
+    left: 30px;
+}
+
+/* Buttons */
+.btn {
+    padding: 8px 16px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.btn-primary {
+    background-color: #007bff; /* Blue color */
+    color: white;
+
+    &:hover {
+        background-color: #0056b3;
+    }
+}
+
+.btn-secondary {
+    background-color: #6c757d; /* Dark gray for dropdowns */
+    color: white;
+    width: 100%;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    &:after {
+        content: '▼';
+        font-size: 10px;
+        margin-left: 10px;
+    }
+
+    &:hover {
+        background-color: #5a6268;
+    }
+}
+
+/* Dropdown */
+.dropdown {
+    position: relative;
+    width: 176px;
+
+    .dropdown-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        z-index: 1000;
+        display: none;
+        min-width: 100%;
+        padding: 5px 0;
+        margin: 2px 0 0;
+        font-size: 14px;
+        text-align: left;
+        list-style: none;
+        background-color: #fff;
+        background-clip: padding-box;
+        border: 1px solid rgba(0, 0, 0, 0.15);
+        border-radius: 4px;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);
+
+        &.show {
+            display: block;
+        }
+    }
+
+    .dropdown-item {
+        display: block;
+        width: 100%;
+        padding: 3px 20px;
+        clear: both;
+        font-weight: 400;
+        color: #333;
+        text-align: inherit;
+        white-space: nowrap;
+        background-color: transparent;
+        border: 0;
+        cursor: pointer;
+
+        &:hover {
+            background-color: #f8f9fa;
+        }
+    }
 }

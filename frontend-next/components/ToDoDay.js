@@ -9,31 +9,11 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import CustomCheckbox from "./CustomCheckbox";
 import '../styles/todoitem.css';
 import { useTasks } from "../contexts/TaskContext";
+import { formatTaskDate, formatDateShort } from "../lib/dateHelpers";
 
 function ToDoDay({ tasks, date, id }) {
     const { updateTask, removeTask, callPopup, darkMode } = useTasks();
-    let title = date;
-    if (date !== "Overdue") {
-        const dateObject = new Date(date);
-        const formattedDate = dateObject.toLocaleString("default", { day: "numeric", weekday: "short" });
-        // Check if the date is today or tomorrow
-        const today = new Date();
-        const tomorrow = new Date();
-        tomorrow.setDate(today.getDate() + 1);
-
-        const isToday = dateObject.toDateString() === today.toDateString();
-        const isTomorrow = dateObject.toDateString() === tomorrow.toDateString();
-
-        const suffix = isToday ? " ‧ Today" : isTomorrow ? " ‧ Tomorrow" : "";
-        title = formattedDate + suffix;
-    }
-
-    const formatDate = (dateString) => {
-        const date = new Date(dateString);
-        const day = date.getDate();
-        const month = date.toLocaleDateString('en-US', { month: 'short' });
-        return `${day} ${month}`;
-    };
+    const title = formatTaskDate(date);
 
     return (
         <div className="tasks">
@@ -82,7 +62,7 @@ function ToDoDay({ tasks, date, id }) {
                                         </div>
                                         <div className="task_infobar">
                                             <span>
-                                                {date === "Overdue" && formatDate(task.taskDate)}
+                                                {date === "Overdue" && formatDateShort(task.taskDate)}
                                                 {task.repeatType !== "NONE" && <BsArrowRepeat className="repeat_icon" />}
                                                 {task.category !== 'None' && ` #${task.category}`}
                                             </span>

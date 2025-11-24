@@ -19,7 +19,6 @@ const DateComponent = ({ selectedDate, handler, darkmode = false }) => {
             <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DatePicker
                     label=""
-                    defaultValue={dayjs()}
                     value={selectedDate}
                     onChange={handler}
                 />

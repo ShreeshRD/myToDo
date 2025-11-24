@@ -8,6 +8,20 @@ import CustomCheckbox from "./CustomCheckbox";
 import { FaRegCircle, FaCircle } from "react-icons/fa";
 import '../styles/popup.scss'
 import { useTasks } from "../contexts/TaskContext";
+import {
+  PRIORITY_MAP,
+  REPEAT_TYPE_MAP,
+  PRIORITIES,
+  REPEAT_OPTIONS,
+  WEEKDAYS
+} from '../lib/constants';
+import {
+  formatRepeatType,
+  processCustomRepeat,
+  getPriorityValue,
+  getRepeatTypeValue,
+  getRepeatDuration
+} from '../lib/taskHelpers';
 
 function CreateTaskPopup({ projects, darkmode, date, task }) {
   const { onPopupClose } = useTasks();
@@ -22,21 +36,11 @@ function CreateTaskPopup({ projects, darkmode, date, task }) {
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [selectedProject, setSelectedProject] = useState('Project');
   const [selectedPriority, setSelectedPriority] = useState('Priority');
-  const [priorities] = useState(["P0", "P1", "P2", "P3", "P4"]);
   const [repeatType, setRepeatType] = useState("Repeat Type");
-  const [repeatOptions] = useState(["Off", "Every X Days", "Every X Weeks", "Every X Months", "Specific Weekdays"]);
   const [repeatDuration, setRepeatDuration] = useState('');
   const [repeatCustom, setRepeatCustom] = useState(1);
   const [error, setError] = useState('');
-  const [days, setDays] = useState([
-    { day: 'Monday', checked: false },
-    { day: 'Tuesday', checked: false },
-    { day: 'Wednesday', checked: false },
-    { day: 'Thursday', checked: false },
-    { day: 'Friday', checked: false },
-    { day: 'Saturday', checked: false },
-    { day: 'Sunday', checked: false },
-  ]);
+  const [days, setDays] = useState([...WEEKDAYS]);
   const [order, setOrder] = useState(0);
 
   useEffect(() => {
@@ -49,51 +53,19 @@ function CreateTaskPopup({ projects, darkmode, date, task }) {
       setSelectedPriority(`P${task.priority}`);
       setRepeatType(task.repeatType !== "NONE" ? formatRepeatType(task.repeatType) : 'Repeat Type');
       setRepeatCustom(task.repeatType === "SPECIFIC_WEEKDAYS" ? task.repeatDuration : 1);
-      setDays(task.repeatType === "SPECIFIC_WEEKDAYS" ? processCustomRepeat(task.repeatDuration, days) : days);
+      setDays(task.repeatType === "SPECIFIC_WEEKDAYS" ? processCustomRepeat(task.repeatDuration, [...WEEKDAYS]) : [...WEEKDAYS]);
       setRepeatDuration(task.repeatType === "SPECIFIC_WEEKDAYS" ? '' : (task.repeatDuration === 0 ? '' : task.repeatDuration));
       setOrder(task.dayOrder);
     }
   }, [task]);
 
-  const formatRepeatType = (repeatType) => {
-    return repeatType
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
-  };
-
-  const processCustomRepeat = (repeatVal, currentDays) => {
-    const binaryString = repeatVal.toString(2).padStart(7, '0');
-    const updatedDays = currentDays.map((day, index) => ({
-      ...day,
-      checked: binaryString[index] === '1'
-    }));
-    return updatedDays;
-  };
-
   const createTask = async () => {
     const formattedDate = selectedDate.format('YYYY-MM-DD');
     const projectToPass = selectedProject === 'Project' ? 'None' : selectedProject;
-    const priorityMap = {
-      'Priority': 0,
-      'P0': 0,
-      'P1': 1,
-      'P2': 2,
-      'P3': 3,
-      'P4': 4
-    };
-    let priorityValue = priorityMap[selectedPriority];
-    const repeatMap = {
-      'Repeat Type': 'NONE',
-      'Off': 'NONE',
-      'Every X Days': 'EVERY_X_DAYS',
-      'Every X Weeks': 'EVERY_X_WEEKS',
-      'Every X Months': 'EVERY_X_MONTHS',
-      'Specific Weekdays': 'SPECIFIC_WEEKDAYS'
-    };
-    let repeatTypeValue = repeatMap[repeatType];
-    let repeatDurationInt = repeatTypeValue === 'NONE' ? 0 : repeatDuration === '' ? 1 : parseInt(repeatDuration, 10);
-    repeatDurationInt = repeatTypeValue === 'SPECIFIC_WEEKDAYS' ? repeatCustom : repeatDurationInt;
+    const priorityValue = getPriorityValue(selectedPriority, PRIORITY_MAP);
+    const repeatTypeValue = getRepeatTypeValue(repeatType, REPEAT_TYPE_MAP);
+    const repeatDurationInt = getRepeatDuration(repeatTypeValue, repeatDuration, repeatCustom);
+
     onPopupClose(taskID, taskDate, taskName, formattedDate, projectToPass, priorityValue, repeatTypeValue, repeatDurationInt, order);
     setTaskName('');
     setSelectedDate(dayjs());
@@ -172,7 +144,7 @@ function CreateTaskPopup({ projects, darkmode, date, task }) {
     <div className="taskPopup">
       <div className={`createTask${darkmode ? ' dark' : ''}`}>
         <div className="date-component">
-          <DateComponent selectedDate={selectedDate} handler={handleDateChange} />
+          <DateComponent selectedDate={selectedDate} handler={handleDateChange} darkmode={darkmode} />
         </div>
         <div className="task-text">
           <textarea
@@ -187,8 +159,8 @@ function CreateTaskPopup({ projects, darkmode, date, task }) {
         </div>
         <div className="task-options">
           <Dropdown placeholder={selectedProject} items={projects} handler={handleProjectSelect} />
-          <Dropdown placeholder={selectedPriority} items={priorities} handler={handlePrioritySelect} />
-          <Dropdown placeholder={repeatType} items={repeatOptions} handler={handleRepeatTypeSelect} />
+          <Dropdown placeholder={selectedPriority} items={PRIORITIES} handler={handlePrioritySelect} />
+          <Dropdown placeholder={repeatType} items={REPEAT_OPTIONS} handler={handleRepeatTypeSelect} />
           {repeatType !== "Repeat Type" && repeatType !== "Off" && repeatType !== "Specific Weekdays" && (
             <input
               type="text"
