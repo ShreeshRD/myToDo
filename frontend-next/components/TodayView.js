@@ -14,7 +14,7 @@ import '../styles/todayview.scss';
 // Generate time slots every 90 minutes from 03:00 to 00:00 (next day)
 const generateTimeSlots = () => {
     const slots = [];
-    let currentTime = dayjs().hour(3).minute(0).second(0);
+    let currentTime = dayjs().hour(0).minute(0).second(0);
     // End at midnight (start of next day)
     const endTime = dayjs().add(1, 'day').hour(0).minute(0).second(0);
 
@@ -105,17 +105,37 @@ function TodayView() {
         setOverdueTasks(overdue);
     }, [taskDays, currentTime]); // Re-run when currentTime changes to move tasks to overdue
 
-    // Scroll to current time on mount
+    // Scroll to current time when assignedTasks are ready
+    const hasScrolledRef = React.useRef(false);
+    // ADJUST THIS VALUE: Positive value moves the line DOWN from the top
+    const SCROLL_OFFSET_PX = 30; 
+
     useEffect(() => {
-        // Small timeout to ensure DOM is ready
-        const timer = setTimeout(() => {
-            const timeLineElement = document.querySelector('.current-time-line');
-            if (timeLineElement) {
-                timeLineElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-        }, 100);
-        return () => clearTimeout(timer);
-    }, []);
+        // Only scroll if we haven't scrolled yet and tasks are populated (keys exist)
+        if (!hasScrolledRef.current && Object.keys(assignedTasks).length > 0) {
+            // Small timeout to ensure DOM is ready after state update
+            const timer = setTimeout(() => {
+                const timeLineElement = document.querySelector('.current-time-line');
+                const scrollContainer = document.querySelector('.schedule-column');
+
+                if (timeLineElement && scrollContainer) {
+                    // Calculate position relative to container
+                    const lineRect = timeLineElement.getBoundingClientRect();
+                    const containerRect = scrollContainer.getBoundingClientRect();
+                    const relativeTop = lineRect.top - containerRect.top;
+                    
+                    // Scroll so the line is SCROLL_OFFSET_PX from the top
+                    scrollContainer.scrollTo({
+                        top: scrollContainer.scrollTop + relativeTop - SCROLL_OFFSET_PX,
+                        behavior: 'smooth'
+                    });
+
+                    hasScrolledRef.current = true;
+                }
+            }, 100);
+            return () => clearTimeout(timer);
+        }
+    }, [assignedTasks]);
 
     const onDragEnd = (result) => {
         const { source, destination, draggableId } = result;

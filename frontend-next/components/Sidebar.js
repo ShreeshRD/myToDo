@@ -13,7 +13,7 @@ import '../styles/sidebar.scss'
 import { useState } from "react";
 import { useTasks } from "../contexts/TaskContext";
 
-function Sidebar({ show, setShowSidebar, setDarkMode, darkmode, setViewPage, projects }) {
+function Sidebar({ show, setShowSidebar, setDarkMode, darkmode, viewPage, setViewPage, projects }) {
   const [dropdown, setDropdown] = useState(true);
   const { callPopup, toggleProject, selectedProjects } = useTasks();
   return (
@@ -29,23 +29,23 @@ function Sidebar({ show, setShowSidebar, setDarkMode, darkmode, setViewPage, pro
           <AddIcon className="add-icon" />
           <span> Add Task</span>
         </li>
-        <li onClick={() => setViewPage('Today')}>
+        <li onClick={() => setViewPage('Today')} className={viewPage === 'Today' ? 'active' : ''}>
           <FaRegCalendar />
           <span> Today</span>
         </li>
-        <li onClick={() => setViewPage('Upcoming')}>
+        <li onClick={() => setViewPage('Upcoming')} className={viewPage === 'Upcoming' ? 'active' : ''}>
           <MdCalendarViewWeek />
           <span> Upcoming</span>
         </li>
-        <li onClick={() => setViewPage('Calendar')}>
+        <li onClick={() => setViewPage('Calendar')} className={viewPage === 'Calendar' ? 'active' : ''}>
           <FaRegCalendarAlt />
           <span> Calendar</span>
         </li>
-        <li onClick={() => setViewPage('Completed')}>
+        <li onClick={() => setViewPage('Completed')} className={viewPage === 'Completed' ? 'active' : ''}>
           <DoneAllIcon />
           <span> Completed</span>
         </li>
-        <li onClick={() => setViewPage('Search')}>
+        <li onClick={() => setViewPage('Search')} className={viewPage === 'Search' ? 'active' : ''}>
           <FaSearch />
           <span> Search</span>
         </li>

@@ -33,7 +33,7 @@ function MainView() {
 	return (
 		<div className="App">
 			<div className={`app-container${darkMode ? ' dark' : ''}`}>
-				<Sidebar setShowPopup={callPopup} show={showSidebar} setShowSidebar={setShowSidebar} setDarkMode={setDarkMode} darkmode={darkMode} setViewPage={setViewPage} projects={projects} />
+				<Sidebar setShowPopup={callPopup} show={showSidebar} setShowSidebar={setShowSidebar} setDarkMode={setDarkMode} darkmode={darkMode} viewPage={viewPage} setViewPage={setViewPage} projects={projects} />
 				{showPopup && (<CreateTaskPopup setTrigger={onPopupClose} onPopupClose={onPopupClose} date={popupDate} projects={projects} darkmode={darkMode} task={popupTaskItem} />)}
 				<div className={`content${showSidebar ? '' : ' hidden'}${darkMode ? ' dark' : ''}`}>
 					{viewPage === 'Upcoming' ? (
