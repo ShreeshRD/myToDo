@@ -33,7 +33,7 @@ function ToDoDay({ tasks, date, id }) {
                                         {...provided.draggableProps}
                                         {...provided.dragHandleProps}
                                         ref={provided.innerRef}
-                                        onClick={() => callPopup(date, task)}
+                                        onClick={() => !task.complete && callPopup(date, task)}
                                     >
                                         <div className="todo_item_inner">
                                             <CustomCheckbox

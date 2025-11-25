@@ -37,7 +37,7 @@ function CreateTaskPopup({ projects, darkmode, date, task }) {
   const [taskDate, setTaskDate] = useState(initialDate);
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [selectedProject, setSelectedProject] = useState('Project');
-  const [selectedPriority, setSelectedPriority] = useState('Priority');
+  const [selectedPriority, setSelectedPriority] = useState('P0');
   const [repeatType, setRepeatType] = useState("Repeat Type");
   const [repeatDuration, setRepeatDuration] = useState('');
   const [repeatCustom, setRepeatCustom] = useState(1);
@@ -109,7 +109,9 @@ function CreateTaskPopup({ projects, darkmode, date, task }) {
   };
 
   const handleProjectSelect = (event) => {
-    setSelectedProject(event.target.textContent);
+    const selectedValue = event.target.textContent;
+    // If "None" is selected, reset to "Project" placeholder
+    setSelectedProject(selectedValue === 'None' ? 'Project' : selectedValue);
   };
 
   const handlePrioritySelect = (event) => {
@@ -151,11 +153,35 @@ function CreateTaskPopup({ projects, darkmode, date, task }) {
 
   const getPriorityIcon = () => {
     let color = 'inherit';
-    if (selectedPriority === 'P1') color = '#d1453b';
-    if (selectedPriority === 'P2') color = '#eb8909';
-    if (selectedPriority === 'P3') color = '#246fe0';
-    if (selectedPriority === 'P4') color = 'grey';
-    return <FaFlag style={{ color, fontSize: '1.2rem' }} />;
+    let priorityNumber = '';
+    
+    if (selectedPriority === 'P0') {
+      color = 'inherit';
+      priorityNumber = '0';
+    }
+    if (selectedPriority === 'P1') {
+      color = '#d1453b';
+      priorityNumber = '1';
+    }
+    if (selectedPriority === 'P2') {
+      color = '#eb8909';
+      priorityNumber = '2';
+    }
+    if (selectedPriority === 'P3') {
+      color = '#246fe0';
+      priorityNumber = '3';
+    }
+    if (selectedPriority === 'P4') {
+      color = 'grey';
+      priorityNumber = '4';
+    }
+    
+    return (
+      <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+        <FaFlag style={{ color, fontSize: '1.2rem' }} />
+        {priorityNumber && <span style={{ fontSize: '0.9rem' }}>{priorityNumber}</span>}
+      </span>
+    );
   };
 
   const getRepeatIcon = () => {
@@ -184,7 +210,7 @@ function CreateTaskPopup({ projects, darkmode, date, task }) {
           </div>
         </div>
         <div className="task-options">
-          <Dropdown placeholder={selectedProject} items={projects} handler={handleProjectSelect} />
+          <Dropdown placeholder={selectedProject} items={['None', ...projects]} handler={handleProjectSelect} />
           <div className="split-dropdowns">
              <Dropdown placeholder={getPriorityIcon()} items={PRIORITIES} handler={handlePrioritySelect} />
              <Dropdown placeholder={getRepeatIcon()} items={REPEAT_OPTIONS} handler={handleRepeatTypeSelect} />

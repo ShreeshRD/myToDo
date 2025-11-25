@@ -242,7 +242,7 @@ function TodayView() {
                     {...provided.draggableProps}
                     {...provided.dragHandleProps}
                     ref={provided.innerRef}
-                    onClick={() => callPopup(dayjs().format('YYYY-MM-DD'), task)}
+                    onClick={() => !task.complete && callPopup(dayjs().format('YYYY-MM-DD'), task)}
                     style={{ ...provided.draggableProps.style, marginBottom: '8px' }}
                 >
                     <div className="todo_item_inner">

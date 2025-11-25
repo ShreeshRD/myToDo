@@ -104,18 +104,18 @@ const useTaskManagement = () => {
                 
                 if (value === true) {
                     // Task is being marked as complete
-                    // Update the task in place to show strikethrough
+                    // Update the task in place with data from backend (includes assignedTime)
                     if (isOverdue) {
                         const updatedOverdue = { ...overdueTasks };
                         updatedOverdue.overdue = updatedOverdue.overdue.map(task =>
-                            task.id === id ? { ...task, complete: true } : task
+                            task.id === id ? { ...task, ...taskItem } : task
                         );
                         setOverdueTasks(updatedOverdue);
                     } else {
                         const updatedTaskDays = { ...taskDays };
                         if (updatedTaskDays[date]) {
                             updatedTaskDays[date] = updatedTaskDays[date].map(task =>
-                                task.id === id ? { ...task, complete: true } : task
+                                task.id === id ? { ...task, ...taskItem } : task
                             );
                             setTaskDays(updatedTaskDays);
                         }

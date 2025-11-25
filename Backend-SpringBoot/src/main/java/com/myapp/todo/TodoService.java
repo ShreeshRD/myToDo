@@ -82,6 +82,10 @@ public class TodoService {
                     break;
                 case "complete":
                     item.setComplete(Boolean.parseBoolean(value));
+                    // Set assignedTime to current time when marking as complete
+                    if (Boolean.parseBoolean(value)) {
+                        item.setAssignedTime(java.time.LocalTime.now());
+                    }
                     break;
                 case "priority":
                     item.setPriority(Integer.parseInt(value));

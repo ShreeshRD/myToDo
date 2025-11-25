@@ -49,6 +49,7 @@
   display: flex;
   justify-content: center;
   height: 135vh;
+  transition: all 0.3s ease;
   
   .react-calendar {
     width: 100%;
@@ -198,6 +199,13 @@
   padding: 2px 4px;
   border-radius: 4px;
   margin-bottom: 2px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
   
   &.completed {
     background-color: rgba(136, 136, 136, 0.5);
@@ -238,5 +246,179 @@
         background-color: #555;
         color: #aaa;
     }
+  }
+}
+
+/* New Styles for Task Detail Panel */
+.completed-view-container {
+  display: flex;
+  width: 100%;
+  /* Removed height: 100% and overflow: hidden to avoid clipping */
+  gap: 20px;
+  
+  .calendar-container {
+    flex: 1;
+    /* transition is already in .calendar-container above */
+    
+    &.shrink {
+      flex: 0.7;
+    }
+  }
+}
+
+.task-details-panel {
+  flex: 0.3;
+  background: white;
+  border-radius: 8px;
+  box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.3s ease;
+  /* Use sticky positioning to stay in view while scrolling the calendar */
+  position: sticky;
+  top: 20px;
+  height: calc(100vh - 40px); 
+  overflow-y: auto;
+  min-width: 300px;
+  display: none; /* Hidden by default */
+
+  &.open {
+    display: flex;
+  }
+
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+
+    h3 {
+      margin: 0;
+      font-size: 1.2rem;
+      color: #333;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #666;
+      padding: 0 5px;
+      
+      &:hover {
+        color: #333;
+      }
+    }
+  }
+
+  .panel-content {
+    flex: 1;
+    overflow-y: auto;
+
+    .task-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+
+      .panel-task-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #eee;
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        .task-info {
+          display: flex;
+          flex-direction: column;
+          
+          .task-name {
+            font-size: 1rem;
+            color: #333;
+            font-weight: 500;
+          }
+          
+          .task-time {
+            font-size: 0.8rem;
+            color: #666;
+          }
+        }
+
+        .task-action {
+          display: flex;
+          align-items: center;
+        }
+      }
+    }
+
+    .no-tasks {
+      text-align: center;
+      color: #666;
+      margin-top: 20px;
+      font-style: italic;
+    }
+  }
+}
+
+// Dark mode support for panel
+.calendar-view.dark {
+  .task-details-panel {
+    background: #757575;
+    box-shadow: -2px 0 10px rgba(0,0,0,0.3);
+    
+    .panel-header {
+      border-bottom-color: #888;
+      
+      h3 {
+        color: #eee;
+      }
+      
+      .close-btn {
+        color: #ccc;
+        
+        &:hover {
+          color: #fff;
+        }
+      }
+    }
+    
+    .panel-content {
+      .task-list {
+        .panel-task-item {
+          border-bottom-color: #888;
+          
+          .task-info {
+            .task-name {
+              color: #eee;
+            }
+            .task-time {
+              color: #ccc;
+            }
+          }
+        }
+      }
+      
+      .no-tasks {
+        color: #aaa;
+      }
+    }
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
   }
 }
