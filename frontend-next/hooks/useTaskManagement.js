@@ -290,103 +290,64 @@ const useTaskManagement = () => {
             return;
         }
 
-        // 1. Remove from source
+        // Calculate the new destination list for both frontend and backend
+        // This ensures we use the same logic and avoid stale state issues
+        let currentDestList = [...(taskDays[destDate] || [])].sort((a, b) => a.dayOrder - b.dayOrder);
+        
+        // Remove source task if it's in the destination date
+        if (!isOverdue && sourceDate === destDate) {
+            currentDestList = currentDestList.filter(t => t.id.toString() !== taskId);
+        }
+        
+        // Find insert position based on predecessor
+        let insertIndex = 0;
+        if (predecessorTaskId) {
+            const predIndex = currentDestList.findIndex(t => t.id.toString() === predecessorTaskId);
+            if (predIndex !== -1) {
+                insertIndex = predIndex + 1;
+            }
+        }
+        
+        // Create the task to move with updated date
+        const taskToMove = { ...sourceTask, taskDate: destDate };
+        
+        // Insert at the correct position
+        currentDestList.splice(insertIndex, 0, taskToMove);
+        
+        // Calculate new dayOrder values
+        const updatedDestList = currentDestList.map((t, i) => ({
+            ...t,
+            dayOrder: i + 1
+        }));
+
+        // 1. Remove from source (if overdue)
         if (isOverdue) {
             const updatedOverdue = { ...overdueTasks };
             updatedOverdue.overdue = updatedOverdue.overdue.filter(t => t.id.toString() !== taskId);
             setOverdueTasks(updatedOverdue);
-        } else {
-            const updatedTaskDays = { ...taskDays };
-            updatedTaskDays[sourceDate] = updatedTaskDays[sourceDate].filter(t => t.id.toString() !== taskId);
-            setTaskDays(updatedTaskDays);
         }
 
-        // 2. Add to destination
-        // We need to fetch the latest state for destination because we might have just updated it if source == dest date
-        // Actually, React state updates are async, so we should calculate everything on the "current" state 
-        // but we need to be careful not to lose the removal if we update taskDays twice.
-        // BETTER: Calculate new state for both source and dest in one go if they are in taskDays.
-
+        // 2. Update destination with the calculated list
         setTaskDays(prevTaskDays => {
             const newTaskDays = { ...prevTaskDays };
             
-            // If source was in taskDays, remove it first (using the fresh state)
+            // Remove from source if it was in taskDays
             if (!isOverdue && sourceDate) {
                 newTaskDays[sourceDate] = (newTaskDays[sourceDate] || []).filter(t => t.id.toString() !== taskId);
             }
 
-            // Now insert into destination
-            // Sort by dayOrder to ensure we insert at the correct visual position
-            newTaskDays[destDate] = [...(newTaskDays[destDate] || [])].sort((a, b) => a.dayOrder - b.dayOrder);
-            const destList = newTaskDays[destDate];
-            
-            // Update task date
-            const taskToMove = { ...sourceTask, taskDate: destDate };
-
-            let insertIndex = 0;
-            if (predecessorTaskId) {
-                const predIndex = destList.findIndex(t => t.id.toString() === predecessorTaskId);
-                if (predIndex !== -1) {
-                    insertIndex = predIndex + 1;
-                }
-            }
-            
-            destList.splice(insertIndex, 0, taskToMove);
-            
-            // Update dayOrder
-            destList.forEach((t, i) => {
-                t.dayOrder = i + 1;
-            });
+            // Set the new destination list
+            newTaskDays[destDate] = updatedDestList;
 
             return newTaskDays;
         });
 
-        // If source was overdue, we already called setOverdueTasks, which is fine as it's separate state.
-        
-        // 3. Update Backend
+        // 3. Update Backend using the same calculated list
         updateBackend(taskId, "taskDate", destDate);
-        // We need to update dayOrder for all tasks in destination. 
-        // We can't easily get the *new* list here to send to backend because of async state.
-        // But we can reconstruct it or wait. 
-        // Actually, we can just do the same logic locally to know the order.
         
-        // Let's reconstruct the dest list to update backend
-        // We take the *current* dest list (minus source if it was there) and insert.
-        let currentDestList = taskDays[destDate] || [];
-        if (!isOverdue && sourceDate === destDate) {
-             currentDestList = currentDestList.filter(t => t.id.toString() !== taskId);
-        }
-        // If source was different date, currentDestList is fine as is.
-        
-        const newDestList = [...currentDestList];
-        let backendInsertIndex = 0;
-        if (predecessorTaskId) {
-             const predIndex = newDestList.findIndex(t => t.id.toString() === predecessorTaskId);
-             if (predIndex !== -1) {
-                 backendInsertIndex = predIndex + 1;
-             }
-        }
-        // We don't strictly need to add the task object to newDestList to update orders, 
-        // but we need to know which IDs are where.
-        // Actually, we should just update the moved task's order and the others.
-        
-        // Wait, `updateBackend` is async.
-        // Let's just iterate the new order we calculated.
-        // We can grab the list from the setTaskDays updater? No.
-        
-        // Let's just re-calculate locally for backend update.
-        // CRITICAL: Sort by dayOrder so that the re-indexing matches the visual order
-        const backendDestList = [...(taskDays[destDate] || [])].sort((a, b) => a.dayOrder - b.dayOrder);
-        // Remove if source same date
-        let filteredBackendDestList = backendDestList;
-        if (!isOverdue && sourceDate === destDate) {
-            filteredBackendDestList = backendDestList.filter(t => t.id.toString() !== taskId);
-        }
-        
-        filteredBackendDestList.splice(backendInsertIndex, 0, { ...sourceTask, taskDate: destDate });
-        
-        filteredBackendDestList.forEach((t, i) => {
-             updateBackend(t.id, "dayOrder", i + 1);
+        // Update dayOrder for all tasks in the destination using the same calculated values
+        updatedDestList.forEach((t, i) => {
+            updateBackend(t.id, "dayOrder", i + 1);
         });
     };
 

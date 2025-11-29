@@ -12,11 +12,13 @@ import '../styles/todoitem.css';
 import '../styles/todayview.scss';
 
 // Generate time slots every 90 minutes from 03:00 to 00:00 (next day)
+// Generate time slots every 90 minutes from 00:00 to 00:00 (next day)
 const generateTimeSlots = () => {
     const slots = [];
-    let currentTime = dayjs().hour(0).minute(0).second(0);
+    // Use startOf('day') to ensure milliseconds are 0
+    let currentTime = dayjs().startOf('day');
     // End at midnight (start of next day)
-    const endTime = dayjs().add(1, 'day').hour(0).minute(0).second(0);
+    const endTime = dayjs().add(1, 'day').startOf('day');
 
     while (currentTime.isBefore(endTime)) {
         slots.push(currentTime.format('HH:mm'));
