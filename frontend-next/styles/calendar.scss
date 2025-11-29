@@ -247,6 +247,16 @@
         color: #aaa;
     }
   }
+
+  height: calc(100vh - 105px);
+  overflow-y: auto;
+
+  .task-details-panel {
+    position: sticky;
+    top: 0;
+    height: calc(100vh - 145px); /* 105px header + 40px padding */
+    overflow-y: auto;
+  }
 }
 
 /* New Styles for Task Detail Panel */
@@ -277,7 +287,7 @@
   animation: slideIn 0.3s ease;
   /* Use sticky positioning to stay in view while scrolling the calendar */
   position: sticky;
-  top: 20px;
+  top: 0px;
   height: calc(100vh - 40px); 
   overflow-y: auto;
   min-width: 300px;
@@ -318,6 +328,26 @@
   .panel-content {
     flex: 1;
     overflow-y: auto;
+    scrollbar-gutter: stable;
+    padding-right: 5px; // Prevent content from being hidden behind scrollbar
+
+    /* Sleek Scrollbar */
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: rgba(0, 0, 0, 0.2);
+      border-radius: 3px;
+      
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.3);
+      }
+    }
 
     .task-list {
       display: flex;
@@ -407,6 +437,16 @@
       
       .no-tasks {
         color: #aaa;
+      }
+    }
+
+    .panel-content {
+      &::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.2);
+        
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.3);
+        }
       }
     }
   }

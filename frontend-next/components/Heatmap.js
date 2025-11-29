@@ -5,9 +5,9 @@ import { useTasks } from '../contexts/TaskContext';
 import dayjs from 'dayjs';
 import '../styles/Heatmap.scss';
 
-function Heatmap() {
+function Heatmap({ currentDate }) {
     const { completedTasks } = useTasks();
-    const today = dayjs();
+    const today = currentDate ? dayjs(currentDate) : dayjs();
     const startOfMonth = today.startOf('month');
     const daysInMonth = today.daysInMonth();
     const startDayOfWeek = startOfMonth.day(); // 0 (Sunday) to 6 (Saturday)

@@ -1,9 +1,9 @@
 import React from 'react';
 import dayjs from 'dayjs';
-import { RiCheckboxCircleFill } from "react-icons/ri";
+import { RiCheckboxCircleFill, RiCheckboxBlankCircleLine } from "react-icons/ri";
 import CustomCheckbox from "./CustomCheckbox";
 
-function TaskDetailPanel({ isOpen, onClose, tasks, onUncheckTask, date, darkMode }) {
+function TaskDetailPanel({ isOpen, onClose, tasks, onToggleTask, date, darkMode }) {
     if (!isOpen) return null;
 
     const formattedDate = date ? dayjs(date).format('MMMM D, YYYY') : '';
@@ -29,9 +29,9 @@ function TaskDetailPanel({ isOpen, onClose, tasks, onUncheckTask, date, darkMode
                                 </div>
                                 <div className="task-action">
                                      <CustomCheckbox
-                                        checked={true}
-                                        onChange={() => onUncheckTask(task)}
-                                        icon={<RiCheckboxCircleFill className="checkbox_icon_checked" />}
+                                        checked={task.complete}
+                                        onChange={() => onToggleTask(task)}
+                                        icon={<RiCheckboxBlankCircleLine className="checkbox_icon_unchecked" />}
                                         checkedIcon={<RiCheckboxCircleFill className="checkbox_icon_checked" />}
                                     />
                                 </div>
@@ -39,7 +39,7 @@ function TaskDetailPanel({ isOpen, onClose, tasks, onUncheckTask, date, darkMode
                         ))}
                     </div>
                 ) : (
-                    <p className="no-tasks">No completed tasks for this day.</p>
+                    <p className="no-tasks">No tasks for this day.</p>
                 )}
             </div>
         </div>

@@ -20,7 +20,7 @@ function Header({ darkmode, useDate, setDate, viewPage }) {
 			</div>
 			<div className="headerItem">
 				{viewPage === 'Completed' ? (
-					<Heatmap />
+					<Heatmap currentDate={useDate} />
 				) : (
 					setDate.name !== "dummySetDate" && (
 						<Box display="flex" alignItems="center">

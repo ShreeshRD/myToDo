@@ -77,7 +77,7 @@ function Completed() {
                     isOpen={!!panelDate}
                     onClose={closePanel}
                     tasks={getPanelTasks()}
-                    onUncheckTask={handleUncheckTask}
+                    onToggleTask={handleUncheckTask}
                     date={panelDate}
                     darkMode={darkMode}
                 />

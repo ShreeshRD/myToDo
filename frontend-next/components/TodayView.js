@@ -62,16 +62,14 @@ function TodayView() {
             if (task.assignedTime && task.assignedTime !== "null") {
                 const timeStr = task.assignedTime.substring(0, 5); // HH:mm
                 
-                // Check if task is incomplete and in the past (before current time)
-                // We need to compare task time with current time.
-                // But we only care if it's in a PAST slot?
-                // "Any incomplete tasks within that window should move out"
-                // The "window" is "sections before [current time]".
-                // So if task.assignedTime < currentTime AND !task.complete -> Overdue.
+                // Check if task is incomplete and its timeslot has ended
+                // A timeslot is 90 minutes long, so we need to check if the END of the slot has passed
+                // Only move to overdue if the entire timeslot (start time + 90 minutes) is in the past
                 
                 const taskTime = dayjs(`${today}T${task.assignedTime}`);
+                const taskSlotEndTime = taskTime.add(90, 'minute');
                 
-                if (!task.complete && taskTime.isBefore(currentTime)) {
+                if (!task.complete && taskSlotEndTime.isBefore(currentTime)) {
                      overdue.push(task);
                 } else {
                     if (assigned[timeStr]) {

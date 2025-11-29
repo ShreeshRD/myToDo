@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3001",
-    "build": "next build",
+    "build": "next build && npm run postbuild",
+    "postbuild": "powershell -Command \"if (Test-Path '../Backend-SpringBoot/src/main/resources/static') { Remove-Item -Recurse -Force '../Backend-SpringBoot/src/main/resources/static/*' }; Copy-Item -Recurse -Force './out/*' '../Backend-SpringBoot/src/main/resources/static/'\"",
     "start": "next start",
     "lint": "eslint"
   },

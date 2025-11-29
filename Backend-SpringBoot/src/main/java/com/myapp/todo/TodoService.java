@@ -84,7 +84,7 @@ public class TodoService {
                     item.setComplete(Boolean.parseBoolean(value));
                     // Set assignedTime to current time when marking as complete
                     if (Boolean.parseBoolean(value)) {
-                        item.setAssignedTime(java.time.LocalTime.now());
+                        item.setAssignedTime(java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Kolkata")).toLocalTime());
                     }
                     break;
                 case "priority":

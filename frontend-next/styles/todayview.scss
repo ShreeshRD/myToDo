@@ -1,7 +1,7 @@
 .today-view {
     display: flex;
     height: calc(100vh - 105px);
-    padding: 20px;
+    // padding: 20px; // Removed to fix scroll clipping
     gap: 20px;
     box-sizing: border-box;
     overflow: hidden;
@@ -13,6 +13,7 @@
     flex-direction: column;
     gap: 20px;
     min-height: 0;
+    padding: 20px 0 20px 20px; // Added padding
 }
 
 .overdue-section {
@@ -114,6 +115,7 @@
     flex-direction: column;
     overflow-y: auto;
     min-height: 0;
+    padding: 20px 20px 0 0; // Added padding
 
     h3 {
         margin-top: 0;
@@ -124,6 +126,47 @@
         flex-direction: column;
         gap: 10px;
         padding-bottom: 80vh;
+    }
+
+    // Custom sleek scrollbar
+    &::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+        margin: 2px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: rgba(0, 0, 0, 0.15);
+        border-radius: 0;
+        box-shadow: 
+            1px 1px 2px rgba(255, 255, 255, 0.3),
+            -1px -1px 2px rgba(0, 0, 0, 0.2);
+
+        &:hover {
+            background-color: rgba(0, 0, 0, 0.25);
+        }
+    }
+
+    .today-view.dark &::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.15);
+        box-shadow: 
+            1px 1px 2px rgba(255, 255, 255, 0.1),
+            -1px -1px 2px rgba(0, 0, 0, 0.5);
+
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.25);
+        }
+    }
+
+    // Firefox scrollbar
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+
+    .today-view.dark & {
+        scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
     }
 }
 
