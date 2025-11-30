@@ -1,5 +1,8 @@
 .idea/
 .vscode/
-frontend-react/node_modules/
-Backend-SpringBoot/target/
-Backend-SpringBoot/src/main/resources/static/
+!**/node_modules/**
+!**/out/**
+!**/.next/**
+
+# demo website
+todo_demo/**
