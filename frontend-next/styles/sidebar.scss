@@ -97,17 +97,218 @@ li {
     }
 }
 
+/* My Projects Section
+  ============================================ */
 .sidebar__projects {
-    margin-top: 1vw;
-    border-top: #676767 solid 2px;
+    margin-top: 8px;
+    padding: 8px 0;
+    border-top: #e0e0e0 solid 1px;
+    border-bottom: #e0e0e0 solid 1px;
+    margin-bottom: 8px;
+}
 
-    div {
-        padding: 7px 12px;
-        display: flex;
-        justify-content: space-between;
+.dark .sidebar__projects {
+    border-top-color: #676767;
+    border-bottom-color: #676767;
+}
+
+.projects__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+}
+
+.projects__title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+    transition: opacity 0.2s;
+
+    &:hover {
+        opacity: 0.8;
     }
 }
 
+.projects__title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #777;
+}
+
+.dark .projects__title {
+    color: #aaa;
+}
+
+.projects__actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.projects__action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background-color: #e6e5ff;
+    }
+}
+
+.dark .projects__action-btn:hover {
+    background-color: #676767;
+}
+
+.projects__icon {
+    font-size: 18px !important;
+    color: #777;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark .projects__icon {
+    color: #aaa;
+}
+
+.projects__toggle.open .projects__icon {
+    transform: rotate(180deg);
+}
+
+.projects__arrow {
+    transform: rotate(0deg);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.projects__arrow.open {
+    transform: rotate(-180deg);
+}
+
+/* Add Project Input */
+.projects__add-form {
+    padding: 4px 12px 8px;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.projects__input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+    background-color: #fff;
+    transition: all 0.2s ease;
+
+    &:focus {
+        outline: none;
+        border-color: #7c7aff;
+        box-shadow: 0 0 0 3px rgba(124, 122, 255, 0.15);
+    }
+
+    &::placeholder {
+        color: #999;
+    }
+}
+
+.dark .projects__input {
+    background-color: #3a3a3a;
+    border-color: #555;
+    color: #eee;
+
+    &:focus {
+        border-color: #9796ff;
+        box-shadow: 0 0 0 3px rgba(151, 150, 255, 0.2);
+    }
+
+    &::placeholder {
+        color: #888;
+    }
+}
+
+/* Project List with Animation */
+.projects__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 0.25s ease;
+}
+
+.projects__list.open {
+    max-height: 500px;
+    opacity: 1;
+}
+
+/* Project Item */
+.projects__item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+
+    &:hover {
+        background-color: #f0f0ff;
+    }
+
+    &.active {
+        background-color: #e6e5ff;
+        font-weight: 600;
+    }
+}
+
+.dark .projects__item {
+    &:hover {
+        background-color: #5a5a5a;
+    }
+
+    &.active {
+        background-color: #676767;
+    }
+}
+
+.projects__item-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.projects__hash {
+    font-size: 16px;
+    color: #888;
+    flex-shrink: 0;
+}
+
+.dark .projects__hash {
+    color: #aaa;
+}
+
+/* Generic Styles */
 li.active {
     background-color: #e6e5ff;
     font-weight: bold;

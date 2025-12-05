@@ -1,0 +1,316 @@
+/* Project Manager Modal
+  ============================================ */
+
+.pm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.pm-modal {
+    background: #fff;
+    border-radius: 12px;
+    width: 400px;
+    max-width: 90vw;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.25s ease;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dark .pm-modal {
+    background: #3a3a3a;
+    color: #eee;
+}
+
+.pm-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.dark .pm-header {
+    border-bottom-color: #555;
+}
+
+.pm-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.pm-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #666;
+    transition: all 0.15s ease;
+}
+
+.pm-close-btn:hover {
+    background-color: #f0f0f0;
+    color: #333;
+}
+
+.dark .pm-close-btn {
+    color: #aaa;
+}
+
+.dark .pm-close-btn:hover {
+    background-color: #4a4a4a;
+    color: #fff;
+}
+
+.pm-content {
+    padding: 12px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.pm-empty {
+    text-align: center;
+    padding: 32px;
+    color: #999;
+}
+
+.pm-project-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.pm-project-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    margin-bottom: 4px;
+    background: #f8f8f8;
+    border-radius: 8px;
+    cursor: grab;
+    transition: all 0.15s ease;
+}
+
+.pm-project-item:hover {
+    background: #f0f0ff;
+}
+
+.pm-project-item.dragging {
+    opacity: 0.5;
+    background: #e6e5ff;
+}
+
+.dark .pm-project-item {
+    background: #4a4a4a;
+}
+
+.dark .pm-project-item:hover {
+    background: #555;
+}
+
+.dark .pm-project-item.dragging {
+    background: #5a5a6a;
+}
+
+.pm-project-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pm-drag-handle {
+    color: #bbb;
+    font-size: 20px !important;
+    cursor: grab;
+}
+
+.dark .pm-drag-handle {
+    color: #777;
+}
+
+.pm-project-name {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.pm-delete-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #999;
+    transition: all 0.15s ease;
+}
+
+.pm-delete-btn:hover {
+    background-color: #ffebeb;
+    color: #dc3545;
+}
+
+.dark .pm-delete-btn:hover {
+    background-color: #5a3a3a;
+    color: #ff7777;
+}
+
+.pm-delete-btn svg {
+    font-size: 18px !important;
+}
+
+/* Delete Confirmation Popup */
+.pm-confirm-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    animation: fadeIn 0.15s ease;
+}
+
+.pm-confirm-popup {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    width: 320px;
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    animation: slideUp 0.2s ease;
+}
+
+.dark .pm-confirm-popup {
+    background: #3a3a3a;
+}
+
+.pm-confirm-icon {
+    color: #f59e0b;
+    margin-bottom: 12px;
+}
+
+.pm-confirm-icon svg {
+    font-size: 48px !important;
+}
+
+.pm-confirm-popup h3 {
+    margin: 0 0 8px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.pm-confirm-popup p {
+    margin: 0 0 16px;
+    font-size: 13px;
+    color: #666;
+    line-height: 1.5;
+}
+
+.dark .pm-confirm-popup p {
+    color: #aaa;
+}
+
+.pm-checkbox-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.pm-checkbox-label input {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #dc3545;
+}
+
+.pm-confirm-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.pm-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.pm-btn-cancel {
+    background: #e8e8e8;
+    color: #333;
+}
+
+.pm-btn-cancel:hover {
+    background: #ddd;
+}
+
+.dark .pm-btn-cancel {
+    background: #555;
+    color: #eee;
+}
+
+.dark .pm-btn-cancel:hover {
+    background: #666;
+}
+
+.pm-btn-delete {
+    background: #dc3545;
+    color: #fff;
+}
+
+.pm-btn-delete:hover {
+    background: #c82333;
+}
