@@ -18,7 +18,7 @@ public class TodoItem {
     private LocalDate taskDate;
     private Integer dayOrder;
     @Id
-    @GeneratedValue(strategy=GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
     private String category;
     private String name;
@@ -26,8 +26,11 @@ public class TodoItem {
     private RepeatPattern repeatType;
     private Integer repeatDuration;
     private Integer priority;
+    private boolean inProgress;
+    private boolean longTerm;
 
-    public TodoItem() {}
+    public TodoItem() {
+    }
 
     public TodoItem(LocalDate taskDate, Integer dayOrder, String category, String name) {
         this.taskDate = taskDate;
@@ -134,5 +137,20 @@ public class TodoItem {
     public void setAssignedTime(java.time.LocalTime assignedTime) {
         this.assignedTime = assignedTime;
     }
-}
 
+    public boolean isInProgress() {
+        return inProgress;
+    }
+
+    public void setInProgress(boolean inProgress) {
+        this.inProgress = inProgress;
+    }
+
+    public boolean isLongTerm() {
+        return longTerm;
+    }
+
+    public void setLongTerm(boolean longTerm) {
+        this.longTerm = longTerm;
+    }
+}

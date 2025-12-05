@@ -7,6 +7,7 @@ import { BsArrowRepeat } from "react-icons/bs";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from '@mui/icons-material/Delete';
 import CustomCheckbox from "./CustomCheckbox";
+import CustomContextMenu from "./CustomContextMenu";
 import '../styles/todoitem.css';
 import { useTasks } from "../contexts/TaskContext";
 import { formatTaskDate, formatDateShort } from "../lib/dateHelpers";
@@ -14,6 +15,50 @@ import { formatTaskDate, formatDateShort } from "../lib/dateHelpers";
 function ToDoDay({ tasks, date, id }) {
     const { updateTask, removeTask, callPopup, darkMode } = useTasks();
     const title = formatTaskDate(date);
+    const [contextMenu, setContextMenu] = React.useState({ visible: false, x: 0, y: 0, task: null });
+
+    const handleContextMenu = (e, task) => {
+        e.preventDefault();
+        setContextMenu({
+            visible: true,
+            x: e.clientX,
+            y: e.clientY,
+            task: task
+        });
+    };
+
+    const handleCloseContextMenu = () => {
+        setContextMenu({ ...contextMenu, visible: false });
+    };
+
+    const handleMarkInProgress = () => {
+        if (contextMenu.task) {
+            updateTask(contextMenu.task.id, "inProgress", !contextMenu.task.inProgress, contextMenu.task.taskDate);
+        }
+        handleCloseContextMenu();
+    };
+
+    const handleToggleLongTerm = () => {
+        if (contextMenu.task) {
+            updateTask(contextMenu.task.id, "longTerm", !contextMenu.task.longTerm, contextMenu.task.taskDate);
+        }
+        handleCloseContextMenu();
+    };
+
+    const handleEdit = () => {
+        if (contextMenu.task) {
+            callPopup(date, contextMenu.task);
+        }
+        handleCloseContextMenu();
+    };
+
+    const getTaskClassName = (task) => {
+        let className = `todo_item_box${darkMode ? ' dark' : ''}`;
+        if (id === 100) className += ' overdue';
+        if (task.inProgress) className += ' in-progress';
+        if (task.longTerm) className += ' long-term';
+        return className;
+    };
 
     return (
         <div className="tasks">
@@ -29,11 +74,12 @@ function ToDoDay({ tasks, date, id }) {
                             <Draggable key={task.id} draggableId={task.id.toString()} index={index}>
                                 {(provided) => (
                                     <div
-                                        className={`todo_item_box${darkMode ? ' dark' : ''}${id === 100 ? ' overdue' : ''}`}
+                                        className={getTaskClassName(task)}
                                         {...provided.draggableProps}
                                         {...provided.dragHandleProps}
                                         ref={provided.innerRef}
                                         onClick={() => !task.complete && callPopup(date, task)}
+                                        onContextMenu={(e) => handleContextMenu(e, task)}
                                     >
                                         <div className="todo_item_inner">
                                             <CustomCheckbox
@@ -83,7 +129,17 @@ function ToDoDay({ tasks, date, id }) {
                     </div>
                 )}
             </Droppable>
-        </div>
+            <CustomContextMenu
+                visible={contextMenu.visible}
+                x={contextMenu.x}
+                y={contextMenu.y}
+                task={contextMenu.task}
+                onClose={handleCloseContextMenu}
+                onMarkInProgress={handleMarkInProgress}
+                onToggleLongTerm={handleToggleLongTerm}
+                onEdit={handleEdit}
+            />
+        </div >
     );
 }
 

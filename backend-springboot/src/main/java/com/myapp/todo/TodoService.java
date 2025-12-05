@@ -42,7 +42,7 @@ public class TodoService {
     }
 
     public TodoOperationResult addTask(String category, String name, LocalDate taskDate,
-                                       TodoItem.RepeatPattern repeatType, Integer repeatDuration, Integer priority) {
+            TodoItem.RepeatPattern repeatType, Integer repeatDuration, Integer priority) {
         // Calculate next order for the task date
         List<TodoItem> existingTasks = repository.findByTaskDate(taskDate);
         int nextOrder = existingTasks.size() + 1;
@@ -84,7 +84,8 @@ public class TodoService {
                     item.setComplete(Boolean.parseBoolean(value));
                     // Set assignedTime to current time when marking as complete
                     if (Boolean.parseBoolean(value)) {
-                        item.setAssignedTime(java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Kolkata")).toLocalTime());
+                        item.setAssignedTime(
+                                java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Kolkata")).toLocalTime());
                     }
                     break;
                 case "priority":
@@ -98,6 +99,12 @@ public class TodoService {
                     break;
                 case "assignedTime":
                     item.setAssignedTime(value.equals("null") ? null : java.time.LocalTime.parse(value));
+                    break;
+                case "inProgress":
+                    item.setInProgress(Boolean.parseBoolean(value));
+                    break;
+                case "longTerm":
+                    item.setLongTerm(Boolean.parseBoolean(value));
                     break;
                 default:
                     logger.warn("Invalid field update attempted: {}", field);

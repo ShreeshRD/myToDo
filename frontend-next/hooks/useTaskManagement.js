@@ -163,6 +163,18 @@ const useTaskManagement = () => {
                 }
             } else {
                 // For non-complete field updates, just update the task in place
+                const today = dayjs().format("YYYY-MM-DD");
+                const isOverdue = date < today;
+
+                if (isOverdue) {
+                    const updatedOverdue = { ...overdueTasks };
+                    updatedOverdue.overdue = updatedOverdue.overdue.map(task =>
+                        task.id === id ? { ...task, [field]: value } : task
+                    );
+                    setOverdueTasks(updatedOverdue);
+                }
+
+                // Also update taskDays if it exists there (e.g. for future tasks or if logic changes)
                 const updatedTaskDays = { ...taskDays };
                 if (updatedTaskDays[date]) {
                     updatedTaskDays[date] = updatedTaskDays[date].map((task) =>
@@ -214,6 +226,19 @@ const useTaskManagement = () => {
         }
 
         const newDate = date.format('YYYY-MM-DD');
+
+        // Check if task already exists in the future date
+        const existingTasks = taskDays[newDate] || [];
+        const isDuplicate = existingTasks.some(t =>
+            t.name === task.name &&
+            t.category === task.category
+        );
+
+        if (isDuplicate) {
+            console.log("Recurring task already exists for date:", newDate);
+            return;
+        }
+
         task.taskDate = newDate;
 
         try {
