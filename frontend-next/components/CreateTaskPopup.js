@@ -29,7 +29,18 @@ function CreateTaskPopup({ projects, darkmode, date, task }) {
   const { onPopupClose } = useTasks();
   const inputRef = useRef(null);
 
-  const initialDate = date ? dayjs(date) : dayjs();
+  // When editing a task, use its actual taskDate; otherwise use the provided date
+  const getInitialDate = () => {
+    if (task && task.taskDate) {
+      return dayjs(task.taskDate);
+    }
+    // For "Overdue" or any invalid date string, fallback to today
+    if (date && dayjs(date).isValid()) {
+      return dayjs(date);
+    }
+    return dayjs();
+  };
+  const initialDate = getInitialDate();
 
   const [poptype, setPoptype] = useState("Add Task");
   const [taskName, setTaskName] = useState('');
@@ -154,7 +165,7 @@ function CreateTaskPopup({ projects, darkmode, date, task }) {
   const getPriorityIcon = () => {
     let color = 'inherit';
     let priorityNumber = '';
-    
+
     if (selectedPriority === 'P0') {
       color = 'inherit';
       priorityNumber = '0';
@@ -175,7 +186,7 @@ function CreateTaskPopup({ projects, darkmode, date, task }) {
       color = 'grey';
       priorityNumber = '4';
     }
-    
+
     return (
       <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
         <FaFlag style={{ color, fontSize: '1.2rem' }} />
@@ -212,11 +223,11 @@ function CreateTaskPopup({ projects, darkmode, date, task }) {
         <div className="task-options">
           <Dropdown placeholder={selectedProject} items={['None', ...projects]} handler={handleProjectSelect} />
           <div className="split-dropdowns">
-             <Dropdown placeholder={getPriorityIcon()} items={PRIORITIES} handler={handlePrioritySelect} />
-             <Dropdown placeholder={getRepeatIcon()} items={REPEAT_OPTIONS} handler={handleRepeatTypeSelect} />
+            <Dropdown placeholder={getPriorityIcon()} items={PRIORITIES} handler={handlePrioritySelect} />
+            <Dropdown placeholder={getRepeatIcon()} items={REPEAT_OPTIONS} handler={handleRepeatTypeSelect} />
           </div>
           <TimeComponent selectedTime={assignedTime} handler={handleTimeChange} darkmode={darkmode} />
-          
+
           {repeatType !== "Repeat Type" && repeatType !== "Off" && repeatType !== "Specific Weekdays" && (
             <input
               type="text"

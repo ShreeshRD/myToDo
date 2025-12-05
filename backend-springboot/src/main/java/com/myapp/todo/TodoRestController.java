@@ -3,7 +3,7 @@ package com.myapp.todo;
 import com.myapp.todo.dto.TodoOperationResult;
 import java.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
+
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -40,8 +40,8 @@ public class TodoRestController {
 
     @PostMapping("/update")
     public @ResponseBody TodoOperationResult updateItem(
-            @RequestParam long id, 
-            @RequestParam String field, 
+            @RequestParam long id,
+            @RequestParam String field,
             @RequestParam String value) {
         return todoService.updateTaskField(id, field, value);
     }

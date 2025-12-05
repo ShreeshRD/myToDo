@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3001",
     "build": "next build && npm run postbuild",
-    "postbuild": "powershell -Command \"if (Test-Path '../Backend-SpringBoot/src/main/resources/static') { Remove-Item -Recurse -Force '../Backend-SpringBoot/src/main/resources/static/*' }; Copy-Item -Recurse -Force './out/*' '../Backend-SpringBoot/src/main/resources/static/'\"",
+    "postbuild": "powershell -Command \"if (Test-Path '../backend-springboot/src/main/resources/static') { Remove-Item -Recurse -Force '../backend-springboot/src/main/resources/static/*' }; Copy-Item -Recurse -Force './out/*' '../backend-springboot/src/main/resources/static/'\"",
     "start": "next start",
     "lint": "eslint",
     "test": "node scripts/test-drag-logic.js"

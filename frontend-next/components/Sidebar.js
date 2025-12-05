@@ -3,7 +3,6 @@
 import { FaRegCalendar, FaRegCalendarAlt } from "react-icons/fa";
 import { MdCalendarViewWeek } from "react-icons/md";
 import AddIcon from "@mui/icons-material/Add";
-import DoneAllIcon from '@mui/icons-material/DoneAll';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import { BsLayoutSidebar } from "react-icons/bs";
 import { CiHashtag } from "react-icons/ci";
@@ -41,10 +40,6 @@ function Sidebar({ show, setShowSidebar, setDarkMode, darkmode, viewPage, setVie
           <FaRegCalendarAlt />
           <span> Calendar</span>
         </li>
-        <li onClick={() => setViewPage('Completed')} className={viewPage === 'Completed' ? 'active' : ''}>
-          <DoneAllIcon />
-          <span> Completed</span>
-        </li>
         <li onClick={() => setViewPage('Search')} className={viewPage === 'Search' ? 'active' : ''}>
           <FaSearch />
           <span> Search</span>
@@ -53,8 +48,8 @@ function Sidebar({ show, setShowSidebar, setDarkMode, darkmode, viewPage, setVie
       <ul className="sidebar__projects">
         <div>My Projects<span style={{ cursor: 'pointer' }}><AddIcon /> <IoIosArrowDown onClick={() => setDropdown(!dropdown)} /></span></div>
         {dropdown && (projects.map((project, index) => (
-          <li 
-            key={index} 
+          <li
+            key={index}
             onClick={() => toggleProject(project)}
             className={selectedProjects.includes(project) ? 'active' : ''}
           >

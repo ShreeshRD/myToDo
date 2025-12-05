@@ -6,7 +6,6 @@ import Header from "./Header";
 import CalendarView from "./CalendarView";
 import CreateTaskPopup from "./CreateTaskPopup";
 import Upcoming from "./Upcoming";
-import Completed from "./Completed";
 import Search from "./Search";
 import TodayView from "./TodayView";
 import { useUI } from "../contexts/UIContext";
@@ -44,15 +43,13 @@ function MainView() {
 					) : viewPage === 'Today' ? (
 						<>
 							<Header darkmode={darkMode} useDate={dayjs()} setDate={dummySetDate} viewPage={viewPage} />
-                            <TodayView />
-						</>
-					) : viewPage === 'Completed' ? (
-						<>
-							<Header darkmode={darkMode} useDate={completedDate} setDate={setCompletedDate} viewPage={viewPage} />
-							<Completed />
+							<TodayView />
 						</>
 					) : viewPage === 'Calendar' ? (
-						<CalendarView />
+						<>
+							<Header darkmode={darkMode} useDate={completedDate} setDate={setCompletedDate} viewPage={viewPage} />
+							<CalendarView />
+						</>
 					) : viewPage === 'Search' ? (
 						<Search />
 					) : "Something went wrong"

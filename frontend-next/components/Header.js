@@ -11,7 +11,7 @@ function Header({ darkmode, useDate, setDate, viewPage }) {
 	return (
 		<div className={`myheader${darkmode ? ' dark' : ''}`}>
 			<div className="headerItem">
-				{viewPage === 'Completed' && (
+				{viewPage === 'Calendar' && (
 					<IoIosArrowBack className="date-btns" onClick={() => setDate((prevDate) => prevDate.subtract(1, 'month'))} />
 				)}
 				<h1>
@@ -19,7 +19,7 @@ function Header({ darkmode, useDate, setDate, viewPage }) {
 				</h1>
 			</div>
 			<div className="headerItem">
-				{viewPage === 'Completed' ? (
+				{viewPage === 'Calendar' ? (
 					<Heatmap currentDate={useDate} />
 				) : (
 					setDate.name !== "dummySetDate" && (
@@ -33,7 +33,7 @@ function Header({ darkmode, useDate, setDate, viewPage }) {
 			</div>
 			<div className="headerItem">
 				<h1><b>{useDate.format('MMMM')}</b></h1>
-				{viewPage === 'Completed' && (
+				{viewPage === 'Calendar' && (
 					<IoIosArrowForward className="date-btns" onClick={() => setDate((prevDate) => prevDate.add(1, 'month'))} />
 				)}
 			</div>

@@ -24,7 +24,7 @@ const useTaskManagement = () => {
                 console.warn("Invalid response structure from getTasks");
                 return;
             }
-            
+
             const today = dayjs().format("YYYY-MM-DD")
 
             const newCompletedTasks = {};
@@ -47,18 +47,18 @@ const useTaskManagement = () => {
                 }
                 else {
                     tasks.forEach(task => {
+                        // Add to completedTasks if complete
                         if (task.complete) {
                             if (!newCompletedTasks[date]) {
                                 newCompletedTasks[date] = [];
                             }
                             newCompletedTasks[date].push(task);
                         }
-                        else {
-                            if (!newTaskDays[date]) {
-                                newTaskDays[date] = [];
-                            }
-                            newTaskDays[date].push(task);
+                        // Always add to taskDays so completed tasks remain visible in Upcoming/Today views
+                        if (!newTaskDays[date]) {
+                            newTaskDays[date] = [];
                         }
+                        newTaskDays[date].push(task);
                     });
                 }
             }
@@ -76,7 +76,7 @@ const useTaskManagement = () => {
             console.warn("Invalid task object in addToFrontend:", task);
             return;
         }
-        
+
         if (task.taskDate < dayjs().format("YYYY-MM-DD")) {
             setOverdueTasks(prevTaskDays => ({
                 ...prevTaskDays,
@@ -97,11 +97,11 @@ const useTaskManagement = () => {
     const updateTask = async (id, field, value, date) => {
         try {
             const taskItem = await updateField(id, field, value);
-            
+
             if (field === "complete") {
                 const today = dayjs().format("YYYY-MM-DD");
                 const isOverdue = date < today;
-                
+
                 if (value === true) {
                     // Task is being marked as complete
                     // Update the task in place with data from backend (includes assignedTime)
@@ -120,7 +120,7 @@ const useTaskManagement = () => {
                             setTaskDays(updatedTaskDays);
                         }
                     }
-                    
+
                     // ALSO add to completedTasks so it appears in Completed section
                     const updatedCompletedTasks = { ...completedTasks };
                     if (!updatedCompletedTasks[date]) {
@@ -130,7 +130,7 @@ const useTaskManagement = () => {
                     console.log('Adding task to completedTasks:', date, taskItem);
                     console.log('Updated completedTasks:', updatedCompletedTasks);
                     setCompletedTasks(updatedCompletedTasks);
-                    
+
                     // Handle repeat tasks
                     if (taskItem.repeatType !== "NONE") {
                         addNextRepeat(taskItem);
@@ -153,7 +153,7 @@ const useTaskManagement = () => {
                             setTaskDays(updatedTaskDays);
                         }
                     }
-                    
+
                     // Remove from completedTasks
                     const updatedCompletedTasks = { ...completedTasks };
                     if (updatedCompletedTasks[date]) {
@@ -293,12 +293,12 @@ const useTaskManagement = () => {
         // Calculate the new destination list for both frontend and backend
         // This ensures we use the same logic and avoid stale state issues
         let currentDestList = [...(taskDays[destDate] || [])].sort((a, b) => a.dayOrder - b.dayOrder);
-        
+
         // Remove source task if it's in the destination date
         if (!isOverdue && sourceDate === destDate) {
             currentDestList = currentDestList.filter(t => t.id.toString() !== taskId);
         }
-        
+
         // Find insert position based on predecessor
         let insertIndex = 0;
         if (predecessorTaskId) {
@@ -307,13 +307,13 @@ const useTaskManagement = () => {
                 insertIndex = predIndex + 1;
             }
         }
-        
+
         // Create the task to move with updated date
         const taskToMove = { ...sourceTask, taskDate: destDate };
-        
+
         // Insert at the correct position
         currentDestList.splice(insertIndex, 0, taskToMove);
-        
+
         // Calculate new dayOrder values
         const updatedDestList = currentDestList.map((t, i) => ({
             ...t,
@@ -330,7 +330,7 @@ const useTaskManagement = () => {
         // 2. Update destination with the calculated list
         setTaskDays(prevTaskDays => {
             const newTaskDays = { ...prevTaskDays };
-            
+
             // Remove from source if it was in taskDays
             if (!isOverdue && sourceDate) {
                 newTaskDays[sourceDate] = (newTaskDays[sourceDate] || []).filter(t => t.id.toString() !== taskId);
@@ -344,7 +344,7 @@ const useTaskManagement = () => {
 
         // 3. Update Backend using the same calculated list
         updateBackend(taskId, "taskDate", destDate);
-        
+
         // Update dayOrder for all tasks in the destination using the same calculated values
         updatedDestList.forEach((t, i) => {
             updateBackend(t.id, "dayOrder", i + 1);

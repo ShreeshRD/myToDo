@@ -7,6 +7,46 @@
   padding: 20px;
   overflow-y: auto;
   overflow-x: auto;
+  position: relative;
+
+  /* Overdue Badge */
+  .overdue-badge {
+    position: fixed;
+    top: 110px;
+    right: 25px;
+    background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(238, 90, 90, 0.4);
+    transition: all 0.2s ease;
+    animation: pulse-badge 2s infinite;
+
+    &:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(238, 90, 90, 0.5);
+    }
+  }
+
+  @keyframes pulse-badge {
+
+    0%,
+    100% {
+      box-shadow: 0 2px 8px rgba(238, 90, 90, 0.4);
+    }
+
+    50% {
+      box-shadow: 0 2px 12px rgba(238, 90, 90, 0.7);
+    }
+  }
 
   &.dark {
     background-color: #6a6a6a;
@@ -19,25 +59,25 @@
 
       button {
         color: #eee;
-        
+
         &:enabled:hover {
           background-color: #888;
         }
       }
-      
+
       .react-calendar__tile--active {
         background: #007bff !important;
         color: white;
-        
+
         &:enabled:hover {
           background: #0056b3 !important;
         }
       }
-      
+
       .react-calendar__tile--now {
         background: #888;
       }
-      
+
       .react-calendar__tile.react-calendar__month-view__days__day--neighboringMonth {
         background-color: rgba(255, 255, 255, 0.03);
       }
@@ -50,13 +90,13 @@
   justify-content: center;
   height: 135vh;
   transition: all 0.3s ease;
-  
+
   .react-calendar {
     width: 100%;
     max-width: 1000px;
     height: 100%;
     border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     border: none;
     font-family: inherit;
     display: flex;
@@ -67,27 +107,27 @@
       height: 50px;
       margin-bottom: 10px;
       flex-shrink: 0;
-      
+
       button {
         &:focus {
           outline: none !important;
           border: none !important;
           box-shadow: none !important;
         }
-        
+
         &:active {
           outline: none !important;
           border: none !important;
           box-shadow: none !important;
         }
-        
+
         &:focus:not(:focus-visible) {
           outline: none !important;
           border: none !important;
           box-shadow: none !important;
           background: none !important;
         }
-        
+
         &:focus-visible {
           outline: 2px solid #007bff;
           outline-offset: 2px;
@@ -100,54 +140,54 @@
       display: flex;
       flex-direction: column;
       min-height: 0;
-      
+
       .react-calendar__month-view {
         flex: 1;
         display: flex;
         flex-direction: column;
         min-height: 0;
-        
-        & > div {
+
+        &>div {
           flex: 1;
           display: flex;
           flex-direction: column;
           min-height: 0;
-          
-          & > div {
-             flex: 1;
-             display: flex;
-             flex-direction: column;
-             min-height: 0;
-             position: relative;
 
-             .react-calendar__month-view__days {
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                display: grid !important;
-                grid-template-columns: repeat(7, 1fr);
-                grid-auto-rows: 1fr;
-                gap: 2px;
-                
-                .react-calendar__tile {
-                    height: 100% !important;
-                    max-width: none !important;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: flex-start;
-                    align-items: flex-start;
-                    padding: 5px;
-                    overflow: hidden;
-                    border: 1px solid rgba(255, 255, 255, 0.05);
-                    
-                    &.react-calendar__month-view__days__day--neighboringMonth {
-                      opacity: 0.4;
-                      background-color: rgba(0, 0, 0, 0.03);
-                    }
+          &>div {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            position: relative;
+
+            .react-calendar__month-view__days {
+              position: absolute;
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              display: grid !important;
+              grid-template-columns: repeat(7, 1fr);
+              grid-auto-rows: 1fr;
+              gap: 2px;
+
+              .react-calendar__tile {
+                height: 100% !important;
+                max-width: none !important;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-start;
+                align-items: flex-start;
+                padding: 5px;
+                overflow: hidden;
+                border: 1px solid rgba(255, 255, 255, 0.05);
+
+                &.react-calendar__month-view__days__day--neighboringMonth {
+                  opacity: 0.4;
+                  background-color: rgba(0, 0, 0, 0.03);
                 }
-             }
+              }
+            }
           }
         }
       }
@@ -164,26 +204,26 @@
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
-  
+
   /* Custom scrollbar for task list */
   &::-webkit-scrollbar {
     width: 4px;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.05);
     border-radius: 2px;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: rgba(0, 0, 0, 0.2);
     border-radius: 2px;
-    
+
     &:hover {
       background: rgba(0, 0, 0, 0.3);
     }
   }
-  
+
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.05);
 }
@@ -201,12 +241,12 @@
   margin-bottom: 2px;
   cursor: pointer;
   transition: all 0.2s ease;
-  
+
   &:hover {
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
-  
+
   &.completed {
     background-color: rgba(136, 136, 136, 0.5);
     text-decoration: line-through;
@@ -231,20 +271,20 @@
     background-color: #a0a0a0; // Washed out gray
     text-decoration: line-through;
     opacity: 0.7;
-    
+
     &.completed {
-        background-color: #a0a0a0; // Ensure override
+      background-color: #a0a0a0; // Ensure override
     }
   }
 
   &.dark {
     .react-calendar__tile {
-        background-color: rgba(255, 255, 255, 0.02);
+      background-color: rgba(255, 255, 255, 0.02);
     }
-    
+
     .calendar-task-item {
-        background-color: #555;
-        color: #aaa;
+      background-color: #555;
+      color: #aaa;
     }
   }
 
@@ -254,7 +294,8 @@
   .task-details-panel {
     position: sticky;
     top: 0;
-    height: calc(100vh - 145px); /* 105px header + 40px padding */
+    height: calc(100vh - 145px);
+    /* 105px header + 40px padding */
     overflow-y: auto;
   }
 }
@@ -265,11 +306,11 @@
   width: 100%;
   /* Removed height: 100% and overflow: hidden to avoid clipping */
   gap: 20px;
-  
+
   .calendar-container {
     flex: 1;
     /* transition is already in .calendar-container above */
-    
+
     &.shrink {
       flex: 0.7;
     }
@@ -280,7 +321,7 @@
   flex: 0.3;
   background: white;
   border-radius: 8px;
-  box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -288,10 +329,11 @@
   /* Use sticky positioning to stay in view while scrolling the calendar */
   position: sticky;
   top: 0px;
-  height: calc(100vh - 40px); 
+  height: calc(100vh - 40px);
   overflow-y: auto;
   min-width: 300px;
-  display: none; /* Hidden by default */
+  display: none;
+  /* Hidden by default */
 
   &.open {
     display: flex;
@@ -318,7 +360,7 @@
       cursor: pointer;
       color: #666;
       padding: 0 5px;
-      
+
       &:hover {
         color: #333;
       }
@@ -343,7 +385,7 @@
     &::-webkit-scrollbar-thumb {
       background-color: rgba(0, 0, 0, 0.2);
       border-radius: 3px;
-      
+
       &:hover {
         background-color: rgba(0, 0, 0, 0.3);
       }
@@ -368,13 +410,13 @@
         .task-info {
           display: flex;
           flex-direction: column;
-          
+
           .task-name {
             font-size: 1rem;
             color: #333;
             font-weight: 500;
           }
-          
+
           .task-time {
             font-size: 0.8rem;
             color: #666;
@@ -401,40 +443,41 @@
 .calendar-view.dark {
   .task-details-panel {
     background: #757575;
-    box-shadow: -2px 0 10px rgba(0,0,0,0.3);
-    
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3);
+
     .panel-header {
       border-bottom-color: #888;
-      
+
       h3 {
         color: #eee;
       }
-      
+
       .close-btn {
         color: #ccc;
-        
+
         &:hover {
           color: #fff;
         }
       }
     }
-    
+
     .panel-content {
       .task-list {
         .panel-task-item {
           border-bottom-color: #888;
-          
+
           .task-info {
             .task-name {
               color: #eee;
             }
+
             .task-time {
               color: #ccc;
             }
           }
         }
       }
-      
+
       .no-tasks {
         color: #aaa;
       }
@@ -443,7 +486,7 @@
     .panel-content {
       &::-webkit-scrollbar-thumb {
         background-color: rgba(255, 255, 255, 0.2);
-        
+
         &:hover {
           background-color: rgba(255, 255, 255, 0.3);
         }
@@ -457,8 +500,45 @@
     transform: translateX(100%);
     opacity: 0;
   }
+
   to {
     transform: translateX(0);
     opacity: 1;
+  }
+}
+
+/* Overdue Panel Styles */
+.overdue-panel {
+  .panel-header {
+    h3 {
+      color: #ee5a5a !important;
+    }
+  }
+
+  .overdue-task-item {
+    .task-info {
+      .task-time {
+        color: #ee5a5a !important;
+        font-weight: 500;
+      }
+    }
+  }
+}
+
+.calendar-view.dark {
+  .overdue-panel {
+    .panel-header {
+      h3 {
+        color: #ff8a8a !important;
+      }
+    }
+
+    .overdue-task-item {
+      .task-info {
+        .task-time {
+          color: #ff8a8a !important;
+        }
+      }
+    }
   }
 }

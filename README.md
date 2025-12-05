@@ -18,4 +18,4 @@ Pre-Requisites -
 Java Version 21
 MySQL instance running with an existing database called tododb
 Add your MySQL username and password in this file:
- - Backend-SpringBoot/src/main/resources/application.properties
+ - backend-springboot/src/main/resources/application.properties
