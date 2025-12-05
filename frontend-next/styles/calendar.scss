@@ -247,6 +247,12 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
+  &.incomplete {
+    background-color: rgba(255, 255, 255, 0.7);
+    color: #222;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+  }
+
   &.completed {
     background-color: rgba(136, 136, 136, 0.5);
     text-decoration: line-through;
@@ -267,15 +273,7 @@
     background-color: rgba(0, 0, 0, 0.02); // Slightly darker background for completed days
   }
 
-  .calendar-task-item {
-    background-color: #a0a0a0; // Washed out gray
-    text-decoration: line-through;
-    opacity: 0.7;
 
-    &.completed {
-      background-color: #a0a0a0; // Ensure override
-    }
-  }
 
   &.dark {
     .react-calendar__tile {
@@ -283,8 +281,16 @@
     }
 
     .calendar-task-item {
-      background-color: #555;
-      color: #aaa;
+      &.incomplete {
+        background-color: rgba(255, 255, 255, 0.7);
+        color: #222;
+        border: 1px solid rgba(0, 0, 0, 0.15);
+      }
+
+      &.completed {
+        background-color: #555;
+        color: #aaa;
+      }
     }
   }
 

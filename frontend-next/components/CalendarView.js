@@ -99,7 +99,7 @@ function CalendarView() {
                         {sortedTasks.map((task) => (
                             <div
                                 key={task.id}
-                                className={`calendar-task-item ${task.complete ? 'completed' : ''}`}
+                                className={`calendar-task-item ${task.complete ? 'completed' : 'incomplete'}`}
                             >
                                 {task.name}
                             </div>

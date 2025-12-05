@@ -62,7 +62,7 @@ function ToDoDay({ tasks, date, id }) {
 
     return (
         <div className="tasks">
-            <div className="todo_items_title"><b>{title}</b></div>
+            <div className="todo_items_title"><b suppressHydrationWarning>{title}</b></div>
             <Droppable droppableId={`tasks__list${id}`}>
                 {(provided) => (
                     <div
