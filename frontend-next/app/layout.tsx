@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.scss";
 import StyledComponentsRegistry from "@/lib/registry";
 import { Providers } from "./providers";
+import StopwatchPanel from "@/components/StopwatchPanel";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,6 +23,7 @@ export default function RootLayout({
         <StyledComponentsRegistry>
           <Providers>
             {children}
+            <StopwatchPanel />
           </Providers>
         </StyledComponentsRegistry>
       </body>

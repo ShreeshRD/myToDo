@@ -153,4 +153,14 @@ public class TodoItem {
     public void setLongTerm(boolean longTerm) {
         this.longTerm = longTerm;
     }
+
+    private Long timeTaken;
+
+    public Long getTimeTaken() {
+        return timeTaken;
+    }
+
+    public void setTimeTaken(Long timeTaken) {
+        this.timeTaken = timeTaken;
+    }
 }

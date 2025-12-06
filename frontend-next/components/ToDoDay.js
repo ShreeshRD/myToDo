@@ -10,10 +10,12 @@ import CustomCheckbox from "./CustomCheckbox";
 import CustomContextMenu from "./CustomContextMenu";
 import '../styles/todoitem.css';
 import { useTasks } from "../contexts/TaskContext";
+import { useStopwatch } from "../contexts/StopwatchContext";
 import { formatTaskDate, formatDateShort } from "../lib/dateHelpers";
 
 function ToDoDay({ tasks, date, id }) {
     const { updateTask, removeTask, callPopup, darkMode } = useTasks();
+    const { toggleStopwatch, stopStopwatch } = useStopwatch();
     const title = formatTaskDate(date);
     const [contextMenu, setContextMenu] = React.useState({ visible: false, x: 0, y: 0, task: null });
 
@@ -52,6 +54,13 @@ function ToDoDay({ tasks, date, id }) {
         handleCloseContextMenu();
     };
 
+    const handleTimeMe = () => {
+        if (contextMenu.task) {
+            toggleStopwatch(contextMenu.task);
+        }
+        handleCloseContextMenu();
+    };
+
     const getTaskClassName = (task) => {
         let className = `todo_item_box${darkMode ? ' dark' : ''}`;
         if (id === 100) className += ' overdue';
@@ -79,14 +88,19 @@ function ToDoDay({ tasks, date, id }) {
                                         {...provided.dragHandleProps}
                                         ref={provided.innerRef}
                                         onClick={() => !task.complete && callPopup(date, task)}
-                                        onContextMenu={(e) => handleContextMenu(e, task)}
+                                        onContextMenu={(e) => !task.complete && handleContextMenu(e, task)}
                                     >
                                         <div className="todo_item_inner">
                                             <CustomCheckbox
                                                 checked={task.complete}
-                                                onChange={(e) => {
+                                                onChange={async (e) => {
                                                     e.stopPropagation();
-                                                    updateTask(task.id, "complete", !task.complete, task.taskDate);
+                                                    const newComplete = !task.complete;
+                                                    if (newComplete) {
+                                                        // Wait for stopwatch to save timeTaken before marking complete
+                                                        await stopStopwatch(task);
+                                                    }
+                                                    updateTask(task.id, "complete", newComplete, task.taskDate);
                                                 }}
                                                 icon={<RiCheckboxBlankCircleLine className="checkbox_icon_unchecked" />}
                                                 checkedIcon={<RiCheckboxCircleFill className="checkbox_icon_checked" />}
@@ -111,6 +125,7 @@ function ToDoDay({ tasks, date, id }) {
                                                 {date === "Overdue" && formatDateShort(task.taskDate)}
                                                 {task.repeatType !== "NONE" && <BsArrowRepeat className="repeat_icon" />}
                                                 {task.category !== 'None' && ` #${task.category}`}
+                                                {task.complete && task.timeTaken > 0 && ` • ${Math.floor(task.timeTaken / 60000)}m`}
                                             </span>
                                         </div>
                                     </div>
@@ -138,6 +153,7 @@ function ToDoDay({ tasks, date, id }) {
                 onMarkInProgress={handleMarkInProgress}
                 onToggleLongTerm={handleToggleLongTerm}
                 onEdit={handleEdit}
+                onTimeMe={handleTimeMe}
             />
         </div >
     );

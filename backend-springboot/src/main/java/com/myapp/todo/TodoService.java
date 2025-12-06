@@ -106,6 +106,9 @@ public class TodoService {
                 case "longTerm":
                     item.setLongTerm(Boolean.parseBoolean(value));
                     break;
+                case "timeTaken":
+                    item.setTimeTaken(Long.parseLong(value));
+                    break;
                 default:
                     logger.warn("Invalid field update attempted: {}", field);
                     return new TodoOperationResult("Error: Invalid field", null);

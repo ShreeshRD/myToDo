@@ -162,6 +162,10 @@ export const TaskProvider = ({ children }) => {
             }
         }
 
+        if (field === "complete" && value === true) {
+            await taskManagement.updateTask(id, "inProgress", false, date);
+        }
+
         // Normal update
         await taskManagement.updateTask(id, field, value, date);
     };
