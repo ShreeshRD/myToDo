@@ -4,7 +4,7 @@
   align-items: center;
   justify-content: center;
   padding: 0 10px;
-  
+
   h3 {
     display: none; // Hide title as requested "no other info" or just grid
   }
@@ -23,7 +23,7 @@
   border-radius: 2px;
   background-color: rgba(255, 255, 255, 0.1); // Default empty
   transition: background-color 0.3s;
-  
+
   &.empty-pad {
     background-color: transparent;
     box-shadow: none;
@@ -36,47 +36,49 @@
   // 3: #2e8bc0 (Bright Blue)
   // 4: #b1d4e0 (Pale Blue)
   // 5+: #ffffff (White/Brightest) or #dbe9f6
+  // Common Active Colors (Dark Mode Scheme)
+  &.intensity-1 {
+    background-color: #1f3a52;
+  }
 
-  &.intensity-0 { background-color: rgba(255, 255, 255, 0.1); }
-  &.intensity-1 { background-color: #0c2d48; }
-  &.intensity-2 { background-color: #145da0; }
-  &.intensity-3 { background-color: #2e8bc0; }
-  &.intensity-4 { background-color: #66a5ad; }
-  &.intensity-5 { background-color: #b1d4e0; box-shadow: 0 0 4px #b1d4e0; }
+  &.intensity-2 {
+    background-color: #2a5275;
+  }
+
+  &.intensity-3 {
+    background-color: #36749e;
+  }
+
+  &.intensity-4 {
+    background-color: #4e9bc4;
+  }
+
+  &.intensity-5 {
+    background-color: #8ac6eb;
+    box-shadow: 0 0 5px #8ac6eb;
+  }
 }
 
-// Light mode adjustments if needed
-// If the user wants "lighter as more tasks come", it implies a dark base.
-// In light mode, we might want to invert this or keep it if the header is dark?
-// The header in light mode is white.
-// If we have white background:
-// 0: Gray
-// 5: Light Blue? That would be hard to see.
-// Maybe "Lighter" meant "Brighter/More Intense"?
-// "Brightest" at 5.
-// I will assume "Brighter Blue" for Light Mode.
-// 0: Gray
-// 5: Vivid Blue
+// Mode Separation for Grid Visibility
 
+// Light Mode
 .myheader:not(.dark) {
-    .heatmap-cell {
-        &.intensity-0 { background-color: #ebedf0; }
-        &.intensity-1 { background-color: #cce5ff; }
-        &.intensity-2 { background-color: #99caff; }
-        &.intensity-3 { background-color: #66b0ff; }
-        &.intensity-4 { background-color: #3396ff; }
-        &.intensity-5 { background-color: #007bff; } // Brightest Blue
+  .heatmap-cell {
+    &.intensity-0 {
+      background-color: #ebedf0;
     }
+
+    // Gray for visibility
+  }
 }
 
+// Dark Mode
 .myheader.dark {
-    .heatmap-cell {
-         // Keep the Dark -> Light (Glowing) look for dark mode
-         &.intensity-0 { background-color: rgba(255, 255, 255, 0.05); }
-         &.intensity-1 { background-color: #1f3a52; }
-         &.intensity-2 { background-color: #2a5275; }
-         &.intensity-3 { background-color: #36749e; }
-         &.intensity-4 { background-color: #4e9bc4; }
-         &.intensity-5 { background-color: #8ac6eb; box-shadow: 0 0 5px #8ac6eb; }
+  .heatmap-cell {
+    &.intensity-0 {
+      background-color: rgba(255, 255, 255, 0.05);
     }
+
+    // Transparent/Dim
+  }
 }
