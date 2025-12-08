@@ -22,6 +22,7 @@ const ProjectManagerModal = ({
     const modalRef = useRef(null);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setLocalProjects([...projects]);
     }, [projects, isOpen]);
 
@@ -149,7 +150,7 @@ const ProjectManagerModal = ({
                             <div className="pm-confirm-icon">
                                 <WarningAmberIcon />
                             </div>
-                            <h3>Delete "{deleteConfirm}"?</h3>
+                            <h3>Delete &quot;{deleteConfirm}&quot;?</h3>
                             <p>This project will be removed. Completed tasks will keep their project history.</p>
 
                             <label className="pm-checkbox-label">

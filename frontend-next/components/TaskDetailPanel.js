@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 import { RiCheckboxCircleFill, RiCheckboxBlankCircleLine } from "react-icons/ri";
 import CustomCheckbox from "./CustomCheckbox";
 
-function TaskDetailPanel({ isOpen, onClose, tasks, onToggleTask, date, darkMode }) {
+function TaskDetailPanel({ isOpen, onClose, tasks, onToggleTask, date }) {
     if (!isOpen) return null;
 
     const formattedDate = date ? dayjs(date).format('MMMM D, YYYY') : '';
@@ -28,7 +28,7 @@ function TaskDetailPanel({ isOpen, onClose, tasks, onToggleTask, date, darkMode 
                                     )}
                                 </div>
                                 <div className="task-action">
-                                     <CustomCheckbox
+                                    <CustomCheckbox
                                         checked={task.complete}
                                         onChange={() => onToggleTask(task)}
                                         icon={<RiCheckboxBlankCircleLine className="checkbox_icon_unchecked" />}

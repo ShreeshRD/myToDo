@@ -23,7 +23,6 @@ function Sidebar({
   setViewPage,
   projects,
   addProject,
-  removeProject,
   reorderProjects,
   deleteProjectWithTasks
 }) {

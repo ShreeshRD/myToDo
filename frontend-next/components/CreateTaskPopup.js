@@ -59,6 +59,7 @@ function CreateTaskPopup({ projects, darkmode, date, task }) {
 
   useEffect(() => {
     if (task) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPoptype("Update");
       setTaskName(task.name);
       setTaskID(task.id);

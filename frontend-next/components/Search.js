@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTasks } from '../contexts/TaskContext';
-import { Box, TextField, Typography, Paper, List, ListItem, ListItemText, Chip, InputAdornment, Pagination } from '@mui/material';
+import { TextField, Typography, Paper, List, ListItem, ListItemText, Chip, InputAdornment, Pagination } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import dayjs from 'dayjs';
 import styles from './Search.module.css';
@@ -38,6 +38,7 @@ function Search() {
 
     // Reset page when filter or query changes
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setPage(1);
     }, [query, activeFilter]);
 
@@ -122,7 +123,7 @@ function Search() {
                     ),
                     className: `${styles.searchBarInput} ${styles[themeClass]}`
                 }}
-                sx={{ 
+                sx={{
                     '& .MuiOutlinedInput-root': {
                         '& fieldset': { border: 'none' }
                     }
@@ -133,10 +134,10 @@ function Search() {
             <div className={styles.filterContainer}>
                 {filters.map(filter => {
                     const isActive = activeFilter === filter;
-                    const chipClass = isActive 
+                    const chipClass = isActive
                         ? `${styles.filterChip} ${styles.active} ${filter === 'Completed' ? styles.activeCompleted : styles.activeOther}`
                         : `${styles.filterChip} ${styles.inactive} ${styles[themeClass]}`;
-                    
+
                     return (
                         <Chip
                             key={filter}
@@ -153,16 +154,16 @@ function Search() {
                     );
                 })}
             </div>
-            
+
             <List className={`${styles.taskList} ${styles[themeClass]}`}>
                 {paginatedTasks.map((task, index) => {
                     const taskOverdue = isOverdue(task);
                     const statusText = getStatusText(task);
-                    
+
                     return (
                         <React.Fragment key={task.id || index}>
-                            <Paper 
-                                elevation={0} 
+                            <Paper
+                                elevation={0}
                                 onClick={() => handleTaskClick(task)}
                                 className={`${styles.taskPaper} ${styles[themeClass]}`}
                             >
@@ -170,16 +171,16 @@ function Search() {
                                     <ListItemText
                                         primary={
                                             <div className={styles.taskHeader}>
-                                                <Typography 
-                                                    variant="h6" 
-                                                    component="div" 
+                                                <Typography
+                                                    variant="h6"
+                                                    component="div"
                                                     className={styles.taskTitle}
                                                 >
                                                     {task.name}
                                                 </Typography>
                                                 {task.assignedTime && (
-                                                    <Typography 
-                                                        variant="body2" 
+                                                    <Typography
+                                                        variant="body2"
                                                         className={`${styles.taskTime} ${styles[themeClass]}`}
                                                     >
                                                         {dayjs(task.assignedTime, 'HH:mm').format('h:mm A')}
@@ -189,30 +190,28 @@ function Search() {
                                         }
                                         secondary={
                                             <div className={styles.taskMeta}>
-                                                <Chip 
-                                                    label={statusText} 
-                                                    size="small" 
-                                                    className={`${styles.statusChip} ${
-                                                        task.complete ? styles.completed : 
-                                                        taskOverdue ? styles.overdue : 
-                                                        styles.active
-                                                    }`}
+                                                <Chip
+                                                    label={statusText}
+                                                    size="small"
+                                                    className={`${styles.statusChip} ${task.complete ? styles.completed :
+                                                        taskOverdue ? styles.overdue :
+                                                            styles.active
+                                                        }`}
                                                     sx={{ backgroundColor: getStatusColor(task) }}
                                                 />
-                                                <Typography 
-                                                    variant="body2" 
-                                                    className={`${styles.taskDate} ${
-                                                        taskOverdue ? styles.overdue : styles[themeClass]
-                                                    }`}
+                                                <Typography
+                                                    variant="body2"
+                                                    className={`${styles.taskDate} ${taskOverdue ? styles.overdue : styles[themeClass]
+                                                        }`}
                                                 >
                                                     {dayjs(task.taskDate).format('MMM D')}
                                                 </Typography>
                                                 {task.category && task.category !== 'None' && (
-                                                    <Chip 
-                                                        label={task.category} 
-                                                        size="small" 
+                                                    <Chip
+                                                        label={task.category}
+                                                        size="small"
                                                         className={`${styles.categoryChip} ${styles[themeClass]}`}
-                                                    /> 
+                                                    />
                                                 )}
                                             </div>
                                         }
@@ -233,10 +232,10 @@ function Search() {
             {/* Pagination Control */}
             {totalPages > 1 && (
                 <div className={styles.paginationContainer}>
-                    <Pagination 
-                        count={totalPages} 
-                        page={page} 
-                        onChange={handlePageChange} 
+                    <Pagination
+                        count={totalPages}
+                        page={page}
+                        onChange={handlePageChange}
                         color="primary"
                         sx={{
                             '& .MuiPaginationItem-root': {

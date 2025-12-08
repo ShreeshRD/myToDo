@@ -9,13 +9,6 @@ const useTaskManagement = () => {
     const [startDate, setStartDate] = useState(dayjs());
     const [completedDate, setCompletedDate] = useState(dayjs().subtract(7, 'day'));
 
-    useEffect(() => {
-        const fetch = async () => {
-            await fetchTasks();
-        }
-        fetch();
-    }, []);
-
     const fetchTasks = async () => {
         try {
             const response = await getTasks("bydate");
@@ -69,6 +62,13 @@ const useTaskManagement = () => {
             console.error("Error fetching tasks:", error);
         }
     };
+
+    useEffect(() => {
+        const fetch = async () => {
+            await fetchTasks();
+        }
+        fetch();
+    }, []);
 
     const addToFrontend = (task) => {
         // Handle case where task is undefined or missing taskDate

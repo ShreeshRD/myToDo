@@ -182,6 +182,294 @@ class TodoRestControllerIntegrationTest {
                 assertThat(response.getBody()).isNotNull();
         }
 
+        // ============================================
+        // Bug Regression Tests
+        // ============================================
+
+        @Test
+        @Order(7)
+        @DisplayName("POST /todo/update - should update category without creating duplicate (Bug 417)")
+        void testUpdateCategoryOfCompletedTask() {
+                // Arrange - Create and complete a task
+                TodoItem createdTask = createTask("Test Category Update", "OldProject");
+                Long taskId = createdTask.getId();
+
+                // Mark as complete
+                java.net.URI completeUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                                .queryParam("id", taskId)
+                                .queryParam("field", "complete")
+                                .queryParam("value", "true")
+                                .build()
+                                .toUri();
+                restTemplate.postForEntity(completeUrl, null, TodoOperationResult.class);
+
+                // Act - Update category
+                java.net.URI updateUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                                .queryParam("id", taskId)
+                                .queryParam("field", "category")
+                                .queryParam("value", "NewProject")
+                                .build()
+                                .toUri();
+
+                ResponseEntity<TodoOperationResult> response = restTemplate.postForEntity(
+                                updateUrl, null, TodoOperationResult.class);
+
+                // Assert - Category updated, no duplicate
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody()).isNotNull();
+                assertThat(response.getBody().getItem().getCategory()).isEqualTo("NewProject");
+                assertThat(response.getBody().getItem().isComplete()).isTrue();
+
+                // Verify only one task exists
+                ResponseEntity<List<TodoItem>> allTasks = restTemplate.exchange(
+                                baseUrl + "/all",
+                                HttpMethod.GET,
+                                null,
+                                new ParameterizedTypeReference<List<TodoItem>>() {
+                                });
+                assertThat(allTasks.getBody()).hasSize(1);
+        }
+
+        @Test
+        @Order(8)
+        @DisplayName("POST /todo/update - should update recurring task fields correctly (Bug 652, 802)")
+        void testUpdateRecurringTaskFields() {
+                // Arrange - Create task with initial values
+                TodoItem createdTask = createTask("Recurring Task", "Work");
+                Long taskId = createdTask.getId();
+
+                // Act - Set repeat type
+                java.net.URI repeatTypeUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                                .queryParam("id", taskId)
+                                .queryParam("field", "repeatType")
+                                .queryParam("value", "EVERY_X_DAYS")
+                                .build()
+                                .toUri();
+
+                ResponseEntity<TodoOperationResult> repeatTypeResponse = restTemplate.postForEntity(
+                                repeatTypeUrl, null, TodoOperationResult.class);
+
+                // Assert repeat type
+                assertThat(repeatTypeResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(repeatTypeResponse.getBody().getItem().getRepeatType())
+                                .isEqualTo(TodoItem.RepeatPattern.EVERY_X_DAYS);
+
+                // Act - Set repeat duration
+                java.net.URI repeatDurationUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                                .queryParam("id", taskId)
+                                .queryParam("field", "repeatDuration")
+                                .queryParam("value", "7")
+                                .build()
+                                .toUri();
+
+                ResponseEntity<TodoOperationResult> durationResponse = restTemplate.postForEntity(
+                                repeatDurationUrl, null, TodoOperationResult.class);
+
+                // Assert repeat duration
+                assertThat(durationResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(durationResponse.getBody().getItem().getRepeatDuration()).isEqualTo(7);
+        }
+
+        @Test
+        @Order(9)
+        @DisplayName("POST /todo/update - should update task date correctly (Bug 756)")
+        void testUpdateTaskDate() {
+                // Arrange - Create a task
+                TodoItem createdTask = createTask("Task to Reschedule", "Work");
+                Long taskId = createdTask.getId();
+                LocalDate newDate = LocalDate.now().plusDays(7);
+
+                // Act - Update date
+                java.net.URI updateUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                                .queryParam("id", taskId)
+                                .queryParam("field", "taskDate")
+                                .queryParam("value", newDate.toString())
+                                .build()
+                                .toUri();
+
+                ResponseEntity<TodoOperationResult> response = restTemplate.postForEntity(
+                                updateUrl, null, TodoOperationResult.class);
+
+                // Assert
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody()).isNotNull();
+                assertThat(response.getBody().getItem().getTaskDate()).isEqualTo(newDate);
+        }
+
+        @Test
+        @Order(10)
+        @DisplayName("POST /todo/update - should update priority field")
+        void testUpdatePriority() {
+                // Arrange
+                TodoItem createdTask = createTask("Priority Task", "Work");
+                Long taskId = createdTask.getId();
+
+                // Act
+                java.net.URI updateUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                                .queryParam("id", taskId)
+                                .queryParam("field", "priority")
+                                .queryParam("value", "3")
+                                .build()
+                                .toUri();
+
+                ResponseEntity<TodoOperationResult> response = restTemplate.postForEntity(
+                                updateUrl, null, TodoOperationResult.class);
+
+                // Assert
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody().getItem().getPriority()).isEqualTo(3);
+        }
+
+        @Test
+        @Order(11)
+        @DisplayName("POST /todo/update - should update dayOrder correctly")
+        void testUpdateDayOrder() {
+                // Arrange
+                TodoItem task1 = createTask("Task 1", "Work");
+                TodoItem task2 = createTask("Task 2", "Work");
+
+                // Act - Reorder task1 to position 2
+                java.net.URI updateUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                                .queryParam("id", task1.getId())
+                                .queryParam("field", "dayOrder")
+                                .queryParam("value", "3")
+                                .build()
+                                .toUri();
+
+                ResponseEntity<TodoOperationResult> response = restTemplate.postForEntity(
+                                updateUrl, null, TodoOperationResult.class);
+
+                // Assert
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody().getItem().getDayOrder()).isEqualTo(3);
+        }
+
+        @Test
+        @Order(12)
+        @DisplayName("POST /todo/update - should update inProgress field")
+        void testUpdateInProgress() {
+                // Arrange
+                TodoItem createdTask = createTask("In Progress Task", "Work");
+                Long taskId = createdTask.getId();
+
+                // Act
+                java.net.URI updateUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                                .queryParam("id", taskId)
+                                .queryParam("field", "inProgress")
+                                .queryParam("value", "true")
+                                .build()
+                                .toUri();
+
+                ResponseEntity<TodoOperationResult> response = restTemplate.postForEntity(
+                                updateUrl, null, TodoOperationResult.class);
+
+                // Assert
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody().getItem().isInProgress()).isTrue();
+        }
+
+        @Test
+        @Order(13)
+        @DisplayName("POST /todo/update - should update longTerm field")
+        void testUpdateLongTerm() {
+                // Arrange
+                TodoItem createdTask = createTask("Long Term Task", "Work");
+                Long taskId = createdTask.getId();
+
+                // Act
+                java.net.URI updateUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                                .queryParam("id", taskId)
+                                .queryParam("field", "longTerm")
+                                .queryParam("value", "true")
+                                .build()
+                                .toUri();
+
+                ResponseEntity<TodoOperationResult> response = restTemplate.postForEntity(
+                                updateUrl, null, TodoOperationResult.class);
+
+                // Assert
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody().getItem().isLongTerm()).isTrue();
+        }
+
+        @Test
+        @Order(14)
+        @DisplayName("POST /todo/update - should update timeTaken field")
+        void testUpdateTimeTaken() {
+                // Arrange
+                TodoItem createdTask = createTask("Timed Task", "Work");
+                Long taskId = createdTask.getId();
+
+                // Mark as in progress first, then complete with time
+                java.net.URI completeUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                                .queryParam("id", taskId)
+                                .queryParam("field", "complete")
+                                .queryParam("value", "true")
+                                .build()
+                                .toUri();
+                restTemplate.postForEntity(completeUrl, null, TodoOperationResult.class);
+
+                // Act - Set time taken
+                java.net.URI updateUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                                .queryParam("id", taskId)
+                                .queryParam("field", "timeTaken")
+                                .queryParam("value", "3600000") // 1 hour in milliseconds
+                                .build()
+                                .toUri();
+
+                ResponseEntity<TodoOperationResult> response = restTemplate.postForEntity(
+                                updateUrl, null, TodoOperationResult.class);
+
+                // Assert
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody().getItem().getTimeTaken()).isEqualTo(3600000L);
+        }
+
+        @Test
+        @Order(15)
+        @DisplayName("POST /todo/update - should return error for invalid field")
+        void testUpdateInvalidField() {
+                // Arrange
+                TodoItem createdTask = createTask("Test Task", "Work");
+                Long taskId = createdTask.getId();
+
+                // Act
+                java.net.URI updateUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                                .queryParam("id", taskId)
+                                .queryParam("field", "invalidField")
+                                .queryParam("value", "value")
+                                .build()
+                                .toUri();
+
+                ResponseEntity<TodoOperationResult> response = restTemplate.postForEntity(
+                                updateUrl, null, TodoOperationResult.class);
+
+                // Assert
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody().getStatus()).contains("Error");
+        }
+
+        @Test
+        @Order(16)
+        @DisplayName("POST /todo/update - should return error for non-existent task")
+        void testUpdateNonExistentTask() {
+                // Act
+                java.net.URI updateUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                                .queryParam("id", 99999)
+                                .queryParam("field", "taskName")
+                                .queryParam("value", "New Name")
+                                .build()
+                                .toUri();
+
+                ResponseEntity<TodoOperationResult> response = restTemplate.postForEntity(
+                                updateUrl, null, TodoOperationResult.class);
+
+                // Assert
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody().getStatus()).contains("Error");
+                assertThat(response.getBody().getItem()).isNull();
+        }
+
         /**
          * Helper method to create a task for testing
          */

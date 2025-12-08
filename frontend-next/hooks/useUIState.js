@@ -10,6 +10,7 @@ const useUIState = () => {
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setMounted(true);
         const savedShowSidebar = localStorage.getItem('showSidebar');
         if (savedShowSidebar) setShowSidebar(JSON.parse(savedShowSidebar));

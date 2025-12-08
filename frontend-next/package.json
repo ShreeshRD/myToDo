@@ -5,11 +5,13 @@
   "scripts": {
     "dev": "next dev -p 3001",
     "build": "next build && npm run postbuild",
-    "postbuild": "powershell -Command \"if (Test-Path '../backend-springboot/src/main/resources/static') { Remove-Item -Recurse -Force '../backend-springboot/src/main/resources/static/*' }; Copy-Item -Recurse -Force './out/*' '../backend-springboot/src/main/resources/static/'\"",
+    "postbuild": "mkdir -p ../backend-springboot/src/main/resources/static && if [ -d \"../backend-springboot/src/main/resources/static\" ]; then rm -rf ../backend-springboot/src/main/resources/static/*; fi; cp -r ./out/* ../backend-springboot/src/main/resources/static/",
     "start": "next start",
     "lint": "eslint",
-    "test": "node scripts/test-drag-logic.js",
-    "test:integration": "jest"
+    "test": "node scripts/test-drag-logic.js && jest --testPathIgnorePatterns=integration",
+    "test:integration": "jest",
+    "typecheck": "tsc --noEmit",
+    "check": "tsc --noEmit"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

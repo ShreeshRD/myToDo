@@ -5,7 +5,6 @@ import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { useTasks } from "../contexts/TaskContext";
 import dayjs from 'dayjs';
 import { RiCheckboxBlankCircleLine, RiCheckboxCircleFill } from "react-icons/ri";
-import { BsArrowRepeat } from "react-icons/bs";
 import DeleteIcon from '@mui/icons-material/Delete';
 import CustomCheckbox from "./CustomCheckbox";
 import '../styles/todoitem.css';
@@ -47,7 +46,7 @@ function TodayView() {
     useEffect(() => {
         const today = dayjs().format('YYYY-MM-DD');
         const tasks = taskDays[today] || [];
-        
+
         const unassigned = [];
         const assigned = {};
         const overdue = [];
@@ -63,16 +62,16 @@ function TodayView() {
         sortedTasks.forEach(task => {
             if (task.assignedTime && task.assignedTime !== "null") {
                 const timeStr = task.assignedTime.substring(0, 5); // HH:mm
-                
+
                 // Check if task is incomplete and its timeslot has ended
                 // A timeslot is 90 minutes long, so we need to check if the END of the slot has passed
                 // Only move to overdue if the entire timeslot (start time + 90 minutes) is in the past
-                
+
                 const taskTime = dayjs(`${today}T${task.assignedTime}`);
                 const taskSlotEndTime = taskTime.add(90, 'minute');
-                
+
                 if (!task.complete && taskSlotEndTime.isBefore(currentTime)) {
-                     overdue.push(task);
+                    overdue.push(task);
                 } else {
                     if (assigned[timeStr]) {
                         assigned[timeStr].push(task);
@@ -108,7 +107,7 @@ function TodayView() {
     // Scroll to current time when assignedTasks are ready
     const hasScrolledRef = React.useRef(false);
     // ADJUST THIS VALUE: Positive value moves the line DOWN from the top
-    const SCROLL_OFFSET_PX = 30; 
+    const SCROLL_OFFSET_PX = 30;
 
     useEffect(() => {
         // Only scroll if we haven't scrolled yet and tasks are populated (keys exist)
@@ -123,7 +122,7 @@ function TodayView() {
                     const lineRect = timeLineElement.getBoundingClientRect();
                     const containerRect = scrollContainer.getBoundingClientRect();
                     const relativeTop = lineRect.top - containerRect.top;
-                    
+
                     // Scroll so the line is SCROLL_OFFSET_PX from the top
                     scrollContainer.scrollTo({
                         top: scrollContainer.scrollTop + relativeTop - SCROLL_OFFSET_PX,
@@ -172,7 +171,7 @@ function TodayView() {
         if (destination.droppableId === 'unassigned') {
             destList = source.droppableId === 'unassigned' ? newTodayTasks : newTodayTasks;
         } else if (destination.droppableId === 'overdue') {
-             destList = source.droppableId === 'overdue' ? newOverdueTasks : newOverdueTasks;
+            destList = source.droppableId === 'overdue' ? newOverdueTasks : newOverdueTasks;
         } else {
             if (source.droppableId === destination.droppableId) {
                 destList = sourceList;
@@ -203,10 +202,10 @@ function TodayView() {
 
         // 3. Persist Order
         let currentOrder = 1;
-        
+
         // Overdue tasks first? Or Unassigned? Usually Overdue is top priority.
         newOverdueTasks.forEach(task => {
-             if (task.dayOrder !== currentOrder) {
+            if (task.dayOrder !== currentOrder) {
                 updateTask(task.id, "dayOrder", currentOrder, today);
                 task.dayOrder = currentOrder;
             }
@@ -294,7 +293,7 @@ function TodayView() {
         const today = dayjs().format('YYYY-MM-DD');
         const slotTime = dayjs(`${today}T${slot}`);
         const slotEndTime = slotTime.add(90, 'minute');
-        
+
         if (currentTime.isAfter(slotTime) && currentTime.isBefore(slotEndTime)) {
             // Calculate percentage
             const diff = currentTime.diff(slotTime, 'minute');
@@ -309,7 +308,7 @@ function TodayView() {
             <DragDropContext onDragEnd={onDragEnd}>
                 {/* Tasks Column */}
                 <div className="tasks-column">
-                    
+
                     {/* Overdue Section */}
                     {overdueTasks.length > 0 && (
                         <div className="overdue-section">
@@ -360,7 +359,7 @@ function TodayView() {
                             if (isPast && !hasTasks) {
                                 return null;
                             }
-                            
+
                             return (
                                 <div key={slot} className="time-slot">
                                     <div className="slot-label">
@@ -378,7 +377,7 @@ function TodayView() {
                                                     But user asked for "dark window". 
                                                     If it's the current slot, we need to darken BEFORE the line.
                                                 */}
-                                                
+
                                                 {lineStyle && (
                                                     <>
                                                         {/* Darken area before line */}
@@ -387,7 +386,7 @@ function TodayView() {
                                                         <div className="current-time-line" style={{ top: lineStyle.top }} />
                                                     </>
                                                 )}
-                                                
+
                                                 {/* Content */}
                                                 <div className="slot-content">
                                                     {assignedTasks[slot] && assignedTasks[slot].map((task, index) => renderTask(task, index))}

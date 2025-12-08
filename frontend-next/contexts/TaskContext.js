@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState } from 'react';
 import useTaskManagement from '../hooks/useTaskManagement';
-import { addTask, deleteTask, updateField } from "../service";
+import { addTask } from "../service";
 import { useUI } from './UIContext';
 import { calculatePredecessor } from '../lib/dragUtils';
 

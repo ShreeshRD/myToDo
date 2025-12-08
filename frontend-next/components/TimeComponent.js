@@ -6,7 +6,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { ThemeProvider, createTheme } from '@mui/material';
 
-const TimeComponent = ({ selectedTime, handler, darkmode = false }) => {
+const TimeComponent = ({ selectedTime, handler }) => {
     const theme = createTheme({
         palette: {
             mode: 'light',
@@ -21,8 +21,8 @@ const TimeComponent = ({ selectedTime, handler, darkmode = false }) => {
                         label="Time"
                         value={selectedTime}
                         onChange={handler}
-                        slotProps={{ 
-                            textField: { 
+                        slotProps={{
+                            textField: {
                                 size: 'small',
                                 InputProps: {
                                     style: {
@@ -62,7 +62,7 @@ const TimeComponent = ({ selectedTime, handler, darkmode = false }) => {
                                         color: 'white',
                                     },
                                 }
-                            } 
+                            }
                         }}
                     />
                 </LocalizationProvider>
