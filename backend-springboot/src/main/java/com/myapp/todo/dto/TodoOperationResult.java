@@ -1,9 +1,13 @@
 package com.myapp.todo.dto;
 
 import com.myapp.todo.TodoItem;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class TodoOperationResult {
     private String status;
+
+    @SuppressFBWarnings(value = { "EI_EXPOSE_REP",
+            "EI_EXPOSE_REP2" }, justification = "TodoItem is an entity object; defensive copying is not appropriate for DTOs")
     private TodoItem item;
 
     public TodoOperationResult() {

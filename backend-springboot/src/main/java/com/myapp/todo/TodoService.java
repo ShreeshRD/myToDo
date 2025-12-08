@@ -117,7 +117,7 @@ public class TodoService {
             TodoItem savedItem = repository.save(item);
             logger.info("Updated task {} field: {}", id, field);
             return new TodoOperationResult("Updated", savedItem);
-        } catch (Exception e) {
+        } catch (IllegalArgumentException | java.time.format.DateTimeParseException e) {
             logger.error("Error updating task {}: {}", id, e.getMessage());
             return new TodoOperationResult("Error: " + e.getMessage(), null);
         }

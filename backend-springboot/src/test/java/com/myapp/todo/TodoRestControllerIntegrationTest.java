@@ -13,6 +13,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -24,6 +25,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ActiveProfiles("test")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class TodoRestControllerIntegrationTest {
+
+        /**
+         * Static ParameterizedTypeReference for List<TodoItem> to avoid anonymous inner
+         * classes
+         */
+        private static final ParameterizedTypeReference<List<TodoItem>> TODO_ITEM_LIST_TYPE = new ParameterizedTypeReference<List<TodoItem>>() {
+        };
 
         @LocalServerPort
         private int port;
@@ -51,7 +59,7 @@ class TodoRestControllerIntegrationTest {
                 String category = "Work";
                 LocalDate taskDate = LocalDate.now();
 
-                java.net.URI url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/add")
+                java.net.URI url = UriComponentsBuilder.fromUriString(baseUrl + "/add")
                                 .queryParam("name", taskName)
                                 .queryParam("category", category)
                                 .queryParam("taskDate", taskDate.toString())
@@ -85,8 +93,7 @@ class TodoRestControllerIntegrationTest {
                                 baseUrl + "/all",
                                 HttpMethod.GET,
                                 null,
-                                new ParameterizedTypeReference<List<TodoItem>>() {
-                                });
+                                TODO_ITEM_LIST_TYPE);
 
                 // Assert
                 assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -102,7 +109,7 @@ class TodoRestControllerIntegrationTest {
                 TodoItem createdTask = createTask("Original Name", "Work");
                 Long taskId = createdTask.getId();
 
-                java.net.URI updateUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                java.net.URI updateUrl = UriComponentsBuilder.fromUriString(baseUrl + "/update")
                                 .queryParam("id", taskId)
                                 .queryParam("field", "taskName")
                                 .queryParam("value", "Updated Name")
@@ -127,7 +134,7 @@ class TodoRestControllerIntegrationTest {
                 TodoItem createdTask = createTask("Task to complete", "Work");
                 Long taskId = createdTask.getId();
 
-                java.net.URI updateUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                java.net.URI updateUrl = UriComponentsBuilder.fromUriString(baseUrl + "/update")
                                 .queryParam("id", taskId)
                                 .queryParam("field", "complete")
                                 .queryParam("value", "true")
@@ -160,8 +167,7 @@ class TodoRestControllerIntegrationTest {
                                 baseUrl + "/all",
                                 HttpMethod.GET,
                                 null,
-                                new ParameterizedTypeReference<List<TodoItem>>() {
-                                });
+                                TODO_ITEM_LIST_TYPE);
 
                 assertThat(response.getBody()).isEmpty();
         }
@@ -195,7 +201,7 @@ class TodoRestControllerIntegrationTest {
                 Long taskId = createdTask.getId();
 
                 // Mark as complete
-                java.net.URI completeUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                java.net.URI completeUrl = UriComponentsBuilder.fromUriString(baseUrl + "/update")
                                 .queryParam("id", taskId)
                                 .queryParam("field", "complete")
                                 .queryParam("value", "true")
@@ -204,7 +210,7 @@ class TodoRestControllerIntegrationTest {
                 restTemplate.postForEntity(completeUrl, null, TodoOperationResult.class);
 
                 // Act - Update category
-                java.net.URI updateUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                java.net.URI updateUrl = UriComponentsBuilder.fromUriString(baseUrl + "/update")
                                 .queryParam("id", taskId)
                                 .queryParam("field", "category")
                                 .queryParam("value", "NewProject")
@@ -225,8 +231,7 @@ class TodoRestControllerIntegrationTest {
                                 baseUrl + "/all",
                                 HttpMethod.GET,
                                 null,
-                                new ParameterizedTypeReference<List<TodoItem>>() {
-                                });
+                                TODO_ITEM_LIST_TYPE);
                 assertThat(allTasks.getBody()).hasSize(1);
         }
 
@@ -239,7 +244,7 @@ class TodoRestControllerIntegrationTest {
                 Long taskId = createdTask.getId();
 
                 // Act - Set repeat type
-                java.net.URI repeatTypeUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                java.net.URI repeatTypeUrl = UriComponentsBuilder.fromUriString(baseUrl + "/update")
                                 .queryParam("id", taskId)
                                 .queryParam("field", "repeatType")
                                 .queryParam("value", "EVERY_X_DAYS")
@@ -255,7 +260,7 @@ class TodoRestControllerIntegrationTest {
                                 .isEqualTo(TodoItem.RepeatPattern.EVERY_X_DAYS);
 
                 // Act - Set repeat duration
-                java.net.URI repeatDurationUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                java.net.URI repeatDurationUrl = UriComponentsBuilder.fromUriString(baseUrl + "/update")
                                 .queryParam("id", taskId)
                                 .queryParam("field", "repeatDuration")
                                 .queryParam("value", "7")
@@ -280,7 +285,7 @@ class TodoRestControllerIntegrationTest {
                 LocalDate newDate = LocalDate.now().plusDays(7);
 
                 // Act - Update date
-                java.net.URI updateUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                java.net.URI updateUrl = UriComponentsBuilder.fromUriString(baseUrl + "/update")
                                 .queryParam("id", taskId)
                                 .queryParam("field", "taskDate")
                                 .queryParam("value", newDate.toString())
@@ -305,7 +310,7 @@ class TodoRestControllerIntegrationTest {
                 Long taskId = createdTask.getId();
 
                 // Act
-                java.net.URI updateUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                java.net.URI updateUrl = UriComponentsBuilder.fromUriString(baseUrl + "/update")
                                 .queryParam("id", taskId)
                                 .queryParam("field", "priority")
                                 .queryParam("value", "3")
@@ -326,10 +331,10 @@ class TodoRestControllerIntegrationTest {
         void testUpdateDayOrder() {
                 // Arrange
                 TodoItem task1 = createTask("Task 1", "Work");
-                TodoItem task2 = createTask("Task 2", "Work");
+                createTask("Task 2", "Work"); // Create second task to establish ordering context
 
-                // Act - Reorder task1 to position 2
-                java.net.URI updateUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                // Act - Reorder task1 to position 3
+                java.net.URI updateUrl = UriComponentsBuilder.fromUriString(baseUrl + "/update")
                                 .queryParam("id", task1.getId())
                                 .queryParam("field", "dayOrder")
                                 .queryParam("value", "3")
@@ -353,7 +358,7 @@ class TodoRestControllerIntegrationTest {
                 Long taskId = createdTask.getId();
 
                 // Act
-                java.net.URI updateUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                java.net.URI updateUrl = UriComponentsBuilder.fromUriString(baseUrl + "/update")
                                 .queryParam("id", taskId)
                                 .queryParam("field", "inProgress")
                                 .queryParam("value", "true")
@@ -377,7 +382,7 @@ class TodoRestControllerIntegrationTest {
                 Long taskId = createdTask.getId();
 
                 // Act
-                java.net.URI updateUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                java.net.URI updateUrl = UriComponentsBuilder.fromUriString(baseUrl + "/update")
                                 .queryParam("id", taskId)
                                 .queryParam("field", "longTerm")
                                 .queryParam("value", "true")
@@ -401,7 +406,7 @@ class TodoRestControllerIntegrationTest {
                 Long taskId = createdTask.getId();
 
                 // Mark as in progress first, then complete with time
-                java.net.URI completeUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                java.net.URI completeUrl = UriComponentsBuilder.fromUriString(baseUrl + "/update")
                                 .queryParam("id", taskId)
                                 .queryParam("field", "complete")
                                 .queryParam("value", "true")
@@ -410,7 +415,7 @@ class TodoRestControllerIntegrationTest {
                 restTemplate.postForEntity(completeUrl, null, TodoOperationResult.class);
 
                 // Act - Set time taken
-                java.net.URI updateUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                java.net.URI updateUrl = UriComponentsBuilder.fromUriString(baseUrl + "/update")
                                 .queryParam("id", taskId)
                                 .queryParam("field", "timeTaken")
                                 .queryParam("value", "3600000") // 1 hour in milliseconds
@@ -434,7 +439,7 @@ class TodoRestControllerIntegrationTest {
                 Long taskId = createdTask.getId();
 
                 // Act
-                java.net.URI updateUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                java.net.URI updateUrl = UriComponentsBuilder.fromUriString(baseUrl + "/update")
                                 .queryParam("id", taskId)
                                 .queryParam("field", "invalidField")
                                 .queryParam("value", "value")
@@ -454,7 +459,7 @@ class TodoRestControllerIntegrationTest {
         @DisplayName("POST /todo/update - should return error for non-existent task")
         void testUpdateNonExistentTask() {
                 // Act
-                java.net.URI updateUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/update")
+                java.net.URI updateUrl = UriComponentsBuilder.fromUriString(baseUrl + "/update")
                                 .queryParam("id", 99999)
                                 .queryParam("field", "taskName")
                                 .queryParam("value", "New Name")
@@ -473,8 +478,9 @@ class TodoRestControllerIntegrationTest {
         /**
          * Helper method to create a task for testing
          */
+        @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE", justification = "Objects.requireNonNull ensures non-null values in test helper method")
         private TodoItem createTask(String name, String category) {
-                java.net.URI url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/add")
+                java.net.URI url = UriComponentsBuilder.fromUriString(baseUrl + "/add")
                                 .queryParam("name", name)
                                 .queryParam("category", category)
                                 .queryParam("taskDate", LocalDate.now().toString())
@@ -485,6 +491,11 @@ class TodoRestControllerIntegrationTest {
                 ResponseEntity<TodoOperationResult> response = restTemplate.postForEntity(
                                 url, null, TodoOperationResult.class);
 
-                return response.getBody().getItem();
+                // Null safety check for response body
+                TodoOperationResult result = response.getBody();
+                Objects.requireNonNull(result, "Response body should not be null");
+                TodoItem item = result.getItem();
+                Objects.requireNonNull(item, "Created item should not be null");
+                return item;
         }
 }

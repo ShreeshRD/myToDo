@@ -1,0 +1,5 @@
+./mvnw com.github.spotbugs:spotbugs-maven-plugin:4.8.6.6:check
+
+./mvnw clean install
+
+javac -Xlint:all -sourcepath src/main/java $(find src/main/java -name "*.java")
