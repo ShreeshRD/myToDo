@@ -7,7 +7,7 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { ThemeProvider, createTheme } from '@mui/material';
 
 
-const DateComponent = ({ selectedDate, handler, darkmode = false }) => {
+const DateComponent = ({ selectedDate, handler, theme = 'light' }) => {
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -15,9 +15,11 @@ const DateComponent = ({ selectedDate, handler, darkmode = false }) => {
         setMounted(true);
     }, []);
 
-    const theme = createTheme({
+    const muiMode = (theme === 'dark' || theme === 'glass') ? 'dark' : 'light';
+
+    const muiTheme = createTheme({
         palette: {
-            mode: darkmode ? 'dark' : 'light',
+            mode: muiMode,
         },
     });
 
@@ -26,7 +28,7 @@ const DateComponent = ({ selectedDate, handler, darkmode = false }) => {
     }
 
     return (
-        <ThemeProvider theme={theme}>
+        <ThemeProvider theme={muiTheme}>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DatePicker
                     label=""

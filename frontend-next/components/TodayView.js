@@ -7,6 +7,7 @@ import dayjs from 'dayjs';
 import { RiCheckboxBlankCircleLine, RiCheckboxCircleFill } from "react-icons/ri";
 import DeleteIcon from '@mui/icons-material/Delete';
 import CustomCheckbox from "./CustomCheckbox";
+import { useUI } from "../contexts/UIContext";
 import '../styles/todoitem.css';
 import '../styles/todayview.scss';
 
@@ -29,7 +30,8 @@ const generateTimeSlots = () => {
 const TIME_SLOTS = generateTimeSlots();
 
 function TodayView() {
-    const { taskDays, updateTask, removeTask, callPopup, darkMode } = useTasks();
+    const { taskDays, updateTask, removeTask, callPopup } = useTasks();
+    const { theme } = useUI();
     const [todayTasks, setTodayTasks] = useState([]);
     const [assignedTasks, setAssignedTasks] = useState({});
     const [overdueTasks, setOverdueTasks] = useState([]);
@@ -237,7 +239,7 @@ function TodayView() {
         <Draggable key={task.id} draggableId={task.id.toString()} index={index}>
             {(provided) => (
                 <div
-                    className={`todo_item_box${darkMode ? ' dark' : ''}`}
+                    className={`todo_item_box ${theme}`}
                     {...provided.draggableProps}
                     {...provided.dragHandleProps}
                     ref={provided.innerRef}
@@ -304,7 +306,7 @@ function TodayView() {
     };
 
     return (
-        <div className={`today-view${darkMode ? ' dark' : ''}`}>
+        <div className={`today-view ${theme}`}>
             <DragDropContext onDragEnd={onDragEnd}>
                 {/* Tasks Column */}
                 <div className="tasks-column">

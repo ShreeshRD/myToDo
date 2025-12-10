@@ -6,16 +6,23 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { ThemeProvider, createTheme } from '@mui/material';
 
-const TimeComponent = ({ selectedTime, handler }) => {
-    const theme = createTheme({
+const TimeComponent = ({ selectedTime, handler, theme = 'light' }) => {
+    const muiMode = (theme === 'dark' || theme === 'glass') ? 'dark' : 'light';
+
+    // For glass/dark themes, use lighter text/border logic
+    const isDarkOrGlass = theme === 'dark' || theme === 'glass';
+    const bgColor = isDarkOrGlass ? '#6c757d' : '#f0f0f0'; // Example adaptation
+    const textColor = isDarkOrGlass ? 'white' : 'black';
+
+    const muiTheme = createTheme({
         palette: {
-            mode: 'light',
+            mode: muiMode, // 'dark' or 'light'
         },
     });
 
     return (
         <div style={{ width: '176px' }}>
-            <ThemeProvider theme={theme}>
+            <ThemeProvider theme={muiTheme}>
                 <LocalizationProvider dateAdapter={AdapterDayjs}>
                     <TimePicker
                         label="Time"
@@ -26,24 +33,24 @@ const TimeComponent = ({ selectedTime, handler }) => {
                                 size: 'small',
                                 InputProps: {
                                     style: {
-                                        backgroundColor: '#6c757d',
-                                        color: 'white',
+                                        backgroundColor: bgColor,
+                                        color: textColor,
                                         height: '38px',
                                         borderRadius: '5px',
                                     },
                                 },
                                 InputLabelProps: {
                                     style: {
-                                        color: 'white',
+                                        color: textColor,
                                     },
                                 },
                                 sx: {
                                     width: '176px',
                                     '& .MuiOutlinedInput-root': {
-                                        backgroundColor: '#6c757d',
-                                        color: 'white',
+                                        backgroundColor: bgColor,
+                                        color: textColor,
                                         '&:hover': {
-                                            backgroundColor: '#5a6268',
+                                            backgroundColor: isDarkOrGlass ? '#5a6268' : '#e0e0e0',
                                         },
                                         '& fieldset': {
                                             border: 'none',
@@ -56,10 +63,10 @@ const TimeComponent = ({ selectedTime, handler }) => {
                                         },
                                     },
                                     '& .MuiInputBase-input': {
-                                        color: 'white',
+                                        color: textColor,
                                     },
                                     '& .MuiSvgIcon-root': {
-                                        color: 'white',
+                                        color: textColor,
                                     },
                                 }
                             }

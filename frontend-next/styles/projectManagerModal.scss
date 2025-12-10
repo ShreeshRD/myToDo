@@ -54,6 +54,15 @@
     color: #eee;
 }
 
+.glass .pm-modal {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    color: white;
+}
+
 .pm-header {
     display: flex;
     justify-content: space-between;
@@ -64,6 +73,10 @@
 
 .dark .pm-header {
     border-bottom-color: #555;
+}
+
+.glass .pm-header {
+    border-bottom-color: rgba(255, 255, 255, 0.2);
 }
 
 .pm-header h2 {
@@ -147,6 +160,14 @@
     background: #555;
 }
 
+.glass .pm-project-item {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.glass .pm-project-item:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
 .dark .pm-project-item.dragging {
     background: #5a5a6a;
 }
@@ -194,6 +215,15 @@
 .dark .pm-delete-btn:hover {
     background-color: #5a3a3a;
     color: #ff7777;
+}
+
+.glass .pm-delete-btn {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.glass .pm-delete-btn:hover {
+    background-color: rgba(220, 53, 69, 0.2);
+    color: #ffcccc;
 }
 
 .pm-delete-btn svg {

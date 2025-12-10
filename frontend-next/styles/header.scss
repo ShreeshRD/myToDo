@@ -18,6 +18,11 @@
     &.dark {
         border-bottom: 2px solid #494949;
     }
+
+    &.glass {
+        border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+        color: white;
+    }
 }
 
 .headerItem {

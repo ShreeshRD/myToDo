@@ -42,6 +42,11 @@ body {
   background-color: #5a5a5a;
 }
 
+.app-container.glass {
+  background: linear-gradient(135deg, #667eea 0%, #000000 100%);
+  color: #ffffff;
+}
+
 ul {
   margin: 0;
   padding: 0;
@@ -85,6 +90,11 @@ $generic-bg: #db4c3f;
   &.dark {
     color: #eeeeee;
   }
+
+  &.glass {
+    color: #ffffff;
+    // backdrop-filter: blur(10px); // Optional: if content needs its own blur
+  }
 }
 
 /* ToDoDay
@@ -95,28 +105,28 @@ $generic-bg: #db4c3f;
   overflow-y: auto;
   white-space: nowrap;
   height: calc(100vh - 105px);
-  
+
   /* Custom scrollbar styling for webkit browsers */
   &::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.05);
     border-radius: 10px;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: rgba(0, 0, 0, 0.2);
     border-radius: 10px;
     transition: background 0.2s;
-    
+
     &:hover {
       background: rgba(0, 0, 0, 0.3);
     }
   }
-  
+
   /* Firefox scrollbar styling */
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.05);
@@ -127,15 +137,15 @@ $generic-bg: #db4c3f;
   &::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.05);
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.2);
-    
+
     &:hover {
       background: rgba(255, 255, 255, 0.3);
     }
   }
-  
+
   scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
 }
 

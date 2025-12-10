@@ -36,6 +36,13 @@
         .today-view.dark & {
             background-color: #4a1a1a;
         }
+
+        .today-view.glass & {
+            background-color: rgba(255, 77, 77, 0.2);
+            border: 1px solid rgba(255, 77, 77, 0.4);
+            color: white;
+            backdrop-filter: blur(5px);
+        }
     }
 }
 
@@ -55,15 +62,28 @@
         padding: 10px;
         border-radius: 0;
         overflow-y: auto;
-        box-shadow: 
+        box-shadow:
             inset 2px 2px 5px rgba(0, 0, 0, 0.2),
             inset -1px -1px 3px rgba(255, 255, 255, 0.5);
 
         .today-view.dark & {
             background-color: #494949;
-            box-shadow: 
+            box-shadow:
                 inset 2px 2px 5px rgba(0, 0, 0, 0.5),
                 inset -1px -1px 3px rgba(255, 255, 255, 0.05);
+        }
+
+        .today-view.glass & {
+            background-color: rgba(255, 255, 255, 0.05); // More transparent as requested
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow:
+                inset 1px 1px 5px rgba(255, 255, 255, 0.1),
+                inset -1px -1px 5px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 8px;
+            /* Consistent rounded corners */
         }
 
         // Custom sleek scrollbar
@@ -79,7 +99,7 @@
         &::-webkit-scrollbar-thumb {
             background-color: rgba(0, 0, 0, 0.15);
             border-radius: 0;
-            box-shadow: 
+            box-shadow:
                 1px 1px 2px rgba(255, 255, 255, 0.3),
                 -1px -1px 2px rgba(0, 0, 0, 0.2);
 
@@ -88,9 +108,19 @@
             }
         }
 
+        .today-view.glass &::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, 0.3);
+            box-shadow: none;
+            border-radius: 4px;
+
+            &:hover {
+                background-color: rgba(255, 255, 255, 0.5);
+            }
+        }
+
         .today-view.dark &::-webkit-scrollbar-thumb {
             background-color: rgba(255, 255, 255, 0.15);
-            box-shadow: 
+            box-shadow:
                 1px 1px 2px rgba(255, 255, 255, 0.1),
                 -1px -1px 2px rgba(0, 0, 0, 0.5);
 
@@ -105,6 +135,10 @@
 
         .today-view.dark & {
             scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+        }
+
+        .today-view.glass & {
+            scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
         }
     }
 }
@@ -141,7 +175,7 @@
     &::-webkit-scrollbar-thumb {
         background-color: rgba(0, 0, 0, 0.15);
         border-radius: 0;
-        box-shadow: 
+        box-shadow:
             1px 1px 2px rgba(255, 255, 255, 0.3),
             -1px -1px 2px rgba(0, 0, 0, 0.2);
 
@@ -152,7 +186,7 @@
 
     .today-view.dark &::-webkit-scrollbar-thumb {
         background-color: rgba(255, 255, 255, 0.15);
-        box-shadow: 
+        box-shadow:
             1px 1px 2px rgba(255, 255, 255, 0.1),
             -1px -1px 2px rgba(0, 0, 0, 0.5);
 
@@ -191,20 +225,26 @@
         transition: background-color 0.2s ease;
         position: relative;
         background-color: transparent;
-        
+
         &.past {
             background-color: #ddd;
             opacity: 0.6;
-            .today-view.dark & { background-color: #222; }
+
+            .today-view.dark & {
+                background-color: #222;
+            }
         }
-    
+
         &.dragging-over {
             background-color: #e0e0e0;
             opacity: 1;
-            .today-view.dark & { background-color: #444; }
+
+            .today-view.dark & {
+                background-color: #444;
+            }
         }
     }
-    
+
     .slot-content {
         position: relative;
         z-index: 2;
@@ -216,12 +256,12 @@
     top: 0;
     left: 0;
     right: 0;
-    background-color: rgba(0,0,0,0.1);
+    background-color: rgba(0, 0, 0, 0.1);
     pointer-events: none;
     z-index: 0;
 
     .today-view.dark & {
-        background-color: rgba(0,0,0,0.3);
+        background-color: rgba(0, 0, 0, 0.3);
     }
 }
 

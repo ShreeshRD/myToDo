@@ -7,9 +7,9 @@ import DateComponent from "./DateComponent";
 import Heatmap from "./Heatmap";
 import '../styles/header.scss'
 
-function Header({ darkmode, useDate, setDate, viewPage }) {
+function Header({ theme, useDate, setDate, viewPage }) {
 	return (
-		<div className={`myheader${darkmode ? ' dark' : ''}`}>
+		<div className={`myheader ${theme}`}>
 			<div className="headerItem">
 				{viewPage === 'Calendar' && (
 					<IoIosArrowBack className="date-btns" onClick={() => setDate((prevDate) => prevDate.subtract(1, 'month'))} />
@@ -25,7 +25,7 @@ function Header({ darkmode, useDate, setDate, viewPage }) {
 					setDate.name !== "dummySetDate" && (
 						<Box display="flex" alignItems="center">
 							<IoIosArrowBack className="date-btns" onClick={() => setDate((prevDate) => prevDate.subtract(7, 'day'))} />
-							<DateComponent selectedDate={useDate} handler={(newDate) => setDate(newDate)} darkmode={darkmode} />
+							<DateComponent selectedDate={useDate} handler={(newDate) => setDate(newDate)} theme={theme} />
 							<IoIosArrowForward className="date-btns" onClick={() => setDate((prevDate) => prevDate.add(7, 'day'))} />
 						</Box>
 					)

@@ -25,7 +25,7 @@ import {
   getRepeatDuration
 } from '../lib/taskHelpers';
 
-function CreateTaskPopup({ projects, darkmode, date, task }) {
+function CreateTaskPopup({ projects, theme, date, task }) {
   const { onPopupClose } = useTasks();
   const inputRef = useRef(null);
 
@@ -202,9 +202,9 @@ function CreateTaskPopup({ projects, darkmode, date, task }) {
 
   return (
     <div className="taskPopup">
-      <div className={`createTask${darkmode ? ' dark' : ''}`}>
+      <div className={`createTask ${theme}`}>
         <div className="date-component">
-          <DateComponent selectedDate={selectedDate} handler={handleDateChange} darkmode={false} />
+          <DateComponent selectedDate={selectedDate} handler={handleDateChange} theme={theme} />
         </div>
         <div className="task-text">
           <textarea
@@ -227,7 +227,7 @@ function CreateTaskPopup({ projects, darkmode, date, task }) {
             <Dropdown placeholder={getPriorityIcon()} items={PRIORITIES} handler={handlePrioritySelect} />
             <Dropdown placeholder={getRepeatIcon()} items={REPEAT_OPTIONS} handler={handleRepeatTypeSelect} />
           </div>
-          <TimeComponent selectedTime={assignedTime} handler={handleTimeChange} darkmode={darkmode} />
+          <TimeComponent selectedTime={assignedTime} handler={handleTimeChange} theme={theme} />
 
           {repeatType !== "Repeat Type" && repeatType !== "Off" && repeatType !== "Specific Weekdays" && (
             <input
@@ -253,7 +253,7 @@ function CreateTaskPopup({ projects, darkmode, date, task }) {
         </div>
         <div className="bottom-btns">
           <button
-            className={`btn cancel-btn${darkmode ? ' dark' : ''}`}
+            className={`btn cancel-btn ${theme}`}
             onClick={handleClosePopup}
           >
             Cancel

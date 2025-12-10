@@ -18,7 +18,7 @@ const DELETED_PROJECTS_KEY = "todo-deleted-projects";
 
 function MainView() {
 	const [projects, setProjects] = useState(DEFAULT_PROJECTS);
-	const { showSidebar, setShowSidebar, darkMode, setDarkMode, viewPage, setViewPage } = useUI();
+	const { showSidebar, setShowSidebar, theme, setTheme, viewPage, setViewPage } = useUI();
 	const {
 		startDate,
 		setStartDate,
@@ -93,23 +93,23 @@ function MainView() {
 
 	return (
 		<div className="App">
-			<div className={`app-container${darkMode ? ' dark' : ''}`}>
-				<Sidebar setShowPopup={callPopup} show={showSidebar} setShowSidebar={setShowSidebar} setDarkMode={setDarkMode} darkmode={darkMode} viewPage={viewPage} setViewPage={setViewPage} projects={projects} addProject={addProject} removeProject={removeProject} reorderProjects={reorderProjects} deleteProjectWithTasks={deleteProjectWithTasks} />
-				{showPopup && (<CreateTaskPopup setTrigger={onPopupClose} onPopupClose={onPopupClose} date={popupDate} projects={projects} darkmode={darkMode} task={popupTaskItem} />)}
-				<div className={`content${showSidebar ? '' : ' hidden'}${darkMode ? ' dark' : ''}`}>
+			<div className={`app-container ${theme}`}>
+				<Sidebar setShowPopup={callPopup} show={showSidebar} setShowSidebar={setShowSidebar} setTheme={setTheme} theme={theme} viewPage={viewPage} setViewPage={setViewPage} projects={projects} addProject={addProject} removeProject={removeProject} reorderProjects={reorderProjects} deleteProjectWithTasks={deleteProjectWithTasks} />
+				{showPopup && (<CreateTaskPopup setTrigger={onPopupClose} onPopupClose={onPopupClose} date={popupDate} projects={projects} theme={theme} task={popupTaskItem} />)}
+				<div className={`content${showSidebar ? '' : ' hidden'} ${theme}`}>
 					{viewPage === 'Upcoming' ? (
 						<>
-							<Header darkmode={darkMode} useDate={startDate} setDate={setStartDate} viewPage={viewPage} />
+							<Header theme={theme} useDate={startDate} setDate={setStartDate} viewPage={viewPage} />
 							<Upcoming />
 						</>
 					) : viewPage === 'Today' ? (
 						<>
-							<Header darkmode={darkMode} useDate={dayjs()} setDate={dummySetDate} viewPage={viewPage} />
+							<Header theme={theme} useDate={dayjs()} setDate={dummySetDate} viewPage={viewPage} />
 							<TodayView />
 						</>
 					) : viewPage === 'Calendar' ? (
 						<>
-							<Header darkmode={darkMode} useDate={completedDate} setDate={setCompletedDate} viewPage={viewPage} />
+							<Header theme={theme} useDate={completedDate} setDate={setCompletedDate} viewPage={viewPage} />
 							<CalendarView />
 						</>
 					) : viewPage === 'Search' ? (

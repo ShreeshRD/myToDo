@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTasks } from '../contexts/TaskContext';
+import { useUI } from '../contexts/UIContext';
 import { TextField, Typography, Paper, List, ListItem, ListItemText, Chip, InputAdornment, Pagination } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import dayjs from 'dayjs';
@@ -9,6 +10,7 @@ import styles from './Search.module.css';
 
 function Search() {
     const { taskDays, completedTasks, overdueTasks, darkMode, callPopup } = useTasks();
+    const { theme } = useUI();
     const [query, setQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState('All');
     const [page, setPage] = useState(1);
@@ -103,10 +105,10 @@ function Search() {
         callPopup(task.taskDate, task);
     };
 
-    const themeClass = darkMode ? 'dark' : 'light';
+    const themeClass = theme === 'glass' ? 'glass' : (darkMode ? 'dark' : 'light');
 
     return (
-        <div className={`${styles.searchContainer} ${darkMode ? styles.dark : ''}`}>
+        <div className={`${styles.searchContainer} ${themeClass === 'glass' ? styles.glass : (darkMode ? styles.dark : '')}`}>
             {/* Search Bar */}
             <TextField
                 fullWidth

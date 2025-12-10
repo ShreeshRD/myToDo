@@ -4,6 +4,8 @@ import { FaRegCalendar, FaRegCalendarAlt } from "react-icons/fa";
 import { MdCalendarViewWeek } from "react-icons/md";
 import AddIcon from "@mui/icons-material/Add";
 import DarkModeIcon from '@mui/icons-material/DarkMode';
+import LightModeIcon from '@mui/icons-material/LightMode';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { BsLayoutSidebar } from "react-icons/bs";
 import { CiHashtag } from "react-icons/ci";
@@ -17,8 +19,8 @@ import ProjectManagerModal from "./ProjectManagerModal";
 function Sidebar({
   show,
   setShowSidebar,
-  setDarkMode,
-  darkmode,
+  setTheme,
+  theme,
   viewPage,
   setViewPage,
   projects,
@@ -61,14 +63,22 @@ function Sidebar({
     deleteProjectWithTasks(projectName, deleteIncomplete);
   };
 
+  const toggleTheme = () => {
+    if (theme === 'light') setTheme('dark');
+    else if (theme === 'dark') setTheme('glass');
+    else setTheme('light');
+  };
+
   return (
     <>
-      <div className={`sidebar${show ? '' : ' hidden'}${darkmode ? ' dark' : ''}`}>
-        <button className="darkmodeButton" onClick={() => setDarkMode(!darkmode)}>
-          <DarkModeIcon className={`darkmodeIcon${darkmode ? ' dark' : ''}`} />
+      <div className={`sidebar${show ? '' : ' hidden'} ${theme}`}>
+        <button className="darkmodeButton" onClick={toggleTheme} title="Toggle Theme">
+          {theme === 'light' && <LightModeIcon className={`darkmodeIcon ${theme}`} />}
+          {theme === 'dark' && <DarkModeIcon className={`darkmodeIcon ${theme}`} />}
+          {theme === 'glass' && <AutoAwesomeIcon className={`darkmodeIcon ${theme}`} />}
         </button>
         <button className={`sidebarButton${show ? '' : ' hidden'}`} onClick={() => setShowSidebar(!show)}>
-          <BsLayoutSidebar className={`sidebarIcon${darkmode ? ' dark' : ''}`} />
+          <BsLayoutSidebar className={`sidebarIcon ${theme}`} />
         </button>
         <ul className="sidebar__generic">
           <li onClick={() => callPopup()}>
@@ -162,7 +172,7 @@ function Sidebar({
         projects={projects}
         onReorder={reorderProjects}
         onDelete={handleProjectDelete}
-        darkMode={darkmode}
+        theme={theme}
       />
     </>
   );

@@ -24,7 +24,6 @@ function Upcoming() {
                         updateTask={updateTask}
                         delTask={removeTask}
                         callPop={callPopup}
-                        darkmode={darkMode}
                     />
                 )}
                 {dates.map((date, index) => {
@@ -40,7 +39,6 @@ function Upcoming() {
                             updateTask={updateTask}
                             delTask={removeTask}
                             callPop={callPopup}
-                            darkmode={darkMode}
                         />
                     );
                 })}

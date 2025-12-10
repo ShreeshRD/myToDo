@@ -63,6 +63,15 @@
     color: #eeeeee;
 }
 
+.sidebar.glass {
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    color: #ffffff;
+}
+
 li {
     padding: 7px 12px;
     cursor: pointer;
@@ -94,6 +103,66 @@ li {
         svg {
             flex-shrink: 0;
         }
+    }
+}
+
+.glass {
+    li {
+        padding: 7px 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        svg {
+            flex-shrink: 0;
+        }
+    }
+
+    li.active {
+        background-color: rgba(255, 255, 255, 0.3);
+        font-weight: bold;
+    }
+
+    // Icon colors in glass mode
+    .sidebarIcon,
+    .darkmodeIcon,
+    .projects__icon,
+    .projects__hash {
+        color: rgba(255, 255, 255, 0.9) !important;
+    }
+
+    .projects__title {
+        color: rgba(255, 255, 255, 0.8) !important;
+    }
+
+    .projects__input {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.3);
+        color: white;
+
+        &::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        &:focus {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+    }
+
+    .projects__action-btn:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Projects borders */
+    .sidebar__projects {
+        border-top-color: rgba(255, 255, 255, 0.2);
+        border-bottom-color: rgba(255, 255, 255, 0.2);
     }
 }
 

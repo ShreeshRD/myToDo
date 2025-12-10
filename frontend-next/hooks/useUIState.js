@@ -5,7 +5,7 @@ const useUIState = () => {
     // but for localStorage we need to handle it carefully in Next.js (SSR).
     // We'll start with defaults and update in useEffect.
     const [showSidebar, setShowSidebar] = useState(true);
-    const [darkMode, setDarkMode] = useState(false);
+    const [theme, setTheme] = useState('light'); // 'light', 'dark', 'glass'
     const [viewPage, setViewPage] = useState('Upcoming');
     const [mounted, setMounted] = useState(false);
 
@@ -15,8 +15,17 @@ const useUIState = () => {
         const savedShowSidebar = localStorage.getItem('showSidebar');
         if (savedShowSidebar) setShowSidebar(JSON.parse(savedShowSidebar));
 
+        // Migration: Check for old boolean 'darkMode' first
         const savedDarkMode = localStorage.getItem('darkMode');
-        if (savedDarkMode) setDarkMode(JSON.parse(savedDarkMode));
+        const savedTheme = localStorage.getItem('theme');
+
+        if (savedTheme) {
+            setTheme(JSON.parse(savedTheme));
+        } else if (savedDarkMode) {
+            // Migrate old boolean to new string
+            const isDark = JSON.parse(savedDarkMode);
+            setTheme(isDark ? 'dark' : 'light');
+        }
 
         const savedViewPage = localStorage.getItem('viewPage');
         if (savedViewPage) setViewPage(JSON.parse(savedViewPage));
@@ -27,8 +36,8 @@ const useUIState = () => {
     }, [showSidebar, mounted]);
 
     useEffect(() => {
-        if (mounted) localStorage.setItem('darkMode', JSON.stringify(darkMode));
-    }, [darkMode, mounted]);
+        if (mounted) localStorage.setItem('theme', JSON.stringify(theme));
+    }, [theme, mounted]);
 
     useEffect(() => {
         if (mounted) localStorage.setItem('viewPage', JSON.stringify(viewPage));
@@ -41,8 +50,10 @@ const useUIState = () => {
     return {
         showSidebar,
         setShowSidebar,
-        darkMode,
-        setDarkMode,
+        showSidebar,
+        setShowSidebar,
+        theme,
+        setTheme,
         viewPage,
         setViewPage,
         mounted // Expose mounted state if needed

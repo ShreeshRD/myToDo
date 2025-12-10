@@ -11,10 +11,12 @@ import CustomContextMenu from "./CustomContextMenu";
 import '../styles/todoitem.css';
 import { useTasks } from "../contexts/TaskContext";
 import { useStopwatch } from "../contexts/StopwatchContext";
+import { useUI } from "../contexts/UIContext";
 import { formatTaskDate, formatDateShort } from "../lib/dateHelpers";
 
 function ToDoDay({ tasks, date, id }) {
-    const { updateTask, removeTask, callPopup, darkMode } = useTasks();
+    const { updateTask, removeTask, callPopup } = useTasks();
+    const { theme } = useUI();
     const { toggleStopwatch, stopStopwatch } = useStopwatch();
     const title = formatTaskDate(date);
     const [contextMenu, setContextMenu] = React.useState({ visible: false, x: 0, y: 0, task: null });
@@ -62,7 +64,7 @@ function ToDoDay({ tasks, date, id }) {
     };
 
     const getTaskClassName = (task) => {
-        let className = `todo_item_box${darkMode ? ' dark' : ''}`;
+        let className = `todo_item_box ${theme}`;
         if (id === 100) className += ' overdue';
         if (task.inProgress) className += ' in-progress';
         if (task.longTerm) className += ' long-term';
@@ -134,7 +136,7 @@ function ToDoDay({ tasks, date, id }) {
                         ))}
                         {date !== "Overdue" ? (
                             <div className="footer_div">
-                                <button className={`tasks_footer${darkMode ? ' dark' : ''}`} onClick={() => callPopup(date)}>
+                                <button className={`tasks_footer ${theme}`} onClick={() => callPopup(date)}>
                                     <AddIcon className="add-icon" />
                                     Add task
                                 </button>

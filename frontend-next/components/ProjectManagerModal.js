@@ -13,7 +13,7 @@ const ProjectManagerModal = ({
     projects,
     onReorder,
     onDelete,
-    darkMode
+    theme
 }) => {
     const [localProjects, setLocalProjects] = useState([]);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -103,7 +103,7 @@ const ProjectManagerModal = ({
     };
 
     return (
-        <div className={`pm-overlay${darkMode ? ' dark' : ''}`}>
+        <div className={`pm-overlay ${theme}`}>
             <div className="pm-modal" ref={modalRef}>
                 <div className="pm-header">
                     <h2>Manage Projects</h2>

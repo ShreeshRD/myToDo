@@ -65,6 +65,65 @@
     background-color: rgb(155, 82, 82);
 }
 
+/* Glass Mode */
+.app-container.glass .todo_item_box {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    color: white !important;
+}
+
+.app-container.glass .todo_item_box.overdue {
+    background-color: rgba(255, 77, 77, 0.4) !important;
+    border: 1px solid rgba(255, 77, 77, 0.5);
+    box-shadow: 0 0 10px rgba(255, 77, 77, 0.2);
+}
+
+/* Glass Hover Effect - Slightly more opaque */
+.app-container.glass .todo_item_box:hover {
+    background-color: rgba(255, 255, 255, 0.25) !important;
+    /* Increased opacity on hover */
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+}
+
+.app-container.glass .checkbox_icon_unchecked {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.app-container.glass .task_infobar {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.app-container.glass .todo_delete_icon {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.app-container.glass .todo_delete:hover .todo_delete_icon {
+    color: rgb(255, 100, 100);
+}
+
+/* Glass Mode State Overrides */
+.app-container.glass .todo_item_box.in-progress {
+    background: linear-gradient(90deg, rgba(34, 197, 94, 0.75) 15px, rgba(255, 255, 255, 0.05) 50px) !important;
+    border: 1px solid rgba(183, 225, 205, 0.5);
+    color: white !important;
+}
+
+.app-container.glass .todo_item_box.long-term {
+    background-color: rgba(64, 224, 208, 0.15) !important;
+    border: 1px solid rgba(64, 224, 208, 0.5);
+    color: white !important;
+}
+
+.app-container.glass .todo_item_box.in-progress.long-term {
+    background: linear-gradient(90deg, rgba(34, 197, 94, 0.75) 15px, rgba(64, 224, 208, 0.15) 50px) !important;
+}
+
 /* Light Mode States */
 .todo_item_box.in-progress {
     background: linear-gradient(90deg, rgba(34, 197, 94, 0.75) 15px, #ffffff 50px) !important;
