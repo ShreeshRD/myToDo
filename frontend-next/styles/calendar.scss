@@ -428,6 +428,30 @@
   display: none;
   /* Hidden by default */
 
+  /* Glass Mode Panel */
+  .app-container.glass & {
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+    color: #333;
+    /* Ensuring text remains readable */
+
+    .panel-header {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+
+      h3 {
+        color: #000;
+        text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+      }
+    }
+
+    .panel-task-item {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    }
+  }
+
   &.open {
     display: flex;
   }

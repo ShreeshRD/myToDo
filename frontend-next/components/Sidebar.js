@@ -9,6 +9,7 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { BsLayoutSidebar } from "react-icons/bs";
 import { CiHashtag } from "react-icons/ci";
+import { FaRegStickyNote } from "react-icons/fa";
 import { FaSearch } from "react-icons/fa";
 import { IoIosArrowDown } from "react-icons/io";
 import '../styles/sidebar.scss'
@@ -101,6 +102,10 @@ function Sidebar({
           <li onClick={() => setViewPage('Search')} className={viewPage === 'Search' ? 'active' : ''}>
             <FaSearch />
             <span> Search</span>
+          </li>
+          <li onClick={() => setViewPage('Scratchpad')} className={viewPage === 'Scratchpad' ? 'active' : ''}>
+            <FaRegStickyNote />
+            <span> Scratchpad</span>
           </li>
         </ul>
         <div className="sidebar__projects">

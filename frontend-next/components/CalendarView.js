@@ -67,13 +67,13 @@ function CalendarView() {
         return taskDays[dateString] || [];
     };
 
-    const handleToggleTask = (task) => {
-        updateTask(task.id, "complete", !task.complete, task.taskDate);
+    const handleToggleTask = async (task) => {
+        await updateTask(task.id, "complete", !task.complete, task.taskDate);
     };
 
-    const handleUncheckOverdueTask = (task) => {
+    const handleUncheckOverdueTask = async (task) => {
         // For overdue tasks, we just toggle the complete status
-        updateTask(task.id, "complete", !task.complete, task.taskDate);
+        await updateTask(task.id, "complete", !task.complete, task.taskDate);
     };
 
     // Get count of overdue tasks

@@ -102,7 +102,7 @@ function ToDoDay({ tasks, date, id }) {
                                                         // Wait for stopwatch to save timeTaken before marking complete
                                                         await stopStopwatch(task);
                                                     }
-                                                    updateTask(task.id, "complete", newComplete, task.taskDate);
+                                                    await updateTask(task.id, "complete", newComplete, task.taskDate);
                                                 }}
                                                 icon={<RiCheckboxBlankCircleLine className="checkbox_icon_unchecked" />}
                                                 checkedIcon={<RiCheckboxCircleFill className="checkbox_icon_checked" />}

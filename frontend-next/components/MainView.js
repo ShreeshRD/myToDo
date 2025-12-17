@@ -8,6 +8,7 @@ import CreateTaskPopup from "./CreateTaskPopup";
 import Upcoming from "./Upcoming";
 import Search from "./Search";
 import TodayView from "./TodayView";
+import Scratchpad from "./Scratchpad";
 import { useUI } from "../contexts/UIContext";
 import { useTasks } from "../contexts/TaskContext";
 import dayjs from "dayjs";
@@ -122,6 +123,8 @@ function MainView() {
 						</>
 					) : viewPage === 'Search' ? (
 						<Search />
+					) : viewPage === 'Scratchpad' ? (
+						<Scratchpad theme={theme} />
 					) : "Something went wrong"
 					}
 				</div>

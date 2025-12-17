@@ -249,9 +249,9 @@ function TodayView() {
                     <div className="todo_item_inner">
                         <CustomCheckbox
                             checked={task.complete}
-                            onChange={(e) => {
+                            onChange={async (e) => {
                                 e.stopPropagation();
-                                updateTask(task.id, "complete", !task.complete, task.taskDate);
+                                await updateTask(task.id, "complete", !task.complete, task.taskDate);
                             }}
                             icon={<RiCheckboxBlankCircleLine className="checkbox_icon_unchecked" />}
                             checkedIcon={<RiCheckboxCircleFill className="checkbox_icon_checked" />}
