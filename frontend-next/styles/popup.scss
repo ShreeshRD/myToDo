@@ -12,6 +12,18 @@
     display: flex;
     align-items: center;
     justify-content: center;
+
+    &.glass {
+        background-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(30px);
+        -webkit-backdrop-filter: blur(30px);
+    }
+}
+
+/* Blur effect for background content when popup is shown */
+.popup-blur {
+    filter: blur(8px);
+    pointer-events: none;
 }
 
 .createTask {
@@ -30,12 +42,13 @@
     }
 
     &.glass {
-        background-color: rgba(255, 255, 255, 0.65);
-        backdrop-filter: blur(25px);
-        -webkit-backdrop-filter: blur(25px);
+        background-color: rgba(255, 255, 255, 0.4);
+        backdrop-filter: blur(80px);
+        -webkit-backdrop-filter: blur(80px);
         border: 1px solid rgba(255, 255, 255, 0.4);
         box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-        color: white;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        color: black;
     }
 }
 
@@ -50,10 +63,10 @@
 }
 
 .glass .no-background {
-    color: white;
+    color: black;
 
     &::placeholder {
-        color: rgba(255, 255, 255, 0.7);
+        color: rgba(0, 0, 0, 0.6);
     }
 }
 
@@ -176,8 +189,8 @@
     }
 
     &.glass {
-        border-color: rgba(255, 255, 255, 0.6);
-        color: white;
+        border-color: rgba(0, 0, 0, 0.6);
+        color: black;
     }
 }
 

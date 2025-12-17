@@ -6,7 +6,7 @@ const useTaskManagement = () => {
     const [taskDays, setTaskDays] = useState([]);
     const [completedTasks, setCompletedTasks] = useState({});
     const [overdueTasks, setOverdueTasks] = useState({ overdue: [] });
-    const [startDate, setStartDate] = useState(dayjs());
+    const [startDate, setStartDate] = useState(() => dayjs().startOf('day'));
     const [completedDate, setCompletedDate] = useState(dayjs().subtract(7, 'day'));
 
     const fetchTasks = async () => {

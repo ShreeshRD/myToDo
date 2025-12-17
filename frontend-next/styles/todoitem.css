@@ -76,9 +76,18 @@
 }
 
 .app-container.glass .todo_item_box.overdue {
-    background-color: rgba(255, 77, 77, 0.4) !important;
+    background-color: rgba(255, 15, 15, 0.4) !important;
     border: 1px solid rgba(255, 77, 77, 0.5);
     box-shadow: 0 0 10px rgba(255, 77, 77, 0.2);
+}
+
+.app-container.glass .todo_item_box.overdue:hover {
+    background-color: rgba(255, 0, 0, 0.25) !important;
+    /* Increased opacity on hover */
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
 }
 
 /* Glass Hover Effect - Slightly more opaque */

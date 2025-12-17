@@ -26,7 +26,8 @@ function Sidebar({
   projects,
   addProject,
   reorderProjects,
-  deleteProjectWithTasks
+  deleteProjectWithTasks,
+  popupBlur
 }) {
   const [dropdown, setDropdown] = useState(true);
   const [showAddInput, setShowAddInput] = useState(false);
@@ -71,7 +72,7 @@ function Sidebar({
 
   return (
     <>
-      <div className={`sidebar${show ? '' : ' hidden'} ${theme}`}>
+      <div className={`sidebar${show ? '' : ' hidden'} ${theme}${popupBlur ? ' popup-blur' : ''}`}>
         <button className="darkmodeButton" onClick={toggleTheme} title="Toggle Theme">
           {theme === 'light' && <LightModeIcon className={`darkmodeIcon ${theme}`} />}
           {theme === 'dark' && <DarkModeIcon className={`darkmodeIcon ${theme}`} />}

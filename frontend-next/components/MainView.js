@@ -54,6 +54,14 @@ function MainView() {
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
 	}, [projects]);
 
+	// Reset startDate to today when switching to Upcoming view
+	useEffect(() => {
+		if (viewPage === 'Upcoming') {
+			setStartDate(dayjs().startOf('day'));
+		}
+	}, [viewPage, setStartDate]);
+
+
 	const addProject = (projectName) => {
 		const trimmed = projectName.trim();
 		if (trimmed && !projects.includes(trimmed)) {
@@ -94,9 +102,9 @@ function MainView() {
 	return (
 		<div className="App">
 			<div className={`app-container ${theme}`}>
-				<Sidebar setShowPopup={callPopup} show={showSidebar} setShowSidebar={setShowSidebar} setTheme={setTheme} theme={theme} viewPage={viewPage} setViewPage={setViewPage} projects={projects} addProject={addProject} removeProject={removeProject} reorderProjects={reorderProjects} deleteProjectWithTasks={deleteProjectWithTasks} />
+				<Sidebar setShowPopup={callPopup} show={showSidebar} setShowSidebar={setShowSidebar} setTheme={setTheme} theme={theme} viewPage={viewPage} setViewPage={setViewPage} projects={projects} addProject={addProject} removeProject={removeProject} reorderProjects={reorderProjects} deleteProjectWithTasks={deleteProjectWithTasks} popupBlur={showPopup && theme === 'glass'} />
 				{showPopup && (<CreateTaskPopup setTrigger={onPopupClose} onPopupClose={onPopupClose} date={popupDate} projects={projects} theme={theme} task={popupTaskItem} />)}
-				<div className={`content${showSidebar ? '' : ' hidden'} ${theme}`}>
+				<div className={`content${showSidebar ? '' : ' hidden'} ${theme}${showPopup && theme === 'glass' ? ' popup-blur' : ''}`}>
 					{viewPage === 'Upcoming' ? (
 						<>
 							<Header theme={theme} useDate={startDate} setDate={setStartDate} viewPage={viewPage} />

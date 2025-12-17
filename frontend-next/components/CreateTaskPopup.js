@@ -201,10 +201,10 @@ function CreateTaskPopup({ projects, theme, date, task }) {
   };
 
   return (
-    <div className="taskPopup">
+    <div className={`taskPopup ${theme}`}>
       <div className={`createTask ${theme}`}>
         <div className="date-component">
-          <DateComponent selectedDate={selectedDate} handler={handleDateChange} theme={theme} />
+          <DateComponent selectedDate={selectedDate} handler={handleDateChange} theme="light" />
         </div>
         <div className="task-text">
           <textarea
