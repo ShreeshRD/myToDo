@@ -11,7 +11,6 @@ import { useUI } from "../contexts/UIContext";
 import '../styles/todoitem.css';
 import '../styles/todayview.scss';
 
-// Generate time slots every 90 minutes from 03:00 to 00:00 (next day)
 // Generate time slots every 90 minutes from 00:00 to 00:00 (next day)
 const generateTimeSlots = () => {
     const slots = [];

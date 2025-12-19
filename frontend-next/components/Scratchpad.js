@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import '../styles/scratchpad.scss';
 import { CiMenuKebab } from "react-icons/ci";
-import { MdCheckBoxOutlineBlank, MdCheckBox } from "react-icons/md";
+import { MdCheckBoxOutlineBlank, MdCheckBox, MdDragIndicator, MdDelete } from "react-icons/md";
 import { IoIosArrowForward, IoIosArrowDown } from "react-icons/io";
 
 // Utility to set cursor to end of contentEditable
@@ -17,12 +17,14 @@ const setCursorToEnd = (element) => {
 };
 
 // Recursive Block Component
-const Block = ({ block, updateBlock, addBlock, deleteBlock, focusBlock, onKeyDown, theme }) => {
+const Block = ({ block, updateBlock, addBlock, deleteBlock, focusBlock, onKeyDown, theme, onDragStart, onDragOver, onDragEnd, onDrop, isDragging, dragOverId, dragOverPosition }) => {
     const contentRef = useRef(null);
 
     // Sync content with state manually to preserve cursor position during typing
     useEffect(() => {
-        if (contentRef.current && contentRef.current.innerText !== block.content) {
+        // Normalize non-breaking spaces for comparison (browser uses \u00A0 for spaces in contentEditable)
+        const normalizedInnerText = contentRef.current?.innerText?.replace(/\u00A0/g, ' ') || '';
+        if (contentRef.current && normalizedInnerText !== block.content) {
             // Only update if they differ (e.g. external change or slash command clear)
             contentRef.current.innerText = block.content;
 
@@ -61,9 +63,64 @@ const Block = ({ block, updateBlock, addBlock, deleteBlock, focusBlock, onKeyDow
         onKeyDown(e, block);
     };
 
+    const handleDragStart = (e) => {
+        e.stopPropagation();
+        onDragStart(e, block.id);
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        // Determine if we're in the top or bottom half of the block
+        const rect = e.currentTarget.getBoundingClientRect();
+        const midpoint = rect.top + rect.height / 2;
+        const position = e.clientY < midpoint ? 'before' : 'after';
+        onDragOver(e, block.id, position);
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const rect = e.currentTarget.getBoundingClientRect();
+        const midpoint = rect.top + rect.height / 2;
+        const position = e.clientY < midpoint ? 'before' : 'after';
+        onDrop(e, block.id, position);
+    };
+
+    const handleDragEnd = (e) => {
+        onDragEnd(e);
+    };
+
+    const isDragOverBefore = dragOverId === block.id && dragOverPosition === 'before';
+    const isDragOverAfter = dragOverId === block.id && dragOverPosition === 'after';
+
     return (
-        <div className={`block-wrapper ${block.type} ${theme}`}>
+        <div
+            className={`block-wrapper ${block.type} ${theme} ${isDragging ? 'dragging' : ''} ${isDragOverBefore ? 'drag-over-before' : ''} ${isDragOverAfter ? 'drag-over-after' : ''}`}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+        >
             <div className="block-content-row">
+                {/* Block controls that appear on hover - delete and drag handle */}
+                <div className="block-controls">
+                    <span
+                        className="delete-icon"
+                        onClick={() => deleteBlock(block.id)}
+                        title="Delete block"
+                    >
+                        <MdDelete />
+                    </span>
+                    <span
+                        className="drag-handle"
+                        draggable
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                        title="Drag to reorder"
+                    >
+                        <MdDragIndicator />
+                    </span>
+                </div>
+
                 {block.type === 'toggle' && (
                     <span
                         className="toggle-icon"
@@ -110,6 +167,13 @@ const Block = ({ block, updateBlock, addBlock, deleteBlock, focusBlock, onKeyDow
                             focusBlock={focusBlock}
                             onKeyDown={onKeyDown}
                             theme={theme}
+                            onDragStart={onDragStart}
+                            onDragOver={onDragOver}
+                            onDragEnd={onDragEnd}
+                            onDrop={onDrop}
+                            isDragging={isDragging}
+                            dragOverId={dragOverId}
+                            dragOverPosition={dragOverPosition}
                         />
                     ))}
                 </div>
@@ -130,6 +194,11 @@ function Scratchpad({ theme }) {
     const [menuOpen, setMenuOpen] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
     const [activeBlockId, setActiveBlockId] = useState(null);
+
+    // Drag and Drop State
+    const [draggedBlockId, setDraggedBlockId] = useState(null);
+    const [dragOverId, setDragOverId] = useState(null);
+    const [dragOverPosition, setDragOverPosition] = useState(null);
 
     // Helpers to find and update nested blocks
     const findBlock = (id, list) => {
@@ -156,37 +225,154 @@ function Scratchpad({ theme }) {
         });
     };
 
+    // Delete a block by ID (recursively)
+    const deleteBlock = (id) => {
+        const removeBlock = (list) => {
+            const result = [];
+            for (let b of list) {
+                if (b.id === id) {
+                    // Skip this block (delete it)
+                    continue;
+                }
+                if (b.children && b.children.length > 0) {
+                    result.push({ ...b, children: removeBlock(b.children) });
+                } else {
+                    result.push(b);
+                }
+            }
+            return result;
+        };
+
+        setBlocks(prev => {
+            const newBlocks = removeBlock(prev);
+            // If all blocks are deleted, add an empty one
+            if (newBlocks.length === 0) {
+                return [{ id: Date.now().toString(), type: 'p', content: '', checked: false, isOpen: true, children: [], isFocused: true }];
+            }
+            return newBlocks;
+        });
+    };
+
+    // Focus a specific block
+    const focusBlock = (id) => {
+        setBlocks(prev => modifyBlocks(id, (b) => ({ ...b, isFocused: true }), prev));
+    };
+
+    // Drag and Drop handlers
+    const handleDragStart = (e, id) => {
+        setDraggedBlockId(id);
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', id);
+    };
+
+    const handleDragOver = (e, id, position) => {
+        if (draggedBlockId && draggedBlockId !== id) {
+            setDragOverId(id);
+            setDragOverPosition(position);
+        }
+    };
+
+    const handleDragEnd = () => {
+        setDraggedBlockId(null);
+        setDragOverId(null);
+        setDragOverPosition(null);
+    };
+
+    const handleDrop = (e, targetId, position) => {
+        if (!draggedBlockId || draggedBlockId === targetId) {
+            handleDragEnd();
+            return;
+        }
+
+        setBlocks(prev => {
+            // Helper to extract a block from the tree
+            let draggedBlock = null;
+
+            const extractBlock = (list, id) => {
+                const result = [];
+                for (let b of list) {
+                    if (b.id === id) {
+                        draggedBlock = { ...b };
+                        continue;
+                    }
+                    if (b.children && b.children.length > 0) {
+                        result.push({ ...b, children: extractBlock(b.children, id) });
+                    } else {
+                        result.push(b);
+                    }
+                }
+                return result;
+            };
+
+            // Remove the dragged block from its original position
+            let newBlocks = extractBlock(prev, draggedBlockId);
+
+            if (!draggedBlock) {
+                return prev;
+            }
+
+            // Insert the dragged block before or after the target based on position
+            const insertAtPosition = (list, targetId, blockToInsert, insertPosition) => {
+                const result = [];
+                for (let b of list) {
+                    if (b.id === targetId && insertPosition === 'before') {
+                        result.push(blockToInsert);
+                    }
+                    if (b.children && b.children.length > 0) {
+                        result.push({ ...b, children: insertAtPosition(b.children, targetId, blockToInsert, insertPosition) });
+                    } else {
+                        result.push(b);
+                    }
+                    if (b.id === targetId && insertPosition === 'after') {
+                        result.push(blockToInsert);
+                    }
+                }
+                return result;
+            };
+
+            newBlocks = insertAtPosition(newBlocks, targetId, draggedBlock, position);
+            return newBlocks;
+        });
+
+        handleDragEnd();
+    };
+
     const updateBlock = (id, updates) => {
         // Special check for slash commands in content
         if (updates.content !== undefined) {
             const text = updates.content;
-            handleSlashCommandInput(text, id);
+            const commandTriggered = handleSlashCommandInput(text, id);
+            // If a command was triggered, don't update the content (it's already been cleared)
+            if (commandTriggered) {
+                return;
+            }
         }
         setBlocks(prev => modifyBlocks(id, (b) => ({ ...b, ...updates }), prev));
     };
 
     const handleSlashCommandInput = (text, id) => {
         // Check for exact matches first for shortcuts
+        // Returns true if a command was triggered, false otherwise
         if (text === '/1') {
             convertToType(id, 'h1');
-            return;
+            return true;
         }
         if (text === '/2') {
             convertToType(id, 'h2');
-            return;
+            return true;
         }
         if (text === '/3') {
             convertToType(id, 'h3');
-            return;
+            return true;
         }
         if (text === '/toggle') {
             convertToType(id, 'toggle');
-            return;
+            return true;
         }
-        // Checklist pattern "[] "
-        if (text.startsWith('[] ')) {
-            convertToType(id, 'todo', text.substring(3)); // Remove "[] "
-            return;
+        // Checklist pattern "[]" (without space to avoid breaking normal typing)
+        if (text === '[]') {
+            convertToType(id, 'todo');
+            return true;
         }
 
         // Show menu if ends with /
@@ -195,6 +381,7 @@ function Scratchpad({ theme }) {
             // Actually, we can just position it near cursor or center for now.
             // Let's use a simple approach: if '/' is typed, open menu.
         }
+        return false;
     };
 
     const convertToType = (id, type, newContent = null) => {
@@ -244,7 +431,7 @@ function Scratchpad({ theme }) {
         if (e.key === 'Backspace' && block.content === '') {
             // Delete block
             e.preventDefault();
-            // deleteBlock(block.id);
+            deleteBlock(block.id);
         }
     };
 
@@ -260,10 +447,17 @@ function Scratchpad({ theme }) {
                         block={block}
                         updateBlock={updateBlock}
                         addBlock={addBlock}
-                        // deleteBlock={deleteBlock}
-                        // focusBlock={focusBlock}
+                        deleteBlock={deleteBlock}
+                        focusBlock={focusBlock}
                         onKeyDown={handleKeyDown}
                         theme={theme}
+                        onDragStart={handleDragStart}
+                        onDragOver={handleDragOver}
+                        onDragEnd={handleDragEnd}
+                        onDrop={handleDrop}
+                        isDragging={draggedBlockId === block.id}
+                        dragOverId={dragOverId}
+                        dragOverPosition={dragOverPosition}
                     />
                 ))}
             </div>
@@ -273,3 +467,4 @@ function Scratchpad({ theme }) {
 }
 
 export default Scratchpad;
+

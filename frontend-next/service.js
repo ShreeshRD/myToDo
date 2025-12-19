@@ -54,7 +54,7 @@ export const updateField = async (id, field, value) => {
  * @returns {Promise<Object>} Created task item
  * @throws {Error} If the creation fails
  */
-export const addTask = async (task, tdate, category = "None", priority = 0, repeatType = "NONE", repeatDuration = 0) => {
+export const addTask = async (task, tdate, category = "None", priority = 0, repeatType = "NONE", repeatDuration = 0, longTerm = false) => {
 	try {
 		const response = await axios.post(`${API_URL}/add`, null, {
 			params: {
@@ -64,6 +64,7 @@ export const addTask = async (task, tdate, category = "None", priority = 0, repe
 				priority: priority,
 				repeatType: repeatType,
 				repeatDuration: repeatDuration,
+				longTerm: longTerm,
 			},
 		});
 		return response.data.item;

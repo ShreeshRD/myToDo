@@ -33,9 +33,10 @@ public class TodoRestController {
             @RequestParam LocalDate taskDate,
             @RequestParam(required = false) TodoItem.RepeatPattern repeatType,
             @RequestParam(required = false) Integer repeatDuration,
-            @RequestParam(required = false) Integer priority) {
+            @RequestParam(required = false) Integer priority,
+            @RequestParam(required = false) Boolean longTerm) {
 
-        return todoService.addTask(category, name, taskDate, repeatType, repeatDuration, priority);
+        return todoService.addTask(category, name, taskDate, repeatType, repeatDuration, priority, longTerm);
     }
 
     @PostMapping("/update")

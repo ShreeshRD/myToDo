@@ -42,7 +42,7 @@ public class TodoService {
     }
 
     public TodoOperationResult addTask(String category, String name, LocalDate taskDate,
-            TodoItem.RepeatPattern repeatType, Integer repeatDuration, Integer priority) {
+            TodoItem.RepeatPattern repeatType, Integer repeatDuration, Integer priority, Boolean longTerm) {
         // Calculate next order for the task date
         List<TodoItem> existingTasks = repository.findByTaskDate(taskDate);
         int nextOrder = existingTasks.size() + 1;
@@ -52,6 +52,7 @@ public class TodoService {
         item.setRepeatType(repeatType != null ? repeatType : TodoItem.RepeatPattern.NONE);
         item.setRepeatDuration(repeatDuration != null ? repeatDuration : 0);
         item.setPriority(priority != null ? priority : 0);
+        item.setLongTerm(longTerm != null ? longTerm : false);
 
         TodoItem saved = repository.save(item);
         logger.info("Created new task with id: {}", saved.getId());

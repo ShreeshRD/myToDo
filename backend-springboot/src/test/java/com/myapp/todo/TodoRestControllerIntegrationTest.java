@@ -64,6 +64,7 @@ class TodoRestControllerIntegrationTest {
                                 .queryParam("category", category)
                                 .queryParam("taskDate", taskDate.toString())
                                 .queryParam("priority", 1)
+                                .queryParam("longTerm", true)
                                 .build()
                                 .toUri();
 
@@ -78,6 +79,7 @@ class TodoRestControllerIntegrationTest {
                 assertThat(response.getBody().getItem().getName()).isEqualTo(taskName);
                 assertThat(response.getBody().getItem().getCategory()).isEqualTo(category);
                 assertThat(response.getBody().getItem().getId()).isNotNull();
+                assertThat(response.getBody().getItem().isLongTerm()).isTrue();
         }
 
         @Test

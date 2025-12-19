@@ -9,6 +9,22 @@ const useTaskManagement = () => {
     const [startDate, setStartDate] = useState(() => dayjs().startOf('day'));
     const [completedDate, setCompletedDate] = useState(dayjs().subtract(7, 'day'));
 
+    // Fix for SSR/hydration mismatch: ensure startDate is set to client's today on mount
+    useEffect(() => {
+        setStartDate(dayjs().startOf('day'));
+    }, []);
+
+
+    // Helper to sort tasks by date then dayOrder
+    const sortTasks = (tasks) => {
+        return [...tasks].sort((a, b) => {
+            if (a.taskDate !== b.taskDate) {
+                return a.taskDate.localeCompare(b.taskDate);
+            }
+            return a.dayOrder - b.dayOrder;
+        });
+    };
+
     const fetchTasks = async () => {
         try {
             const response = await getTasks("bydate");
@@ -56,6 +72,7 @@ const useTaskManagement = () => {
                 }
             }
             setCompletedTasks(newCompletedTasks);
+            newOverdueTasks.overdue = sortTasks(newOverdueTasks.overdue);
             setOverdueTasks(newOverdueTasks);
             setTaskDays(newTaskDays);
         } catch (error) {
@@ -80,7 +97,7 @@ const useTaskManagement = () => {
         if (task.taskDate < dayjs().format("YYYY-MM-DD")) {
             setOverdueTasks(prevTaskDays => ({
                 ...prevTaskDays,
-                overdue: [...(prevTaskDays.overdue || []), task]
+                overdue: sortTasks([...(prevTaskDays.overdue || []), task])
             }));
         }
         else {
@@ -110,6 +127,7 @@ const useTaskManagement = () => {
                         updatedOverdue.overdue = updatedOverdue.overdue.map(task =>
                             task.id === id ? { ...task, ...taskItem } : task
                         );
+                        updatedOverdue.overdue = sortTasks(updatedOverdue.overdue);
                         setOverdueTasks(updatedOverdue);
                     } else {
                         const updatedTaskDays = { ...taskDays };
@@ -143,6 +161,7 @@ const useTaskManagement = () => {
                         updatedOverdue.overdue = updatedOverdue.overdue.map(task =>
                             task.id === id ? { ...task, complete: false } : task
                         );
+                        updatedOverdue.overdue = sortTasks(updatedOverdue.overdue);
                         setOverdueTasks(updatedOverdue);
                     } else {
                         const updatedTaskDays = { ...taskDays };
@@ -171,6 +190,7 @@ const useTaskManagement = () => {
                     updatedOverdue.overdue = updatedOverdue.overdue.map(task =>
                         task.id === id ? { ...task, [field]: value } : task
                     );
+                    updatedOverdue.overdue = sortTasks(updatedOverdue.overdue);
                     setOverdueTasks(updatedOverdue);
                 }
 
@@ -242,7 +262,7 @@ const useTaskManagement = () => {
         task.taskDate = newDate;
 
         try {
-            const newTask = await addTask(task.name, newDate, task.category, task.priority, repeatType, repeatDuration);
+            const newTask = await addTask(task.name, newDate, task.category, task.priority, repeatType, repeatDuration, task.longTerm);
             addToFrontend(newTask);
         } catch (error) {
             console.error('Error adding task:', error);

@@ -62,12 +62,47 @@
     width: 100%;
 }
 
-.glass .no-background {
-    color: black;
+/* Ensure black text cursor on glass theme by enforcing light color scheme */
+.taskPopup.glass .no-background,
+.createTask.glass .no-background,
+.taskPopup.glass input,
+.createTask.glass input,
+.taskPopup.glass textarea,
+.createTask.glass textarea,
+.taskPopup.glass [contenteditable="true"],
+.createTask.glass [contenteditable="true"],
+.taskPopup.glass .MuiInputBase-input,
+.createTask.glass .MuiInputBase-input,
+.taskPopup.glass .MuiPickersSectionList-sectionContent,
+.createTask.glass .MuiPickersSectionList-sectionContent {
+    color: black !important;
+    caret-color: black !important;
+    /* Restore normal caret color */
+
+    /* Force browser to use light-theme system cursor (black) */
+    color-scheme: light !important;
+    cursor: url('/cursor-black.svg') 12 12, text !important;
+
+    /* Fix for potential rendering issues with backdrop-filter */
+    text-shadow: 0 0 0 black;
+    /* Help text visibility */
 
     &::placeholder {
         color: rgba(0, 0, 0, 0.6);
     }
+}
+
+/* Fix for DatePicker black header in glass theme */
+.glass .MuiPickersToolbarText-root {
+    color: white !important;
+}
+
+.glass .MuiPickersDay-root {
+    color: black !important;
+}
+
+.glass .MuiDayCalendar-weekDayLabel {
+    color: black !important;
 }
 
 .no-background:focus {
