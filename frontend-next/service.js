@@ -74,6 +74,7 @@ export const addTask = async (task, tdate, category = "None", priority = 0, repe
 	}
 }
 
+
 /**
  * Deletes a task by ID
  * @param {number} taskId - Task ID to delete
@@ -86,6 +87,39 @@ export const deleteTask = async (taskId) => {
 		return response.data;
 	} catch (error) {
 		console.error('Error deleting task:', error.message);
+		throw error;
+	}
+};
+
+/**
+ * Fetches the scratchpad content
+ * @returns {Promise<Object>} Scratchpad object with content string
+ */
+export const getScratchpad = async () => {
+	try {
+		const response = await axios.get(`${API_URL}/scratchpad`);
+		return response.data;
+	} catch (error) {
+		console.error('Error fetching scratchpad:', error);
+		throw error;
+	}
+};
+
+/**
+ * Saves the scratchpad content
+ * @param {string} content - JSON string of blocks
+ * @returns {Promise<Object>} Saved scratchpad object
+ */
+export const saveScratchpad = async (content) => {
+	try {
+		const response = await axios.post(`${API_URL}/scratchpad`, content, {
+			headers: {
+				'Content-Type': 'text/plain'
+			}
+		});
+		return response.data;
+	} catch (error) {
+		console.error('Error saving scratchpad:', error);
 		throw error;
 	}
 };

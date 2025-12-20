@@ -71,7 +71,7 @@ class TodoServiceTest {
 
         // Act
         TodoOperationResult result = todoService.addTask("Work", "New Task", LocalDate.now(),
-                TodoItem.RepeatPattern.NONE, 0, 1);
+                TodoItem.RepeatPattern.NONE, 0, 1, false);
 
         // Assert
         assertNotNull(result);

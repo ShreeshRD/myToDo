@@ -74,6 +74,10 @@ const useTaskManagement = () => {
             setCompletedTasks(newCompletedTasks);
             newOverdueTasks.overdue = sortTasks(newOverdueTasks.overdue);
             setOverdueTasks(newOverdueTasks);
+            // Sort each date's tasks by dayOrder before setting state
+            for (const date in newTaskDays) {
+                newTaskDays[date].sort((a, b) => a.dayOrder - b.dayOrder);
+            }
             setTaskDays(newTaskDays);
         } catch (error) {
             console.error("Error fetching tasks:", error);
@@ -106,7 +110,7 @@ const useTaskManagement = () => {
                 [task.taskDate]: [
                     ...(prevTaskDays[task.taskDate] || []),
                     task
-                ]
+                ].sort((a, b) => a.dayOrder - b.dayOrder)
             }));
         }
     }

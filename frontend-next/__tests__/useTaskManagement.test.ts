@@ -257,7 +257,8 @@ describe('useTaskManagement Hook', () => {
                 complete: true,
                 taskDate: today,
                 repeatType: 'EVERY_X_DAYS',
-                repeatDuration: 1
+                repeatDuration: 1,
+                longTerm: false
             };
 
             const mockTasks = {
@@ -290,7 +291,8 @@ describe('useTaskManagement Hook', () => {
                 'Work',
                 undefined,
                 'EVERY_X_DAYS',
-                1
+                1,
+                false
             );
         });
     });

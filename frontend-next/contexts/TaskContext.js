@@ -61,13 +61,23 @@ export const TaskProvider = ({ children }) => {
         setShowPopup(true);
     };
 
-    const onPopupClose = async (deleteid = -1, taskDate, taskName = '', dateChoice, projectChoice = "None", priority = 0, repeatType = "NONE", repeatDuration = 0, taskOrder = 0, assignedTime = null) => {
+    const onPopupClose = async (deleteid = -1, taskDate, taskName = '', dateChoice, projectChoice = "None", priority = 0, repeatType = "NONE", repeatDuration = 0, taskOrder = 0, assignedTime = null, inProgress = false, timeTaken = 0, longTerm = false) => {
         if (taskName.trim() !== '') {
-            let task = await addTask(taskName, dateChoice, projectChoice, priority, repeatType, repeatDuration);
+            let task = await addTask(taskName, dateChoice, projectChoice, priority, repeatType, repeatDuration, longTerm);
 
             if (assignedTime) {
                 task.assignedTime = assignedTime;
                 await taskManagement.updateBackend(task.id, "assignedTime", assignedTime);
+            }
+
+            if (inProgress) {
+                task.inProgress = true;
+                await taskManagement.updateBackend(task.id, "inProgress", true);
+            }
+
+            if (timeTaken > 0) {
+                task.timeTaken = timeTaken;
+                await taskManagement.updateBackend(task.id, "timeTaken", timeTaken);
             }
 
             if (deleteid !== -1) {

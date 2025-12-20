@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 
 @Service
@@ -24,7 +25,14 @@ public class TodoService {
     public GroupedTodoItems getGroupedByDate() {
         Iterable<TodoItem> todoList = repository.findAll();
         Map<String, List<TodoItem>> itemsByDate = StreamSupport.stream(todoList.spliterator(), false)
-                .collect(Collectors.groupingBy(item -> item.getTaskDate().toString()));
+                .collect(Collectors.groupingBy(
+                        item -> item.getTaskDate().toString(),
+                        Collectors.collectingAndThen(
+                                Collectors.toList(),
+                                list -> {
+                                    list.sort(Comparator.comparingInt(TodoItem::getDayOrder));
+                                    return list;
+                                })));
 
         // Sort the map by date
         Map<String, List<TodoItem>> sortedItemsByDate = itemsByDate.entrySet().stream()

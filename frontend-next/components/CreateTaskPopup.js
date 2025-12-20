@@ -82,8 +82,11 @@ function CreateTaskPopup({ projects, theme, date, task }) {
     const repeatTypeValue = getRepeatTypeValue(repeatType, REPEAT_TYPE_MAP);
     const repeatDurationInt = getRepeatDuration(repeatTypeValue, repeatDuration, repeatCustom);
     const timeToPass = assignedTime ? assignedTime.format('HH:mm:ss') : null;
+    const inProgress = task?.inProgress || false;
+    const timeTaken = task?.timeTaken || 0;
+    const longTerm = task?.longTerm || false;
 
-    onPopupClose(taskID, taskDate, taskName, formattedDate, projectToPass, priorityValue, repeatTypeValue, repeatDurationInt, order, timeToPass);
+    onPopupClose(taskID, taskDate, taskName, formattedDate, projectToPass, priorityValue, repeatTypeValue, repeatDurationInt, order, timeToPass, inProgress, timeTaken, longTerm);
     setTaskName('');
     setSelectedDate(dayjs());
   };

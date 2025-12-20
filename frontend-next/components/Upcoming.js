@@ -28,7 +28,7 @@ function Upcoming() {
                 )}
                 {dates.map((date, index) => {
                     const tasks = taskDays[date] || [];
-                    const sortedTasks = tasks.sort((a, b) => a.dayOrder - b.dayOrder);
+                    const sortedTasks = [...tasks].sort((a, b) => a.dayOrder - b.dayOrder);
                     // const completedTasks = sortedTasks.filter(task => !task.complete);
                     return (
                         <ToDoDay

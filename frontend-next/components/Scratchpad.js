@@ -5,6 +5,7 @@ import '../styles/scratchpad.scss';
 import { CiMenuKebab } from "react-icons/ci";
 import { MdCheckBoxOutlineBlank, MdCheckBox, MdDragIndicator, MdDelete } from "react-icons/md";
 import { IoIosArrowForward, IoIosArrowDown } from "react-icons/io";
+import { getScratchpad, saveScratchpad } from '../service';
 
 // Utility to set cursor to end of contentEditable
 const setCursorToEnd = (element) => {
@@ -49,7 +50,7 @@ const Block = ({ block, updateBlock, addBlock, deleteBlock, focusBlock, onKeyDow
         if (block.isFocused && contentRef.current) {
             contentRef.current.focus();
         }
-    }, [block.isFocused]);
+    }, [block.isFocused, block.focusTrigger]);
 
     const handleInput = (e) => {
         const text = e.currentTarget.innerText.replace(/\u00A0/g, ' ');
@@ -189,6 +190,40 @@ function Scratchpad({ theme }) {
     const [blocks, setBlocks] = useState([
         { id: '1', type: 'p', content: '', checked: false, isOpen: true, children: [], isFocused: true }
     ]);
+    const [loaded, setLoaded] = useState(false);
+
+    // Core Load Data Effect
+    useEffect(() => {
+        getScratchpad().then(data => {
+            if (data && data.content) {
+                try {
+                    const parsed = JSON.parse(data.content);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        setBlocks(parsed);
+                    }
+                } catch (e) {
+                    console.error("Failed to parse scratchpad content:", e);
+                }
+            }
+            setLoaded(true);
+        }).catch(err => {
+            console.error("Failed to load scratchpad:", err);
+            setLoaded(true); // Allow editing even if load fails
+        });
+    }, []);
+
+    // Core Save Data Effect (Debounced)
+    useEffect(() => {
+        if (!loaded) return;
+
+        const timeoutId = setTimeout(() => {
+            saveScratchpad(JSON.stringify(blocks)).catch(err => {
+                console.error("Failed to save scratchpad:", err);
+            });
+        }, 1000); // 1 second debounce
+
+        return () => clearTimeout(timeoutId);
+    }, [blocks, loaded]);
 
     // Slash Menu State
     const [menuOpen, setMenuOpen] = useState(false);
@@ -255,7 +290,7 @@ function Scratchpad({ theme }) {
 
     // Focus a specific block
     const focusBlock = (id) => {
-        setBlocks(prev => modifyBlocks(id, (b) => ({ ...b, isFocused: true }), prev));
+        setBlocks(prev => modifyBlocks(id, (b) => ({ ...b, isFocused: true, focusTrigger: Date.now() }), prev));
     };
 
     // Drag and Drop handlers
@@ -394,8 +429,16 @@ function Scratchpad({ theme }) {
         // Also probably want to focus it again
     };
 
-    const addBlock = (afterId) => {
-        const newBlock = { id: Date.now().toString(), type: 'p', content: '', children: [], isFocused: true };
+    const addBlock = (afterId, type = 'p') => {
+        const newBlock = {
+            id: Date.now().toString(),
+            type: type,
+            content: '',
+            children: [],
+            isFocused: true,
+            checked: false, // Ensure checked is initialized
+            isOpen: true
+        };
 
         setBlocks(prev => {
             const deepInsert = (list) => {
@@ -423,22 +466,73 @@ function Scratchpad({ theme }) {
         });
     };
 
+    const appendBlock = () => {
+        const newBlock = { id: Date.now().toString(), type: 'p', content: '', children: [], isFocused: true, checked: false, isOpen: true };
+
+        setBlocks(prev => {
+            const unfocusAll = (list) => {
+                return list.map(b => ({
+                    ...b,
+                    isFocused: false,
+                    children: b.children ? unfocusAll(b.children) : []
+                }));
+            };
+            return [...unfocusAll(prev), newBlock];
+        });
+    };
+
+    const handleContainerClick = (e) => {
+        // If clicking on a block or the title, ignore
+        if (e.target.closest('.block-wrapper') || e.target.closest('.scratchpad-title')) {
+            return;
+        }
+
+        // Check if the last block is empty
+        const lastBlock = blocks[blocks.length - 1];
+        if (lastBlock && lastBlock.content === '' && (!lastBlock.children || lastBlock.children.length === 0)) {
+            // Focus it instead of creating new
+            focusBlock(lastBlock.id);
+        } else {
+            // Otherwise, append a new block at the end
+            appendBlock();
+        }
+    };
+
     const handleKeyDown = (e, block) => {
+        // Read content directly from DOM to handle race condition with state updates
+        const currentContent = e.target.innerText?.replace(/\u00A0/g, ' ').trim() || '';
+
         if (e.key === 'Enter') {
             e.preventDefault();
-            addBlock(block.id);
+            if (block.type === 'todo') {
+                if (currentContent === '') {
+                    // Empty todo -> convert to paragraph
+                    convertToType(block.id, 'p');
+                } else {
+                    // Non-empty todo -> create new todo
+                    addBlock(block.id, 'todo');
+                }
+            } else {
+                // Default behavior
+                addBlock(block.id, 'p');
+            }
         }
-        if (e.key === 'Backspace' && block.content === '') {
-            // Delete block
-            e.preventDefault();
-            deleteBlock(block.id);
+        if (e.key === 'Backspace' && currentContent === '') {
+            // If empty
+            if (block.type === 'todo' || block.type === 'toggle' || block.type.startsWith('h')) {
+                // Convert list/header types to paragraph on backspace if empty
+                e.preventDefault();
+                convertToType(block.id, 'p');
+            } else {
+                // Delete block if it's already a paragraph
+                e.preventDefault();
+                deleteBlock(block.id);
+            }
         }
     };
 
     return (
-        <div className={`scratchpad-container ${theme}`} onClick={() => {
-            // If empty, focus last? 
-        }}>
+        <div className={`scratchpad-container ${theme}`} onClick={handleContainerClick}>
             <h1 className="scratchpad-title">Scratchpad</h1>
             <div className="scratchpad-editor">
                 {blocks.map(block => (
