@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
 import { getTasks, updateField, deleteTask, addTask } from '../service';
+import {
+    addPendingChange,
+    removePendingChange,
+    applyPendingChanges
+} from '../lib/pendingChanges';
 
 const useTaskManagement = () => {
     const [taskDays, setTaskDays] = useState([]);
@@ -73,12 +78,18 @@ const useTaskManagement = () => {
             }
             setCompletedTasks(newCompletedTasks);
             newOverdueTasks.overdue = sortTasks(newOverdueTasks.overdue);
-            setOverdueTasks(newOverdueTasks);
-            // Sort each date's tasks by dayOrder before setting state
+
+            // Sort each date's tasks by dayOrder before applying pending changes
             for (const date in newTaskDays) {
                 newTaskDays[date].sort((a, b) => a.dayOrder - b.dayOrder);
             }
-            setTaskDays(newTaskDays);
+
+            // Apply any pending changes that haven't synced yet
+            const { taskDays: mergedTaskDays, overdueTasks: mergedOverdue } =
+                applyPendingChanges(newTaskDays, newOverdueTasks);
+
+            setOverdueTasks(mergedOverdue);
+            setTaskDays(mergedTaskDays);
         } catch (error) {
             console.error("Error fetching tasks:", error);
         }
@@ -339,6 +350,17 @@ const useTaskManagement = () => {
             return;
         }
 
+        // Add to pending changes queue BEFORE making any updates
+        // This ensures the change persists even if page is refreshed before backend sync
+        const pendingId = addPendingChange({
+            type: 'MOVE_TASK',
+            taskId: taskId,
+            sourceDate: isOverdue ? 'overdue' : sourceDate,
+            destDate: destDate,
+            predecessorTaskId: predecessorTaskId,
+            taskData: { ...sourceTask, taskDate: destDate }
+        });
+
         // Calculate the new destination list for both frontend and backend
         // This ensures we use the same logic and avoid stale state issues
         let currentDestList = [...(taskDays[destDate] || [])].sort((a, b) => a.dayOrder - b.dayOrder);
@@ -391,13 +413,38 @@ const useTaskManagement = () => {
             return newTaskDays;
         });
 
-        // 3. Update Backend using the same calculated list
-        updateBackend(taskId, "taskDate", destDate);
+        // 3. Update Backend and remove pending change on success
+        // Track all backend updates so we can remove pending change when all complete
+        const backendPromises = [];
+
+        backendPromises.push(
+            updateField(taskId, "taskDate", destDate)
+                .catch(err => {
+                    console.error(`Error updating taskDate for ${taskId}:`, err);
+                    throw err;
+                })
+        );
 
         // Update dayOrder for all tasks in the destination using the same calculated values
         updatedDestList.forEach((t, i) => {
-            updateBackend(t.id, "dayOrder", i + 1);
+            backendPromises.push(
+                updateField(t.id, "dayOrder", i + 1)
+                    .catch(err => {
+                        console.error(`Error updating dayOrder for ${t.id}:`, err);
+                        throw err;
+                    })
+            );
         });
+
+        // Remove pending change only when all backend updates succeed
+        Promise.all(backendPromises)
+            .then(() => {
+                removePendingChange(pendingId);
+            })
+            .catch(() => {
+                // Keep pending change in queue for replay on next load
+                console.warn('Backend sync failed, keeping pending change for retry');
+            });
     };
 
     return {
