@@ -47,13 +47,14 @@ const useUIState = () => {
     // Or just return state, but be aware of flash. 
     // For this app, we'll just return state.
 
+    const darkMode = theme === 'dark';
+
     return {
-        showSidebar,
-        setShowSidebar,
         showSidebar,
         setShowSidebar,
         theme,
         setTheme,
+        darkMode, // Exported for consumers expecting boolean
         viewPage,
         setViewPage,
         mounted // Expose mounted state if needed

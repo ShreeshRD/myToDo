@@ -8,6 +8,7 @@ import TimeComponent from "./TimeComponent";
 import CustomCheckbox from "./CustomCheckbox";
 import { FaRegCircle, FaCircle, FaFlag } from "react-icons/fa";
 import { BsArrowRepeat } from "react-icons/bs";
+import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
 import '../styles/popup.scss'
 import { useTasks } from "../contexts/TaskContext";
 import {
@@ -171,7 +172,7 @@ function CreateTaskPopup({ projects, theme, date, task }) {
     let priorityNumber = '';
 
     if (selectedPriority === 'P0') {
-      color = 'inherit';
+      color = (theme === 'glass' || theme === 'dark') ? 'black' : 'white';
       priorityNumber = '0';
     }
     if (selectedPriority === 'P1') {
@@ -200,14 +201,16 @@ function CreateTaskPopup({ projects, theme, date, task }) {
   };
 
   const getRepeatIcon = () => {
-    return <BsArrowRepeat style={{ color: 'white', fontSize: '1.5rem' }} />;
+    return <BsArrowRepeat style={{ color: (theme === 'glass' || theme === 'dark') ? 'black' : 'white', fontSize: '1.5rem' }} />;
   };
 
   return (
     <div className={`taskPopup ${theme}`}>
       <div className={`createTask ${theme}`}>
-        <div className="date-component">
-          <DateComponent selectedDate={selectedDate} handler={handleDateChange} theme="light" />
+        <div className="date-nav-arrows">
+          <IoIosArrowBack className="date-btns" onClick={() => setSelectedDate((prevDate) => prevDate.subtract(1, 'day'))} />
+          <DateComponent selectedDate={selectedDate} handler={handleDateChange} theme={theme} location="popup" />
+          <IoIosArrowForward className="date-btns" onClick={() => setSelectedDate((prevDate) => prevDate.add(1, 'day'))} />
         </div>
         <div className="task-text">
           <textarea

@@ -7,7 +7,7 @@ import { DragDropContext } from "@hello-pangea/dnd";
 import { useTasks } from "../contexts/TaskContext";
 
 function Upcoming() {
-    const { showPopup, darkMode, callPopup, updateTask, removeTask, handleDragEnd, taskDays, overdueTasks } = useTasks();
+    const { showPopup, darkMode, callPopup, updateTask, removeTask, handleDragEnd, taskDays, overdueTasks, startDate, completedTasks } = useTasks();
 
     // Track client-side mount to avoid SSR date mismatch
     const [mounted, setMounted] = useState(false);
@@ -26,11 +26,12 @@ function Upcoming() {
         );
     }
 
-    // Compute dates fresh from dayjs() - only runs after client mount
-    const today = dayjs().startOf('day');
+    // Compute dates starting from startDate (which defaults to today but can be shifted)
     const dates = Array.from({ length: 7 }, (_, index) => {
-        return today.add(index, 'day').format('YYYY-MM-DD');
+        return startDate.add(index, 'day').format('YYYY-MM-DD');
     });
+
+    const todayStr = dayjs().format('YYYY-MM-DD');
 
     return (
         <DragDropContext onDragEnd={handleDragEnd}>
@@ -47,7 +48,16 @@ function Upcoming() {
                     />
                 )}
                 {dates.map((date, index) => {
-                    const tasks = taskDays[date] || [];
+                    let tasks = [];
+                    // formatting comparison: 'YYYY-MM-DD' strings compare correctly alphabetically
+                    if (date < todayStr) {
+                        // Past: Only show completed tasks
+                        tasks = completedTasks[date] || [];
+                    } else {
+                        // Today/Future: Show active tasks (which includes completed ones for today/future)
+                        tasks = taskDays[date] || [];
+                    }
+
                     const sortedTasks = [...tasks].sort((a, b) => a.dayOrder - b.dayOrder);
                     return (
                         <ToDoDay

@@ -9,10 +9,23 @@ import { ThemeProvider, createTheme } from '@mui/material';
 const TimeComponent = ({ selectedTime, handler, theme = 'light' }) => {
     const muiMode = (theme === 'dark' || theme === 'glass') ? 'dark' : 'light';
 
-    // For glass/dark themes, use lighter text/border logic
-    const isDarkOrGlass = theme === 'dark' || theme === 'glass';
-    const bgColor = isDarkOrGlass ? '#6c757d' : '#f0f0f0'; // Example adaptation
-    const textColor = isDarkOrGlass ? 'white' : 'black';
+    // Theme-specific styling
+    const isGlass = theme === 'glass';
+    const isDark = theme === 'dark';
+
+    // Glass: translucent white with blur; Dark: solid gray; Light: light gray
+    const bgColor = isGlass
+        ? 'rgba(255, 255, 255, 0.25)'
+        : isDark
+            ? '#6c757d'
+            : '#f0f0f0';
+    const hoverBgColor = isGlass
+        ? 'rgba(255, 255, 255, 0.4)'
+        : isDark
+            ? '#5a6268'
+            : '#e0e0e0';
+    const textColor = isGlass ? 'black' : (isDark ? 'white' : 'black');
+    const borderRadius = isGlass ? '20px' : '5px';
 
     const muiTheme = createTheme({
         palette: {
@@ -36,7 +49,10 @@ const TimeComponent = ({ selectedTime, handler, theme = 'light' }) => {
                                         backgroundColor: bgColor,
                                         color: textColor,
                                         height: '38px',
-                                        borderRadius: '5px',
+                                        borderRadius: borderRadius,
+                                        border: isGlass ? '1px solid rgba(255, 255, 255, 0.3)' : 'none',
+                                        backdropFilter: isGlass ? 'blur(4px)' : 'none',
+                                        boxShadow: isGlass ? '0 2px 5px rgba(0,0,0,0.05)' : 'none',
                                     },
                                 },
                                 InputLabelProps: {
@@ -49,8 +65,9 @@ const TimeComponent = ({ selectedTime, handler, theme = 'light' }) => {
                                     '& .MuiOutlinedInput-root': {
                                         backgroundColor: bgColor,
                                         color: textColor,
+                                        borderRadius: borderRadius,
                                         '&:hover': {
-                                            backgroundColor: isDarkOrGlass ? '#5a6268' : '#e0e0e0',
+                                            backgroundColor: hoverBgColor,
                                         },
                                         '& fieldset': {
                                             border: 'none',

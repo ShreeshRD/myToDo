@@ -3,13 +3,13 @@ import dayjs from 'dayjs';
 import { RiCheckboxCircleFill, RiCheckboxBlankCircleLine } from "react-icons/ri";
 import CustomCheckbox from "./CustomCheckbox";
 
-function TaskDetailPanel({ isOpen, onClose, tasks, onToggleTask, date }) {
+function TaskDetailPanel({ isOpen, onClose, tasks, onToggleTask, date, darkMode }) {
     if (!isOpen) return null;
 
     const formattedDate = date ? dayjs(date).format('MMMM D, YYYY') : '';
 
     return (
-        <div className={`task-details-panel ${isOpen ? 'open' : ''}`}>
+        <div className={`task-details-panel ${isOpen ? 'open' : ''} ${darkMode ? 'dark' : ''}`}>
             <div className="panel-header">
                 <h3>{formattedDate}</h3>
                 <button className="close-btn" onClick={onClose}>×</button>

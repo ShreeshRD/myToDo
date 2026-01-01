@@ -11,6 +11,7 @@ import { RiCheckboxCircleFill, RiCheckboxBlankCircleLine } from "react-icons/ri"
 
 function CalendarView() {
     const { taskDays, completedTasks, overdueTasks, darkMode, updateTask, completedDate, setCompletedDate } = useTasks();
+
     const initializedRef = useRef(false);
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [panelDate, setPanelDate] = useState(null);

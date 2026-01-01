@@ -25,7 +25,7 @@ function Header({ theme, useDate, setDate, viewPage }) {
 					setDate.name !== "dummySetDate" && (
 						<Box display="flex" alignItems="center">
 							<IoIosArrowBack className="date-btns" onClick={() => setDate((prevDate) => prevDate.subtract(7, 'day'))} />
-							<DateComponent selectedDate={useDate} handler={(newDate) => setDate(newDate)} theme={theme} />
+							<DateComponent selectedDate={useDate} handler={(newDate) => setDate(newDate)} theme={theme} location="header" />
 							<IoIosArrowForward className="date-btns" onClick={() => setDate((prevDate) => prevDate.add(7, 'day'))} />
 						</Box>
 					)

@@ -118,7 +118,7 @@
 
 /* Glass Mode State Overrides */
 .app-container.glass .todo_item_box.in-progress {
-    background: linear-gradient(90deg, rgba(34, 197, 94, 0.75) 15px, rgba(255, 255, 255, 0.05) 50px) !important;
+    background-image: linear-gradient(90deg, rgba(34, 197, 94, 0.75) 15px, transparent 50px);
     border: 1px solid rgba(183, 225, 205, 0.5);
     color: white !important;
 }
@@ -130,12 +130,12 @@
 }
 
 .app-container.glass .todo_item_box.in-progress.long-term {
-    background: linear-gradient(90deg, rgba(34, 197, 94, 0.75) 15px, rgba(64, 224, 208, 0.15) 50px) !important;
+    /* Background image inherited from .in-progress */
 }
 
 /* Light Mode States */
 .todo_item_box.in-progress {
-    background: linear-gradient(90deg, rgba(34, 197, 94, 0.75) 15px, #ffffff 50px) !important;
+    background-image: linear-gradient(90deg, rgba(34, 197, 94, 0.75) 15px, transparent 50px);
     border: 1px solid #b7e1cd;
 }
 
@@ -147,7 +147,7 @@
 
 /* Mixed State - Light Mode (Blue Body with Left Green Tab) */
 .todo_item_box.in-progress.long-term {
-    background: linear-gradient(90deg, rgba(34, 197, 94, 0.75) 15px, #e8f0fe 50px) !important;
+    /* Background image inherited from .in-progress */
     border: 1px solid #aecbfa;
     /* Blue border primarily */
     border-left: none;
@@ -156,8 +156,8 @@
 /* Dark Mode States - Neon Pop */
 .todo_item_box.dark.in-progress {
     /* Neon Green Tab on Left */
-    background: linear-gradient(90deg, rgba(57, 255, 20, 0.6) 15px, rgba(125, 125, 125, 1) 50px) !important;
-    border: 1px solid #39ff14 !important;
+    background-image: linear-gradient(90deg, rgba(57, 255, 20, 0.6) 15px, transparent 50px);
+    border: 1px solid #39ff14;
     /* Neon Green */
     box-shadow: 0 0 4px rgba(57, 255, 20, 0.4);
 }
@@ -171,8 +171,7 @@
 
 /* Mixed State - Dark Mode (Blue Body + Neon Green Tab on Left) */
 .todo_item_box.dark.in-progress.long-term {
-    /* Neon Green Tab (Left) + Blue Body (Right) */
-    background: linear-gradient(90deg, rgba(57, 255, 20, 0.6) 15px, rgba(0, 255, 255, 0.1) 50px) !important;
+    /* Backgrund image inherited from .in-progress */
     border: 1px solid #00ffff !important;
     /* Blue Main Border */
     box-shadow: 0 0 4px rgba(0, 255, 255, 0.4);

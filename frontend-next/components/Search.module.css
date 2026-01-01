@@ -60,7 +60,7 @@
 }
 
 .filterChip.inactive.dark {
-    background-color: #222;
+    background-color: #5a5a5a;
     color: #eee;
     border: 1px solid #444;
 }
@@ -83,7 +83,8 @@
 }
 
 .filterChip.inactive.dark:hover {
-    background-color: #555;
+    background-color: #606060;
+    border-color: #787878;
 }
 
 .taskList {
@@ -132,9 +133,9 @@
 }
 
 .taskPaper.dark {
-    background-color: #7d7d7d;
+    background-color: #5a5a5a;
     color: #eee;
-    border: 1px solid #555;
+    border: 1px solid #444;
 }
 
 .taskPaper.light:hover {

@@ -15,8 +15,6 @@
 
     &.glass {
         background-color: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(30px);
-        -webkit-backdrop-filter: blur(30px);
     }
 }
 
@@ -39,6 +37,11 @@
 
     &.dark {
         background-color: #b1b0b0;
+        color: black;
+
+        .checkbox_icon_unchecked {
+            color: rgb(46, 46, 46);
+        }
     }
 
     &.glass {
@@ -49,6 +52,10 @@
         box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
         box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
         color: black;
+
+        .checkbox_icon_unchecked {
+            color: rgb(46, 46, 46);
+        }
     }
 }
 
@@ -92,28 +99,42 @@
     }
 }
 
-/* Fix for DatePicker black header in glass theme */
-.glass .MuiPickersToolbarText-root {
-    color: white !important;
-}
 
-.glass .MuiPickersDay-root {
-    color: black !important;
-}
-
-.glass .MuiDayCalendar-weekDayLabel {
-    color: black !important;
-}
 
 .no-background:focus {
     outline: none;
 }
 
-.date-component {
+.createTask .date-nav-arrows {
     position: absolute;
     top: 16px;
-    left: calc(50% - 105px);
-    transform: translateX(-50%);
+    left: 30px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    z-index: 10;
+    width: calc(100% - 250px);
+    justify-content: center;
+
+
+    .date-btns {
+        flex-shrink: 0;
+        cursor: pointer;
+        font-size: 20px;
+        color: inherit;
+        transition: opacity 0.2s ease;
+
+        &:hover {
+            opacity: 0.7;
+        }
+    }
+
+    .date-component {
+        position: relative;
+        top: auto;
+        left: auto;
+        transform: none;
+    }
 }
 
 .task-text {
@@ -134,7 +155,7 @@
 
     .char-counter {
         font-size: 12px;
-        color: #666;
+        color: #4a4a4a;
         text-align: right;
         margin-top: 4px;
         user-select: none;
@@ -194,6 +215,47 @@
     // TimeComponent styling
     .MuiTextField-root {
         width: 176px !important;
+    }
+
+    /* Glass mode styling for buttons in task-options */
+    .createTask.glass & {
+
+        .dropdown-toggle,
+        .MuiOutlinedInput-root {
+            background-color: rgba(255, 255, 255, 0.25) !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            border-radius: 20px;
+            color: black !important;
+
+            fieldset {
+                border: none;
+                /* Hide default MUI border */
+            }
+
+            &:hover {
+                background-color: rgba(255, 255, 255, 0.4) !important;
+            }
+        }
+
+        .MuiInputBase-input {
+            color: black !important;
+        }
+
+        /* Also apply to any plain buttons if present, but exclude MUI IconButtons */
+        button:not(.MuiIconButton-root) {
+            background-color: rgba(255, 255, 255, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(4px);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            border-radius: 20px;
+            color: black;
+
+            &:hover {
+                background-color: rgba(255, 255, 255, 0.4);
+            }
+        }
     }
 }
 
