@@ -111,9 +111,9 @@ function CreateTaskPopup({ projects, theme, date, task }) {
     setSelectedDate(newDate);
   };
 
-  const handleClosePopup = () => {
+  const handleClosePopup = React.useCallback(() => {
     onPopupClose();
-  };
+  }, [onPopupClose]);
 
   const handleInputKeyDown = (event) => {
     if (event.key === 'Enter' && !event.shiftKey) {
@@ -152,20 +152,20 @@ function CreateTaskPopup({ projects, theme, date, task }) {
     }
   };
 
-  const handleClickOutside = (event) => {
-    const taskPopupElement = document.querySelector('.taskPopup');
-    if (taskPopupElement && taskPopupElement === event.target) {
-      handleClosePopup();
-    }
-  };
-
   useEffect(() => {
+    const handleClickOutside = (event) => {
+      const taskPopupElement = document.querySelector('.taskPopup');
+      if (taskPopupElement && taskPopupElement === event.target) {
+        handleClosePopup();
+      }
+    };
+
     if (inputRef.current) inputRef.current.focus();
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
+  }, [handleClosePopup]);
 
   const getPriorityIcon = () => {
     let color = 'inherit';

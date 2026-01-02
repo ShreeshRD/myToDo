@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -8,7 +8,7 @@ import { ThemeProvider, createTheme } from '@mui/material';
 
 
 const CustomDateInput = React.forwardRef((props, ref) => {
-    const { className, InputProps, inputProps = {}, theme, location, value, onChange, onClick, inputRef, ownerState, error, focused, sectionListRef, areAllSectionsEmpty, ...other } = props;
+    const { inputProps = {}, theme, location, value, onChange, onClick, inputRef, ...other } = props;
 
     // inputProps.onClick handles simple clicks (like opening text caret)
     // onClick (from props) handles the DatePicker opening if openPickerOnInputClick is true?
@@ -58,14 +58,15 @@ const CustomDateInput = React.forwardRef((props, ref) => {
                     ...inputProps.style,
                 }}
             />
-            {InputProps?.endAdornment && (
+            {props.InputProps?.endAdornment && (
                 <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center' }}>
-                    {InputProps.endAdornment}
+                    {props.InputProps.endAdornment}
                 </div>
             )}
         </div>
     );
 });
+CustomDateInput.displayName = 'CustomDateInput';
 
 export default function DateComponent({ value, onChange, selectedDate, handler, theme = 'light', location = 'popup' }) {
     const [anchorEl, setAnchorEl] = React.useState(null);

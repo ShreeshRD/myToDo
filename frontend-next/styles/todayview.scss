@@ -227,21 +227,11 @@
         background-color: transparent;
 
         &.past {
-            background-color: #181818;
-            opacity: 0.6;
-
-            .today-view.dark & {
-                background-color: #222;
-            }
+            opacity: 0.8; // Increased opacity for better visibility of content
         }
 
         &.dragging-over {
-            background-color: #e0e0e0;
             opacity: 1;
-
-            .today-view.dark & {
-                background-color: #444;
-            }
         }
     }
 
@@ -256,12 +246,17 @@
     top: 0;
     left: 0;
     right: 0;
-    background-color: rgba(0, 0, 0, 0.1);
+    background-color: rgba(0, 0, 0, 0.15); // Darkened
     pointer-events: none;
     z-index: 0;
 
     .today-view.dark & {
-        background-color: rgba(0, 0, 0, 0.3);
+        background-color: rgba(0, 0, 0, 0.5); // Darkened
+    }
+
+    .today-view.glass & {
+        background-color: rgba(0, 0, 0, 0.4); // Added for glass mode
+        backdrop-filter: blur(2px); // Subtle blur for past items in glass mode
     }
 }
 

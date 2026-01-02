@@ -7,13 +7,14 @@ import { DragDropContext } from "@hello-pangea/dnd";
 import { useTasks } from "../contexts/TaskContext";
 
 function Upcoming() {
-    const { showPopup, darkMode, callPopup, updateTask, removeTask, handleDragEnd, taskDays, overdueTasks, startDate, completedTasks } = useTasks();
+    const { showPopup, callPopup, updateTask, removeTask, handleDragEnd, taskDays, overdueTasks, startDate, completedTasks } = useTasks();
 
     // Track client-side mount to avoid SSR date mismatch
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
-        setMounted(true);
+        const timer = setTimeout(() => setMounted(true), 0);
+        return () => clearTimeout(timer);
     }, []);
 
     // Don't render date-dependent content until mounted on the client

@@ -86,7 +86,9 @@
 // Glass Mode
 .app-container.glass {
   .heatmap-cell {
-    background-color: rgba(255, 255, 255, 0.1);
+    &:not(.empty-pad) {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
 
     &.intensity-0 {
       background-color: rgba(255, 255, 255, 0.05);

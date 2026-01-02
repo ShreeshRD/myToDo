@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import dayjs from 'dayjs';
 import { getTasks, updateField, deleteTask, addTask } from '../service';
 import {
@@ -16,21 +16,24 @@ const useTaskManagement = () => {
 
     // Fix for SSR/hydration mismatch: ensure startDate is set to client's today on mount
     useEffect(() => {
-        setStartDate(dayjs().startOf('day'));
+        const timer = setTimeout(() => {
+            setStartDate(dayjs().startOf('day'));
+        }, 0);
+        return () => clearTimeout(timer);
     }, []);
 
 
     // Helper to sort tasks by date then dayOrder
-    const sortTasks = (tasks) => {
+    const sortTasks = useCallback((tasks) => {
         return [...tasks].sort((a, b) => {
             if (a.taskDate !== b.taskDate) {
                 return a.taskDate.localeCompare(b.taskDate);
             }
             return a.dayOrder - b.dayOrder;
         });
-    };
+    }, []);
 
-    const fetchTasks = async () => {
+    const fetchTasks = useCallback(async () => {
         try {
             const response = await getTasks("bydate");
             // Handle case where response or itemsByDate might be undefined
@@ -93,14 +96,12 @@ const useTaskManagement = () => {
         } catch (error) {
             console.error("Error fetching tasks:", error);
         }
-    };
+    }, [sortTasks]);
 
     useEffect(() => {
-        const fetch = async () => {
-            await fetchTasks();
-        }
-        fetch();
-    }, []);
+        const timer = setTimeout(() => fetchTasks(), 0);
+        return () => clearTimeout(timer);
+    }, [fetchTasks]);
 
     const addToFrontend = (task) => {
         // Handle case where task is undefined or missing taskDate

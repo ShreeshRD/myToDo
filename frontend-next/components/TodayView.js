@@ -373,11 +373,10 @@ function TodayView() {
                                                 {...provided.droppableProps}
                                                 className={`slot-droppable${snapshot.isDraggingOver ? ' dragging-over' : ''}${isPast ? ' past' : ''}`}
                                             >
-                                                {/* Dark Window Overlay for Past Slots? 
-                                                    Actually setting background color and opacity above works well.
-                                                    But user asked for "dark window". 
-                                                    If it's the current slot, we need to darken BEFORE the line.
-                                                */}
+                                                {/* Dark Overlay for Past Slots or Dragging Over */}
+                                                {(isPast || snapshot.isDraggingOver) && !lineStyle && (
+                                                    <div className="dark-overlay" style={{ height: '100%' }} />
+                                                )}
 
                                                 {lineStyle && (
                                                     <>

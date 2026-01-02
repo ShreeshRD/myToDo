@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import '../styles/scratchpad.scss';
-import { CiMenuKebab } from "react-icons/ci";
 import { MdCheckBoxOutlineBlank, MdCheckBox, MdDragIndicator, MdDelete } from "react-icons/md";
 import { IoIosArrowForward, IoIosArrowDown } from "react-icons/io";
 import { getScratchpad, saveScratchpad } from '../service';
@@ -43,7 +42,7 @@ const Block = ({ block, updateBlock, addBlock, deleteBlock, focusBlock, onKeyDow
                 }
             }
         }
-    }, [block.content, block.type]); // Sync when content OR type changes
+    }, [block.content, block.type, block.isFocused]); // Sync when content OR type changes
 
     // Auto-focus if this block is meant to be focused
     useEffect(() => {
@@ -225,27 +224,12 @@ function Scratchpad({ theme }) {
         return () => clearTimeout(timeoutId);
     }, [blocks, loaded]);
 
-    // Slash Menu State
-    const [menuOpen, setMenuOpen] = useState(false);
-    const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
-    const [activeBlockId, setActiveBlockId] = useState(null);
-
     // Drag and Drop State
     const [draggedBlockId, setDraggedBlockId] = useState(null);
     const [dragOverId, setDragOverId] = useState(null);
     const [dragOverPosition, setDragOverPosition] = useState(null);
 
-    // Helpers to find and update nested blocks
-    const findBlock = (id, list) => {
-        for (let b of list) {
-            if (b.id === id) return b;
-            if (b.children.length > 0) {
-                const found = findBlock(id, b.children);
-                if (found) return found;
-            }
-        }
-        return null;
-    };
+
 
     // Generic update function for recursive state
     const modifyBlocks = (id, callback, list) => {
@@ -412,9 +396,7 @@ function Scratchpad({ theme }) {
 
         // Show menu if ends with /
         if (text.endsWith('/')) {
-            const blockEl = document.getElementById(`block-${id}`); // We need to assign IDs to wrapper or find focused
-            // Actually, we can just position it near cursor or center for now.
-            // Let's use a simple approach: if '/' is typed, open menu.
+            // Slash menu logic would go here
         }
         return false;
     };
