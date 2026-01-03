@@ -8,7 +8,7 @@ import { ThemeProvider, createTheme } from '@mui/material';
 
 
 const CustomDateInput = React.forwardRef((props, ref) => {
-    const { inputProps = {}, theme, location, value, onChange, onClick, inputRef, ownerState, ...other } = props;
+    const { inputProps = {}, theme, location, value, onChange, onClick, inputRef, ownerState, error, InputProps, ...other } = props;
 
     // inputProps.onClick handles simple clicks (like opening text caret)
     // onClick (from props) handles the DatePicker opening if openPickerOnInputClick is true?
@@ -17,7 +17,7 @@ const CustomDateInput = React.forwardRef((props, ref) => {
 
     return (
         <div
-            className={`custom-date-pill ${theme === 'glass' ? 'glass-pill' : ''} ${props.error ? 'error' : ''}`}
+            className={`custom-date-pill ${theme === 'glass' ? 'glass-pill' : ''} ${error ? 'error' : ''}`}
             ref={ref}
             style={{
                 display: 'flex',
@@ -58,9 +58,9 @@ const CustomDateInput = React.forwardRef((props, ref) => {
                     ...inputProps.style,
                 }}
             />
-            {props.InputProps?.endAdornment && (
+            {InputProps?.endAdornment && (
                 <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center' }}>
-                    {props.InputProps.endAdornment}
+                    {InputProps.endAdornment}
                 </div>
             )}
         </div>

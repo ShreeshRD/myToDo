@@ -127,101 +127,121 @@ const useTaskManagement = () => {
         }
     }
 
-    const updateTask = async (id, field, value, date) => {
-        try {
-            const taskItem = await updateField(id, field, value);
+    const updateTask = (id, field, value, date) => {
+        const today = dayjs().format("YYYY-MM-DD");
+        const isOverdue = date < today;
 
-            if (field === "complete") {
-                const today = dayjs().format("YYYY-MM-DD");
-                const isOverdue = date < today;
+        // 1. Save pending change to localStorage FIRST (before any updates)
+        // This ensures the change persists even if page is refreshed before backend sync
+        const pendingId = addPendingChange({
+            type: 'UPDATE_FIELD',
+            taskId: id,
+            field: field,
+            value: value,
+            date: date
+        });
 
-                if (value === true) {
-                    // Task is being marked as complete
-                    // Update the task in place with data from backend (includes assignedTime)
-                    if (isOverdue) {
-                        const updatedOverdue = { ...overdueTasks };
-                        updatedOverdue.overdue = updatedOverdue.overdue.map(task =>
-                            task.id === id ? { ...task, ...taskItem } : task
+        // 2. Update UI immediately (optimistic update)
+        if (field === "complete") {
+            if (value === true) {
+                // Task is being marked as complete
+                if (isOverdue) {
+                    const updatedOverdue = { ...overdueTasks };
+                    updatedOverdue.overdue = updatedOverdue.overdue.map(task =>
+                        task.id === id ? { ...task, complete: true } : task
+                    );
+                    updatedOverdue.overdue = sortTasks(updatedOverdue.overdue);
+                    setOverdueTasks(updatedOverdue);
+                } else {
+                    const updatedTaskDays = { ...taskDays };
+                    if (updatedTaskDays[date]) {
+                        updatedTaskDays[date] = updatedTaskDays[date].map(task =>
+                            task.id === id ? { ...task, complete: true } : task
                         );
-                        updatedOverdue.overdue = sortTasks(updatedOverdue.overdue);
-                        setOverdueTasks(updatedOverdue);
-                    } else {
-                        const updatedTaskDays = { ...taskDays };
-                        if (updatedTaskDays[date]) {
-                            updatedTaskDays[date] = updatedTaskDays[date].map(task =>
-                                task.id === id ? { ...task, ...taskItem } : task
-                            );
-                            setTaskDays(updatedTaskDays);
-                        }
+                        setTaskDays(updatedTaskDays);
                     }
+                }
 
-                    // ALSO add to completedTasks so it appears in Completed section
+                // ALSO add to completedTasks so it appears in Completed section
+                // Find the task to get its full data
+                let taskToComplete = null;
+                if (isOverdue) {
+                    taskToComplete = overdueTasks.overdue.find(t => t.id === id);
+                } else if (taskDays[date]) {
+                    taskToComplete = taskDays[date].find(t => t.id === id);
+                }
+
+                if (taskToComplete) {
                     const updatedCompletedTasks = { ...completedTasks };
                     if (!updatedCompletedTasks[date]) {
                         updatedCompletedTasks[date] = [];
                     }
-                    updatedCompletedTasks[date].push({ ...taskItem, complete: true });
-                    console.log('Adding task to completedTasks:', date, taskItem);
-                    console.log('Updated completedTasks:', updatedCompletedTasks);
+                    updatedCompletedTasks[date].push({ ...taskToComplete, complete: true });
                     setCompletedTasks(updatedCompletedTasks);
-
-                    // Handle repeat tasks
-                    if (taskItem.repeatType !== "NONE") {
-                        addNextRepeat(taskItem);
-                    }
-                } else {
-                    // Task is being unmarked (uncompleted)
-                    // Update in place
-                    if (isOverdue) {
-                        const updatedOverdue = { ...overdueTasks };
-                        updatedOverdue.overdue = updatedOverdue.overdue.map(task =>
-                            task.id === id ? { ...task, complete: false } : task
-                        );
-                        updatedOverdue.overdue = sortTasks(updatedOverdue.overdue);
-                        setOverdueTasks(updatedOverdue);
-                    } else {
-                        const updatedTaskDays = { ...taskDays };
-                        if (updatedTaskDays[date]) {
-                            updatedTaskDays[date] = updatedTaskDays[date].map(task =>
-                                task.id === id ? { ...task, complete: false } : task
-                            );
-                            setTaskDays(updatedTaskDays);
-                        }
-                    }
-
-                    // Remove from completedTasks
-                    const updatedCompletedTasks = { ...completedTasks };
-                    if (updatedCompletedTasks[date]) {
-                        updatedCompletedTasks[date] = updatedCompletedTasks[date].filter(task => task.id !== id);
-                        setCompletedTasks(updatedCompletedTasks);
-                    }
                 }
             } else {
-                // For non-complete field updates, just update the task in place
-                const today = dayjs().format("YYYY-MM-DD");
-                const isOverdue = date < today;
-
+                // Task is being unmarked (uncompleted)
                 if (isOverdue) {
                     const updatedOverdue = { ...overdueTasks };
                     updatedOverdue.overdue = updatedOverdue.overdue.map(task =>
-                        task.id === id ? { ...task, [field]: value } : task
+                        task.id === id ? { ...task, complete: false } : task
                     );
                     updatedOverdue.overdue = sortTasks(updatedOverdue.overdue);
                     setOverdueTasks(updatedOverdue);
+                } else {
+                    const updatedTaskDays = { ...taskDays };
+                    if (updatedTaskDays[date]) {
+                        updatedTaskDays[date] = updatedTaskDays[date].map(task =>
+                            task.id === id ? { ...task, complete: false } : task
+                        );
+                        setTaskDays(updatedTaskDays);
+                    }
                 }
 
-                // Also update taskDays if it exists there (e.g. for future tasks or if logic changes)
-                const updatedTaskDays = { ...taskDays };
-                if (updatedTaskDays[date]) {
-                    updatedTaskDays[date] = updatedTaskDays[date].map((task) =>
-                        task.id === id ? { ...task, [field]: value } : task
-                    );
-                    setTaskDays(updatedTaskDays);
+                // Remove from completedTasks
+                const updatedCompletedTasks = { ...completedTasks };
+                if (updatedCompletedTasks[date]) {
+                    updatedCompletedTasks[date] = updatedCompletedTasks[date].filter(task => task.id !== id);
+                    setCompletedTasks(updatedCompletedTasks);
                 }
             }
-        } catch (error) {
-            console.error(`Error updating task with id ${id}:`, error);
+        } else {
+            // For non-complete field updates, just update the task in place
+            if (isOverdue) {
+                const updatedOverdue = { ...overdueTasks };
+                updatedOverdue.overdue = updatedOverdue.overdue.map(task =>
+                    task.id === id ? { ...task, [field]: value } : task
+                );
+                updatedOverdue.overdue = sortTasks(updatedOverdue.overdue);
+                setOverdueTasks(updatedOverdue);
+            }
+
+            // Also update taskDays if it exists there
+            const updatedTaskDays = { ...taskDays };
+            if (updatedTaskDays[date]) {
+                updatedTaskDays[date] = updatedTaskDays[date].map((task) =>
+                    task.id === id ? { ...task, [field]: value } : task
+                );
+                setTaskDays(updatedTaskDays);
+            }
         }
+
+        // 3. Send to backend async (don't block UI)
+        updateField(id, field, value)
+            .then((taskItem) => {
+                // 4. Remove pending change on success
+                removePendingChange(pendingId);
+
+                // Handle repeat tasks after backend confirms (for complete field)
+                if (field === "complete" && value === true && taskItem && taskItem.repeatType !== "NONE") {
+                    addNextRepeat(taskItem);
+                }
+            })
+            .catch((error) => {
+                // 5. Keep pending change on failure for replay on refresh
+                console.error(`Error updating task with id ${id}:`, error);
+                console.warn('Backend sync failed, keeping pending change for retry on next load');
+            });
     };
 
     const updateBackend = async (id, field, value) => {
