@@ -1,10 +1,16 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import Scratchpad from '../Scratchpad';
+import Scratchpad from '../Scratchpad/index';
 
 // Mock scrollIntoView since it's not implemented in jsdom
 window.HTMLElement.prototype.scrollIntoView = jest.fn();
+
+// Mock service layer
+jest.mock('../../service', () => ({
+    getScratchpad: jest.fn(() => Promise.resolve({ content: JSON.stringify([{ id: '1', type: 'p', content: '', checked: false, isOpen: true, children: [], isFocused: true }]) })),
+    saveScratchpad: jest.fn(() => Promise.resolve({}))
+}));
 
 describe('Scratchpad Component', () => {
     test('renders correctly', () => {

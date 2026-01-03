@@ -8,7 +8,7 @@ import CreateTaskPopup from "./CreateTaskPopup";
 import Upcoming from "./Upcoming";
 import Search from "./Search";
 import TodayView from "./TodayView";
-import Scratchpad from "./Scratchpad";
+import Scratchpad from "./Scratchpad/index";
 import { useUI } from "../contexts/UIContext";
 import { useTasks } from "../contexts/TaskContext";
 import dayjs from "dayjs";
