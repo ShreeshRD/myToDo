@@ -256,4 +256,26 @@
     .glass & {
         border-left-color: rgba(255, 255, 255, 0.1);
     }
+}/* Selection Styles */
+.block-wrapper.selected {
+    background-color: rgba(124, 122, 255, 0.15);
+    /* Based on the purple accent color #7c7aff */
+    border-radius: 4px;
+
+    .dark & {
+        background-color: rgba(124, 122, 255, 0.25);
+    }
+
+    .glass & {
+        background-color: rgba(124, 122, 255, 0.2);
+    }
+}
+
+/* Selection Box Overlay */
+.selection-box {
+    position: fixed;
+    background-color: rgba(124, 122, 255, 0.2);
+    border: 1px solid rgba(124, 122, 255, 0.5);
+    pointer-events: none;
+    z-index: 9999;
 }

@@ -17,7 +17,7 @@ const setCursorToEnd = (element) => {
 };
 
 // Recursive Block Component
-const Block = ({ block, updateBlock, addBlock, deleteBlock, focusBlock, onKeyDown, theme, onDragStart, onDragOver, onDragEnd, onDrop, isDragging, dragOverId, dragOverPosition }) => {
+const Block = ({ block, updateBlock, addBlock, deleteBlock, focusBlock, onKeyDown, theme, onDragStart, onDragOver, onDragEnd, onDrop, isDragging, dragOverId, dragOverPosition, selectedBlockIds }) => {
     const contentRef = useRef(null);
 
     // Sync content with state manually to preserve cursor position during typing
@@ -28,13 +28,7 @@ const Block = ({ block, updateBlock, addBlock, deleteBlock, focusBlock, onKeyDow
             // Only update if they differ (e.g. external change or slash command clear)
             contentRef.current.innerText = block.content;
 
-            // If changing type/content via slash command (length mismatch effectively), 
-            // we might want to move cursor to end?
-            // E.g. /1 -> (empty). 
             if (block.isFocused) {
-                // native implementation of "move to end" if needed, 
-                // but typically browser handles typing. 
-                // We mainly need to fix the "command stays" case.
                 if (block.content === '' && contentRef.current.innerText === '') {
                     // cleared
                 } else {
@@ -48,12 +42,15 @@ const Block = ({ block, updateBlock, addBlock, deleteBlock, focusBlock, onKeyDow
     useEffect(() => {
         if (block.isFocused && contentRef.current) {
             contentRef.current.focus();
+            if (block.cursorAtEnd) {
+                setCursorToEnd(contentRef.current);
+            }
         }
-    }, [block.isFocused, block.focusTrigger]);
+    }, [block.isFocused, block.focusTrigger, block.cursorAtEnd]);
 
     const handleInput = (e) => {
         const text = e.currentTarget.innerText.replace(/\u00A0/g, ' ');
-        // Avoid update if text is same to prevent cursor jumping (though manual check handles this too)
+        // Avoid update if text is same to prevent cursor jumping
         if (text !== block.content) {
             updateBlock(block.id, { content: text });
         }
@@ -71,7 +68,6 @@ const Block = ({ block, updateBlock, addBlock, deleteBlock, focusBlock, onKeyDow
     const handleDragOver = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        // Determine if we're in the top or bottom half of the block
         const rect = e.currentTarget.getBoundingClientRect();
         const midpoint = rect.top + rect.height / 2;
         const position = e.clientY < midpoint ? 'before' : 'after';
@@ -93,15 +89,16 @@ const Block = ({ block, updateBlock, addBlock, deleteBlock, focusBlock, onKeyDow
 
     const isDragOverBefore = dragOverId === block.id && dragOverPosition === 'before';
     const isDragOverAfter = dragOverId === block.id && dragOverPosition === 'after';
+    const isSelected = selectedBlockIds.includes(block.id);
 
     return (
         <div
-            className={`block-wrapper ${block.type} ${theme} ${isDragging ? 'dragging' : ''} ${isDragOverBefore ? 'drag-over-before' : ''} ${isDragOverAfter ? 'drag-over-after' : ''}`}
+            className={`block-wrapper ${block.type} ${theme} ${isDragging ? 'dragging' : ''} ${isDragOverBefore ? 'drag-over-before' : ''} ${isDragOverAfter ? 'drag-over-after' : ''} ${isSelected ? 'selected' : ''}`}
+            data-block-id={block.id}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
         >
             <div className="block-content-row">
-                {/* Block controls that appear on hover - delete and drag handle */}
                 <div className="block-controls">
                     <span
                         className="delete-icon"
@@ -154,7 +151,6 @@ const Block = ({ block, updateBlock, addBlock, deleteBlock, focusBlock, onKeyDow
                 />
             </div>
 
-            {/* Recursive Children for Toggles */}
             {block.type === 'toggle' && block.isOpen && block.children && block.children.length > 0 && (
                 <div className="block-children">
                     {block.children.map(child => (
@@ -174,6 +170,7 @@ const Block = ({ block, updateBlock, addBlock, deleteBlock, focusBlock, onKeyDow
                             isDragging={isDragging}
                             dragOverId={dragOverId}
                             dragOverPosition={dragOverPosition}
+                            selectedBlockIds={selectedBlockIds}
                         />
                     ))}
                 </div>
@@ -183,13 +180,16 @@ const Block = ({ block, updateBlock, addBlock, deleteBlock, focusBlock, onKeyDow
 };
 
 function Scratchpad({ theme }) {
-    // Flattened list might be easier for non-toggle dragging, but tree is better for toggles.
-    // Let's use a flat list for now and simulate hierarchy with indentation? 
-    // No, user agreed to recursive.
     const [blocks, setBlocks] = useState([
         { id: '1', type: 'p', content: '', checked: false, isOpen: true, children: [], isFocused: true }
     ]);
     const [loaded, setLoaded] = useState(false);
+
+    // Selection State
+    const [selectedBlockIds, setSelectedBlockIds] = useState([]);
+    const [isSelecting, setIsSelecting] = useState(false);
+    const [selectionStart, setSelectionStart] = useState(null);
+    const [selectionBox, setSelectionBox] = useState(null);
 
     // Core Load Data Effect
     useEffect(() => {
@@ -207,7 +207,7 @@ function Scratchpad({ theme }) {
             setLoaded(true);
         }).catch(err => {
             console.error("Failed to load scratchpad:", err);
-            setLoaded(true); // Allow editing even if load fails
+            setLoaded(true);
         });
     }, []);
 
@@ -219,7 +219,7 @@ function Scratchpad({ theme }) {
             saveScratchpad(JSON.stringify(blocks)).catch(err => {
                 console.error("Failed to save scratchpad:", err);
             });
-        }, 1000); // 1 second debounce
+        }, 1000);
 
         return () => clearTimeout(timeoutId);
     }, [blocks, loaded]);
@@ -229,6 +229,92 @@ function Scratchpad({ theme }) {
     const [dragOverId, setDragOverId] = useState(null);
     const [dragOverPosition, setDragOverPosition] = useState(null);
 
+    // State for drag click prevention
+    const ignoreClickRef = useRef(false);
+    const isDragInteractionRef = useRef(false);
+
+    // Selection Handlers
+    const handleMouseDown = (e) => {
+        // Ignore if clicking on interactive elements
+        if (e.target.closest('.block-content') ||
+            e.target.closest('.block-controls') ||
+            e.target.closest('.toggle-icon') ||
+            e.target.closest('.todo-icon')) {
+
+            // Clear block selection when entering edit mode, unless shift key (range extend?)
+            // For simplicity, just clear it to avoid "delete" confusion.
+            if (!e.shiftKey) {
+                setSelectedBlockIds([]);
+            }
+            return;
+        }
+
+        setIsSelecting(true);
+        setSelectionStart({ x: e.clientX, y: e.clientY });
+        setSelectionBox({ left: e.clientX, top: e.clientY, width: 0, height: 0 });
+        isDragInteractionRef.current = false; // Reset drag interaction flag
+
+        // Clear selection unless Shift is held
+        if (!e.shiftKey) {
+            setSelectedBlockIds([]);
+        }
+    };
+
+    useEffect(() => {
+        if (!isSelecting) return;
+
+        const handleMouseMove = (e) => {
+            // Mark as drag interaction if moved significantly
+            // This prevents micro-movements from blocking regular clicks, though standard clicks usually don't move much
+            isDragInteractionRef.current = true;
+
+            const currentX = e.clientX;
+            const currentY = e.clientY;
+
+            const box = {
+                left: Math.min(selectionStart.x, currentX),
+                top: Math.min(selectionStart.y, currentY),
+                width: Math.abs(currentX - selectionStart.x),
+                height: Math.abs(currentY - selectionStart.y)
+            };
+            setSelectionBox(box);
+
+            // Find intersections
+            const selected = [];
+            const blockWrappers = document.querySelectorAll('.block-wrapper');
+            blockWrappers.forEach(wrapper => {
+                const rect = wrapper.getBoundingClientRect();
+                // Check intersection
+                if (rect.left < box.left + box.width &&
+                    rect.left + rect.width > box.left &&
+                    rect.top < box.top + box.height &&
+                    rect.top + rect.height > box.top) {
+                    const id = wrapper.getAttribute('data-block-id');
+                    if (id) selected.push(id);
+                }
+            });
+            setSelectedBlockIds(selected);
+        };
+
+        const handleMouseUp = () => {
+            // If this was a drag interaction, tell the click handler to ignore the next click
+            if (isDragInteractionRef.current) {
+                ignoreClickRef.current = true;
+            }
+
+            setIsSelecting(false);
+            setSelectionBox(null);
+            isDragInteractionRef.current = false;
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isSelecting, selectionStart]);
 
 
     // Generic update function for recursive state
@@ -249,10 +335,7 @@ function Scratchpad({ theme }) {
         const removeBlock = (list) => {
             const result = [];
             for (let b of list) {
-                if (b.id === id) {
-                    // Skip this block (delete it)
-                    continue;
-                }
+                if (b.id === id) continue;
                 if (b.children && b.children.length > 0) {
                     result.push({ ...b, children: removeBlock(b.children) });
                 } else {
@@ -264,7 +347,6 @@ function Scratchpad({ theme }) {
 
         setBlocks(prev => {
             const newBlocks = removeBlock(prev);
-            // If all blocks are deleted, add an empty one
             if (newBlocks.length === 0) {
                 return [{ id: Date.now().toString(), type: 'p', content: '', checked: false, isOpen: true, children: [], isFocused: true }];
             }
@@ -272,9 +354,74 @@ function Scratchpad({ theme }) {
         });
     };
 
-    // Focus a specific block
-    const focusBlock = (id) => {
-        setBlocks(prev => modifyBlocks(id, (b) => ({ ...b, isFocused: true, focusTrigger: Date.now() }), prev));
+    const deleteBlocks = (ids) => {
+        const removeBlocks = (list) => {
+            const result = [];
+            for (let b of list) {
+                if (ids.includes(b.id)) continue;
+                if (b.children && b.children.length > 0) {
+                    result.push({ ...b, children: removeBlocks(b.children) });
+                } else {
+                    result.push(b);
+                }
+            }
+            return result;
+        };
+
+        setBlocks(prev => {
+            const newBlocks = removeBlocks(prev);
+            if (newBlocks.length === 0) {
+                return [{ id: Date.now().toString(), type: 'p', content: '', checked: false, isOpen: true, children: [], isFocused: true }];
+            }
+            return newBlocks;
+        });
+        setSelectedBlockIds([]);
+    };
+
+    const copySelectionToClipboard = () => {
+        if (selectedBlockIds.length === 0) return;
+
+        // Helper to flatten and check if selected
+        const getSelectedForExport = (list) => {
+            let result = [];
+            for (let b of list) {
+                if (selectedBlockIds.includes(b.id)) {
+                    // Convert to markdown-ish
+                    let prefix = '';
+                    if (b.type === 'h1') prefix = '# ';
+                    if (b.type === 'h2') prefix = '## ';
+                    if (b.type === 'h3') prefix = '### ';
+                    if (b.type === 'todo') prefix = b.checked ? '- [x] ' : '- [ ] ';
+                    if (b.type === 'toggle') prefix = '> '; // Simple representation
+
+                    result.push(`${prefix}${b.content}`);
+                }
+                if (b.children && b.children.length > 0) {
+                    // Note: If parent is selected, typically children are considered selected visually in UI often, 
+                    // but here we strictly select IDs. The user dragged over them. 
+                    // Since dragging over parent usually covers children, they should be in the list.
+                    result = [...result, ...getSelectedForExport(b.children)];
+                }
+            }
+            return result;
+        };
+
+        const lines = getSelectedForExport(blocks);
+        const text = lines.join('\n');
+
+        navigator.clipboard.writeText(text).catch(err => {
+            console.error('Failed to copy text: ', err);
+        });
+    };
+
+
+    const focusBlock = (id, options = {}) => {
+        setBlocks(prev => modifyBlocks(id, (b) => ({
+            ...b,
+            isFocused: true,
+            focusTrigger: Date.now(),
+            cursorAtEnd: options.cursorAtEnd
+        }), prev));
     };
 
     // Drag and Drop handlers
@@ -304,7 +451,6 @@ function Scratchpad({ theme }) {
         }
 
         setBlocks(prev => {
-            // Helper to extract a block from the tree
             let draggedBlock = null;
 
             const extractBlock = (list, id) => {
@@ -323,14 +469,9 @@ function Scratchpad({ theme }) {
                 return result;
             };
 
-            // Remove the dragged block from its original position
             let newBlocks = extractBlock(prev, draggedBlockId);
+            if (!draggedBlock) return prev;
 
-            if (!draggedBlock) {
-                return prev;
-            }
-
-            // Insert the dragged block before or after the target based on position
             const insertAtPosition = (list, targetId, blockToInsert, insertPosition) => {
                 const result = [];
                 for (let b of list) {
@@ -357,47 +498,20 @@ function Scratchpad({ theme }) {
     };
 
     const updateBlock = (id, updates) => {
-        // Special check for slash commands in content
         if (updates.content !== undefined) {
             const text = updates.content;
             const commandTriggered = handleSlashCommandInput(text, id);
-            // If a command was triggered, don't update the content (it's already been cleared)
-            if (commandTriggered) {
-                return;
-            }
+            if (commandTriggered) return;
         }
         setBlocks(prev => modifyBlocks(id, (b) => ({ ...b, ...updates }), prev));
     };
 
     const handleSlashCommandInput = (text, id) => {
-        // Check for exact matches first for shortcuts
-        // Returns true if a command was triggered, false otherwise
-        if (text === '/1') {
-            convertToType(id, 'h1');
-            return true;
-        }
-        if (text === '/2') {
-            convertToType(id, 'h2');
-            return true;
-        }
-        if (text === '/3') {
-            convertToType(id, 'h3');
-            return true;
-        }
-        if (text === '/toggle') {
-            convertToType(id, 'toggle');
-            return true;
-        }
-        // Checklist pattern "[]" (without space to avoid breaking normal typing)
-        if (text === '[]') {
-            convertToType(id, 'todo');
-            return true;
-        }
-
-        // Show menu if ends with /
-        if (text.endsWith('/')) {
-            // Slash menu logic would go here
-        }
+        if (text === '/1') { convertToType(id, 'h1'); return true; }
+        if (text === '/2') { convertToType(id, 'h2'); return true; }
+        if (text === '/3') { convertToType(id, 'h3'); return true; }
+        if (text === '/toggle') { convertToType(id, 'toggle'); return true; }
+        if (text === '[]') { convertToType(id, 'todo'); return true; }
         return false;
     };
 
@@ -405,10 +519,8 @@ function Scratchpad({ theme }) {
         setBlocks(prev => modifyBlocks(id, (b) => ({
             ...b,
             type,
-            content: newContent !== null ? newContent : '', // Clear content for slash commands? Or keep? Usually clear the command.
-            // If it was a shortcut like /1, we clear it.
+            content: newContent !== null ? newContent : '',
         }), prev));
-        // Also probably want to focus it again
     };
 
     const addBlock = (afterId, type = 'p') => {
@@ -418,7 +530,7 @@ function Scratchpad({ theme }) {
             content: '',
             children: [],
             isFocused: true,
-            checked: false, // Ensure checked is initialized
+            checked: false,
             isOpen: true
         };
 
@@ -427,18 +539,14 @@ function Scratchpad({ theme }) {
                 let res = [];
                 for (let i = 0; i < list.length; i++) {
                     const b = list[i];
-                    // Unfocus all blocks except the new one
                     res.push({ ...b, isFocused: false });
                     if (b.id === afterId) {
                         if (b.type === 'toggle' && b.isOpen) {
-                            // Insert into children of the toggle block
                             res[res.length - 1].children = [newBlock, ...b.children];
                         } else {
-                            // Insert as a sibling after the current block
                             res.push(newBlock);
                         }
                     } else if (b.children.length > 0) {
-                        // Recursively search in children
                         res[res.length - 1].children = deepInsert(b.children);
                     }
                 }
@@ -450,7 +558,6 @@ function Scratchpad({ theme }) {
 
     const appendBlock = () => {
         const newBlock = { id: Date.now().toString(), type: 'p', content: '', children: [], isFocused: true, checked: false, isOpen: true };
-
         setBlocks(prev => {
             const unfocusAll = (list) => {
                 return list.map(b => ({
@@ -464,57 +571,126 @@ function Scratchpad({ theme }) {
     };
 
     const handleContainerClick = (e) => {
-        // If clicking on a block or the title, ignore
+        if (ignoreClickRef.current) {
+            ignoreClickRef.current = false;
+            return;
+        }
+
+        // Clear selection if clicking on empty space
+        if (selectedBlockIds.length > 0) {
+            const isBlockClick = e.target.closest('.block-wrapper') || e.target.closest('.block-controls');
+            if (!isBlockClick) {
+                setSelectedBlockIds([]);
+            }
+        }
+
         if (e.target.closest('.block-wrapper') || e.target.closest('.scratchpad-title')) {
             return;
         }
 
-        // Check if the last block is empty
         const lastBlock = blocks[blocks.length - 1];
         if (lastBlock && lastBlock.content === '' && (!lastBlock.children || lastBlock.children.length === 0)) {
-            // Focus it instead of creating new
             focusBlock(lastBlock.id);
         } else {
-            // Otherwise, append a new block at the end
             appendBlock();
         }
     };
 
+    const findPreviousBlock = (id, list) => {
+        let prev = null;
+        let found = null;
+        const traverse = (nodes) => {
+            for (const node of nodes) {
+                if (found) return;
+                if (node.id === id) {
+                    found = prev;
+                    return;
+                }
+                prev = node;
+                if (node.children && node.children.length > 0 && node.isOpen) {
+                    traverse(node.children);
+                }
+            }
+        };
+        traverse(list);
+        return found;
+    };
+
+    // Container level key handler for selection actions
+    const handleContainerKeyDown = (e) => {
+        if (selectedBlockIds.length > 0) {
+            if (e.key === 'Backspace' || e.key === 'Delete') {
+                e.preventDefault();
+                deleteBlocks(selectedBlockIds);
+                return;
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+                e.preventDefault();
+                copySelectionToClipboard();
+                return;
+            }
+        }
+    };
+
     const handleKeyDown = (e, block) => {
-        // Read content directly from DOM to handle race condition with state updates
         const currentContent = e.target.innerText?.replace(/\u00A0/g, ' ').trim() || '';
+
+        // Propagate key event to container handler for global actions if any blocks are selected
+        if (selectedBlockIds.length > 0 && selectedBlockIds.includes(block.id)) {
+            if (e.key === 'Backspace' || e.key === 'Delete' || ((e.ctrlKey || e.metaKey) && e.key === 'c')) {
+                handleContainerKeyDown(e);
+                return;
+            }
+        }
 
         if (e.key === 'Enter') {
             e.preventDefault();
             if (block.type === 'todo') {
                 if (currentContent === '') {
-                    // Empty todo -> convert to paragraph
                     convertToType(block.id, 'p');
                 } else {
-                    // Non-empty todo -> create new todo
                     addBlock(block.id, 'todo');
                 }
             } else {
-                // Default behavior
                 addBlock(block.id, 'p');
             }
         }
         if (e.key === 'Backspace' && currentContent === '') {
-            // If empty
             if (block.type === 'todo' || block.type === 'toggle' || block.type.startsWith('h')) {
-                // Convert list/header types to paragraph on backspace if empty
                 e.preventDefault();
                 convertToType(block.id, 'p');
             } else {
-                // Delete block if it's already a paragraph
                 e.preventDefault();
-                deleteBlock(block.id);
+                const prev = findPreviousBlock(block.id, blocks);
+                if (prev) {
+                    focusBlock(prev.id, { cursorAtEnd: true });
+                    deleteBlock(block.id);
+                }
             }
         }
     };
 
     return (
-        <div className={`scratchpad-container ${theme}`} onClick={handleContainerClick}>
+        <div
+            className={`scratchpad-container ${theme}`}
+            onClick={handleContainerClick}
+            onMouseDown={handleMouseDown}
+            onKeyDown={handleContainerKeyDown}
+            tabIndex="0" // Make container focusable
+        >
+            {/* Selection Box Overlay */}
+            {selectionBox && (
+                <div
+                    className="selection-box"
+                    style={{
+                        left: selectionBox.left,
+                        top: selectionBox.top,
+                        width: selectionBox.width,
+                        height: selectionBox.height
+                    }}
+                />
+            )}
+
             <h1 className="scratchpad-title">Scratchpad</h1>
             <div className="scratchpad-editor">
                 {blocks.map(block => (
@@ -534,6 +710,7 @@ function Scratchpad({ theme }) {
                         isDragging={draggedBlockId === block.id}
                         dragOverId={dragOverId}
                         dragOverPosition={dragOverPosition}
+                        selectedBlockIds={selectedBlockIds}
                     />
                 ))}
             </div>
@@ -543,4 +720,3 @@ function Scratchpad({ theme }) {
 }
 
 export default Scratchpad;
-

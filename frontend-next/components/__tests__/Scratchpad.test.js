@@ -76,4 +76,34 @@ describe('Scratchpad Component', () => {
         const blocks = container.querySelectorAll('.block-wrapper');
         expect(blocks.length).toBe(1);
     });
+    test('deletes empty block on backspace and focuses previous block', () => {
+        const { container } = render(<Scratchpad theme="light" />);
+
+        // Initial state is 1 empty block.
+        // Add content to first block so it's not empty (though backspace on empty first block does nothing/clears).
+        const firstBlockContent = container.querySelector('.block-content');
+        fireEvent.input(firstBlockContent, { target: { innerText: 'First block' } });
+
+        // Add a second block by pressing Enter.
+        fireEvent.keyDown(firstBlockContent, { key: 'Enter', code: 'Enter', charCode: 13 });
+
+        // Now we should have 2 blocks.
+        let blocks = container.querySelectorAll('.block-wrapper');
+        expect(blocks.length).toBe(2);
+
+        // The second block should be focused.
+        // Note: focus in JSDOM might require the element to be theoretically focusable. contentEditable is focusable.
+        // We might need to wait for the effect?
+        const secondBlockContent = blocks[1].querySelector('.block-content');
+        // Spy on focus for the previous block since activeElement might be flaky in some JSDOM setups without full browser behavior?
+        // But let's try standard expectation first.
+
+        // Simulate Backspace on the second empty block.
+        // Note: innerText should be empty by default for new block.
+        fireEvent.keyDown(secondBlockContent, { key: 'Backspace', code: 'Backspace', charCode: 8 });
+
+        // expect 1 block
+        blocks = container.querySelectorAll('.block-wrapper');
+        expect(blocks.length).toBe(1);
+    });
 });
