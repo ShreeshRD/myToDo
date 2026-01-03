@@ -8,6 +8,8 @@ import { useScratchpadData } from './hooks/useScratchpadData';
 import { useScratchpadSelection } from './hooks/useScratchpadSelection';
 import { useScratchpadDnD } from './hooks/useScratchpadDnD';
 import { useScratchpadOperations } from './hooks/useScratchpadOperations';
+import { useScratchpadSlashMenu } from './hooks/useScratchpadSlashMenu';
+
 
 function Scratchpad({ theme }) {
     const ignoreClickRef = useRef(false);
@@ -47,6 +49,16 @@ function Scratchpad({ theme }) {
         appendBlock
     } = useScratchpadOperations(blocks, setBlocks, setSelectedBlockIds, selectedBlockIds);
 
+    // Slash Menu Hook
+    const {
+        slashMenu,
+        openSlashMenu,
+        closeSlashMenu,
+        handleSlashMenuSelect,
+        navigateSlashMenu
+    } = useScratchpadSlashMenu(convertToType);
+
+
     const handleContainerClick = (e) => {
         if (ignoreClickRef.current) {
             ignoreClickRef.current = false;
@@ -59,6 +71,11 @@ function Scratchpad({ theme }) {
                 setSelectedBlockIds([]);
             }
         }
+
+        if (slashMenu.isOpen) {
+            closeSlashMenu();
+        }
+
 
         if (e.target.closest('.block-wrapper') || e.target.closest('.scratchpad-title')) {
             return;
@@ -184,11 +201,22 @@ function Scratchpad({ theme }) {
                         dragOverId={dragOverId}
                         dragOverPosition={dragOverPosition}
                         selectedBlockIds={selectedBlockIds}
+                        openSlashMenu={openSlashMenu}
+                        closeSlashMenu={closeSlashMenu}
+                        navigateSlashMenu={navigateSlashMenu}
+                        handleSlashMenuSelect={handleSlashMenuSelect}
+                        slashMenu={slashMenu}
                     />
+
                 ))}
             </div>
-            <SlashMenu />
+            <SlashMenu
+                position={slashMenu.position}
+                selectedIndex={slashMenu.selectedIndex}
+                onSelect={handleSlashMenuSelect}
+            />
         </div>
+
     );
 }
 

@@ -1,6 +1,8 @@
 import React, { useRef, useEffect } from 'react';
 import { MdCheckBoxOutlineBlank, MdCheckBox, MdDragIndicator, MdDelete } from "react-icons/md";
 import { IoIosArrowForward, IoIosArrowDown } from "react-icons/io";
+import { MENU_ITEMS } from './SlashMenu';
+
 
 // Utility to set cursor to end of contentEditable
 const setCursorToEnd = (element) => {
@@ -27,8 +29,14 @@ const Block = ({
     isDragging,
     dragOverId,
     dragOverPosition,
-    selectedBlockIds
+    selectedBlockIds,
+    openSlashMenu,
+    closeSlashMenu,
+    navigateSlashMenu,
+    handleSlashMenuSelect,
+    slashMenu
 }) => {
+
     const contentRef = useRef(null);
 
     // Sync content with state manually to preserve cursor position during typing
@@ -61,6 +69,12 @@ const Block = ({
 
     const handleInput = (e) => {
         const text = e.currentTarget.innerText.replace(/\u00A0/g, ' ');
+
+        // Close slash menu if the slash is removed
+        if (slashMenu.isOpen && slashMenu.blockId === block.id && !text.includes('/')) {
+            closeSlashMenu();
+        }
+
         // Avoid update if text is same to prevent cursor jumping
         if (text !== block.content) {
             updateBlock(block.id, { content: text });
@@ -68,8 +82,55 @@ const Block = ({
     };
 
     const handleLocalKeyDown = (e) => {
+        if (slashMenu.isOpen && slashMenu.blockId === block.id) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                navigateSlashMenu(1);
+                return;
+            }
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                navigateSlashMenu(-1);
+                return;
+            }
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const selectedType = MENU_ITEMS[slashMenu.selectedIndex].id;
+                handleSlashMenuSelect(selectedType);
+                return;
+            }
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                closeSlashMenu();
+                return;
+            }
+        }
+
+        if (e.key === '/') {
+            const container = e.currentTarget.closest('.scratchpad-container');
+            // Increased delay slightly to ensures caret position and selection is fully captured
+            setTimeout(() => {
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0 && container) {
+                    const range = selection.getRangeAt(0);
+                    const rect = range.getBoundingClientRect();
+                    const containerRect = container.getBoundingClientRect();
+
+                    // Guard against invalid rects
+                    if (rect.width === 0 && rect.height === 0) return;
+
+                    openSlashMenu(block.id, {
+                        x: rect.left - containerRect.left + container.scrollLeft,
+                        y: rect.bottom - containerRect.top + container.scrollTop
+                    });
+                }
+            }, 50);
+        }
+
+
         onKeyDown(e, block);
     };
+
 
     const handleDragStart = (e) => {
         e.stopPropagation();
@@ -101,6 +162,10 @@ const Block = ({
     const isDragOverBefore = dragOverId === block.id && dragOverPosition === 'before';
     const isDragOverAfter = dragOverId === block.id && dragOverPosition === 'after';
     const isSelected = selectedBlockIds.includes(block.id);
+
+    // Robust empty check
+    const isEmpty = !block.content || block.content.trim() === '';
+    const placeholderText = block.type === 'p' ? "Type '/' for commands" : "List item...";
 
     return (
         <div
@@ -152,13 +217,12 @@ const Block = ({
                 <div
                     ref={contentRef}
                     id={`block-${block.id}`}
-                    className={`block-content ${block.type} ${block.checked ? 'checked' : ''}`}
+                    className={`block-content ${block.type} ${block.checked ? 'checked' : ''} ${isEmpty ? 'is-empty' : ''}`}
                     contentEditable
                     suppressContentEditableWarning
                     onInput={handleInput}
                     onKeyDown={handleLocalKeyDown}
-                    placeholder={block.type === 'p' ? "Type '/' for commands" : "List item..."}
-                    data-placeholder={block.type === 'p' && !block.content ? "Type '/' for commands" : ""}
+                    placeholder={placeholderText}
                 />
             </div>
 
