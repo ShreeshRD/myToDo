@@ -34,7 +34,8 @@ const Block = ({
     closeSlashMenu,
     navigateSlashMenu,
     handleSlashMenuSelect,
-    slashMenu
+    slashMenu,
+    setSlashQuery
 }) => {
 
     const contentRef = useRef(null);
@@ -71,32 +72,50 @@ const Block = ({
         const text = e.currentTarget.innerText.replace(/\u00A0/g, ' ');
 
         // Close slash menu if the slash is removed
-        if (slashMenu.isOpen && slashMenu.blockId === block.id && !text.includes('/')) {
-            closeSlashMenu();
+        if (slashMenu.isOpen && slashMenu.blockId === block.id) {
+            if (!text.includes('/')) {
+                closeSlashMenu();
+            } else {
+                // Extract text after the LAST slash
+                const lastSlashIndex = text.lastIndexOf('/');
+                const query = text.slice(lastSlashIndex + 1);
+                setSlashQuery(query);
+            }
         }
 
         // Avoid update if text is same to prevent cursor jumping
         if (text !== block.content) {
-            updateBlock(block.id, { content: text });
+            const commandExecuted = updateBlock(block.id, { content: text });
+            if (commandExecuted) {
+                closeSlashMenu();
+            }
         }
     };
 
     const handleLocalKeyDown = (e) => {
         if (slashMenu.isOpen && slashMenu.blockId === block.id) {
+            const lowerQuery = slashMenu.query?.toLowerCase() || '';
+            const filteredItems = MENU_ITEMS.filter(item =>
+                item.label.toLowerCase().includes(lowerQuery) ||
+                item.shortcut.toLowerCase().includes(lowerQuery)
+            );
+
             if (e.key === 'ArrowDown') {
                 e.preventDefault();
-                navigateSlashMenu(1);
+                navigateSlashMenu(1, filteredItems.length);
                 return;
             }
             if (e.key === 'ArrowUp') {
                 e.preventDefault();
-                navigateSlashMenu(-1);
+                navigateSlashMenu(-1, filteredItems.length);
                 return;
             }
             if (e.key === 'Enter') {
                 e.preventDefault();
-                const selectedType = MENU_ITEMS[slashMenu.selectedIndex].id;
-                handleSlashMenuSelect(selectedType);
+                if (filteredItems.length > 0) {
+                    const selectedType = filteredItems[slashMenu.selectedIndex].id;
+                    handleSlashMenuSelect(selectedType);
+                }
                 return;
             }
             if (e.key === 'Escape') {
@@ -246,6 +265,11 @@ const Block = ({
                             dragOverId={dragOverId}
                             dragOverPosition={dragOverPosition}
                             selectedBlockIds={selectedBlockIds}
+                            openSlashMenu={openSlashMenu}
+                            closeSlashMenu={closeSlashMenu}
+                            navigateSlashMenu={navigateSlashMenu}
+                            handleSlashMenuSelect={handleSlashMenuSelect}
+                            slashMenu={slashMenu}
                         />
                     ))}
                 </div>

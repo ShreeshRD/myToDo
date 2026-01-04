@@ -229,7 +229,7 @@
     }
 
     /* Placeholder logic */
-    &.is-empty::before {
+    &.is-empty:focus::before {
         content: attr(placeholder);
         color: #aaa;
         pointer-events: none;

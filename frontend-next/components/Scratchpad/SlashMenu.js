@@ -9,8 +9,22 @@ const MENU_ITEMS = [
 ];
 
 
-const SlashMenu = ({ position, selectedIndex, onSelect }) => {
+const getFilteredItems = (query) => {
+    if (!query) return MENU_ITEMS;
+    const lowerQuery = query.toLowerCase();
+    return MENU_ITEMS.filter(item =>
+        item.label.toLowerCase().includes(lowerQuery) ||
+        item.shortcut.toLowerCase().includes(lowerQuery)
+    );
+};
+
+
+const SlashMenu = ({ position, selectedIndex, query, onSelect }) => {
     if (!position) return null;
+
+    const filteredItems = getFilteredItems(query);
+
+    if (filteredItems.length === 0) return null;
 
     return (
         <div
@@ -18,7 +32,7 @@ const SlashMenu = ({ position, selectedIndex, onSelect }) => {
             style={{ top: position.y, left: position.x }}
             onMouseDown={(e) => e.preventDefault()} // Prevent losing focus from block
         >
-            {MENU_ITEMS.map((item, index) => (
+            {filteredItems.map((item, index) => (
                 <div
                     key={item.id}
                     className={`slash-menu-item ${index === selectedIndex ? 'selected' : ''}`}

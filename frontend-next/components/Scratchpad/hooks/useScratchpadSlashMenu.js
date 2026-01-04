@@ -6,7 +6,8 @@ export const useScratchpadSlashMenu = (convertToType) => {
         isOpen: false,
         position: null,
         blockId: null,
-        selectedIndex: 0
+        selectedIndex: 0,
+        query: ''
     });
 
     const openSlashMenu = useCallback((blockId, position) => {
@@ -14,12 +15,17 @@ export const useScratchpadSlashMenu = (convertToType) => {
             isOpen: true,
             position,
             blockId,
-            selectedIndex: 0
+            selectedIndex: 0,
+            query: ''
         });
     }, []);
 
     const closeSlashMenu = useCallback(() => {
-        setSlashMenu(prev => ({ ...prev, isOpen: false, position: null, blockId: null }));
+        setSlashMenu(prev => ({ ...prev, isOpen: false, position: null, blockId: null, query: '' }));
+    }, []);
+
+    const setSlashQuery = useCallback((query) => {
+        setSlashMenu(prev => ({ ...prev, query, selectedIndex: 0 }));
     }, []);
 
     const handleSlashMenuSelect = useCallback((type) => {
@@ -30,12 +36,12 @@ export const useScratchpadSlashMenu = (convertToType) => {
     }, [slashMenu.blockId, convertToType, closeSlashMenu]);
 
 
-    const navigateSlashMenu = useCallback((direction) => {
+    const navigateSlashMenu = useCallback((direction, filteredItemsCount) => {
         setSlashMenu(prev => {
             if (!prev.isOpen) return prev;
             let newIndex = prev.selectedIndex + direction;
-            if (newIndex < 0) newIndex = MENU_ITEMS.length - 1;
-            if (newIndex >= MENU_ITEMS.length) newIndex = 0;
+            if (newIndex < 0) newIndex = filteredItemsCount - 1;
+            if (newIndex >= filteredItemsCount) newIndex = 0;
             return { ...prev, selectedIndex: newIndex };
         });
     }, []);
@@ -46,6 +52,7 @@ export const useScratchpadSlashMenu = (convertToType) => {
         closeSlashMenu,
         handleSlashMenuSelect,
         navigateSlashMenu,
+        setSlashQuery,
         setSlashMenu
     };
 };

@@ -55,7 +55,8 @@ function Scratchpad({ theme }) {
         openSlashMenu,
         closeSlashMenu,
         handleSlashMenuSelect,
-        navigateSlashMenu
+        navigateSlashMenu,
+        setSlashQuery
     } = useScratchpadSlashMenu(convertToType);
 
 
@@ -206,6 +207,7 @@ function Scratchpad({ theme }) {
                         navigateSlashMenu={navigateSlashMenu}
                         handleSlashMenuSelect={handleSlashMenuSelect}
                         slashMenu={slashMenu}
+                        setSlashQuery={setSlashQuery}
                     />
 
                 ))}
@@ -213,6 +215,7 @@ function Scratchpad({ theme }) {
             <SlashMenu
                 position={slashMenu.position}
                 selectedIndex={slashMenu.selectedIndex}
+                query={slashMenu.query}
                 onSelect={handleSlashMenuSelect}
             />
         </div>

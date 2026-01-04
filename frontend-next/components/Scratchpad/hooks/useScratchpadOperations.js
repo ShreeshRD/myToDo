@@ -117,6 +117,7 @@ export const useScratchpadOperations = (blocks, setBlocks, setSelectedBlockIds, 
         if (text === '/3') { convertToType(id, 'h3'); return true; }
         if (text === '/toggle') { convertToType(id, 'toggle'); return true; }
         if (text === '[]') { convertToType(id, 'todo'); return true; }
+        if (text === '/[]') { convertToType(id, 'todo'); return true; }
         return false;
     }, [convertToType]);
 
@@ -124,9 +125,10 @@ export const useScratchpadOperations = (blocks, setBlocks, setSelectedBlockIds, 
         if (updates.content !== undefined) {
             const text = updates.content;
             const commandTriggered = handleSlashCommandInput(text, id);
-            if (commandTriggered) return;
+            if (commandTriggered) return true;
         }
         setBlocks(prev => modifyBlocks(id, (b) => ({ ...b, ...updates }), prev));
+        return false;
     }, [setBlocks, modifyBlocks, handleSlashCommandInput]);
 
     const addBlock = useCallback((afterId, type = 'p') => {
