@@ -4,7 +4,8 @@ import React, { createContext, useContext, useState } from 'react';
 import useTaskManagement from '../hooks/useTaskManagement';
 import { addTask } from "../service";
 import { useUI } from './UIContext';
-import { calculatePredecessor } from '../lib/dragUtils';
+import { calculatePredecessor, calculatePredecessorUnfiltered } from '../lib/dragUtils';
+import { addPendingChange } from '../lib/pendingChanges';
 
 const TaskContext = createContext();
 const DELETED_PROJECTS_KEY = "todo-deleted-projects";
@@ -63,7 +64,29 @@ export const TaskProvider = ({ children }) => {
 
     const onPopupClose = async (deleteid = -1, taskDate, taskName = '', dateChoice, projectChoice = "None", priority = 0, repeatType = "NONE", repeatDuration = 0, taskOrder = 0, assignedTime = null, inProgress = false, timeTaken = 0, longTerm = false) => {
         if (taskName.trim() !== '') {
-            let task = await addTask(taskName, dateChoice, projectChoice, priority, repeatType, repeatDuration, longTerm);
+            let task;
+            try {
+                task = await addTask(taskName, dateChoice, projectChoice, priority, repeatType, repeatDuration, longTerm);
+                // Task saved to backend — no pending change needed
+            } catch (err) {
+                // Backend unreachable — create a temporary task object with a local ID
+                console.warn('addTask backend failed, queuing CREATE_TASK pending change');
+                const tempTask = {
+                    id: `local-${Date.now()}`,
+                    name: taskName,
+                    taskDate: dateChoice,
+                    category: projectChoice,
+                    priority,
+                    repeatType,
+                    repeatDuration,
+                    longTerm,
+                    dayOrder: 9999,
+                    complete: false,
+                    inProgress: false,
+                };
+                addPendingChange({ type: 'CREATE_TASK', taskData: tempTask });
+                task = tempTask;
+            }
 
             if (assignedTime) {
                 task.assignedTime = assignedTime;
@@ -210,11 +233,14 @@ export const TaskProvider = ({ children }) => {
         // The drag-and-drop library gives us indexes based on the FILTERED view,
         // but moveTask operates on the UNFILTERED taskDays list.
 
-        // Get filtered list for the destination date
+        // Map to unfiltered list properly when filters are active
         const filteredDestTasks = filteredTaskDays[destDate] || [];
+        const unfilteredDestTasks = taskManagement.taskDays[destDate] || [];
 
         // Use utility function to calculate predecessor
-        const predecessorTaskId = calculatePredecessor(destination, source, filteredDestTasks);
+        const predecessorTaskId = calculatePredecessorUnfiltered(
+            destination, source, filteredDestTasks, unfilteredDestTasks
+        );
 
         taskManagement.moveTask(draggableId, destDate, predecessorTaskId);
     };

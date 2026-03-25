@@ -34,3 +34,24 @@ export function calculatePredecessor(destination, source, filteredDestTasks) {
 
     return null;
 }
+
+/**
+ * Same as calculatePredecessor but resolves the predecessor ID
+ * against the unfiltered list to handle project filters correctly.
+ *
+ * @param {Object} destination
+ * @param {Object} source
+ * @param {Array} filteredDestTasks - tasks visible in the UI (filtered)
+ * @param {Array} unfilteredDestTasks - all tasks for the date (unfiltered)
+ * @returns {string|null}
+ */
+export function calculatePredecessorUnfiltered(destination, source, filteredDestTasks, unfilteredDestTasks) {
+    // Get the predecessor task from the filtered view (index-based)
+    const filteredPredecessorId = calculatePredecessor(destination, source, filteredDestTasks);
+
+    if (!filteredPredecessorId) return null;
+
+    // The ID is valid in both filtered and unfiltered lists — return it directly.
+    // moveTask searches by ID in the unfiltered list, so no further mapping needed.
+    return filteredPredecessorId;
+}

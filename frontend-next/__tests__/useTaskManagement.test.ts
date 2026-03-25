@@ -55,6 +55,7 @@ describe('useTaskManagement Hook', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+        localStorage.clear(); // Prevent state bleed via snapshot/pending changes stored in localStorage
         mockGetTasks.mockResolvedValue({
             itemsByDate: {}
         });
@@ -242,7 +243,7 @@ describe('useTaskManagement Hook', () => {
 
             // Attempt to add next repeat - should be prevented by duplicate check
             await act(async () => {
-                await result.current.addNextRepeat(existingTask);
+                await result.current.addNextRepeat({ ...existingTask });
             });
 
             // addTask should NOT have been called since task already exists
@@ -258,12 +259,14 @@ describe('useTaskManagement Hook', () => {
                 taskDate: today,
                 repeatType: 'EVERY_X_DAYS',
                 repeatDuration: 1,
+                priority: 0,
                 longTerm: false
             };
 
             const mockTasks = {
                 itemsByDate: {
-                    [today]: [task]
+                    [today]: [{ ...task, id: 1 }],
+                    [tomorrow]: [] // Needed for mock getTasks return structure where tasks list is empty
                 }
             };
             mockGetTasks.mockResolvedValue(mockTasks);
@@ -281,18 +284,18 @@ describe('useTaskManagement Hook', () => {
             });
 
             await act(async () => {
-                await result.current.addNextRepeat(task);
+                await result.current.addNextRepeat({ ...task });
             });
 
             // addTask should have been called
             expect(mockAddTask).toHaveBeenCalledWith(
-                'Recurring Task',
-                tomorrow,
-                'Work',
-                undefined,
-                'EVERY_X_DAYS',
-                1,
-                false
+                'Recurring Task', // task
+                tomorrow,         // tdate
+                'Work',           // category
+                0,                // priority
+                'EVERY_X_DAYS',   // repeatType
+                1,                // repeatDuration
+                false             // longTerm
             );
         });
     });

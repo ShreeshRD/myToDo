@@ -1,6 +1,6 @@
 {
   "name": "frontend-next",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3001",
@@ -40,6 +40,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
+    "baseline-browser-mapping": "^2.10.7",
     "eslint": "^9",
     "eslint-config-next": "16.0.3",
     "jest": "^30.2.0",

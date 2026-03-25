@@ -9,7 +9,10 @@ const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
  * @throws {Error} If the request fails
  */
 export const getTasks = (more = "") => {
-	return axios.get(API_URL + "/all" + more)
+	return axios.get(API_URL + "/all" + more, {
+		params: { _t: Date.now() },
+		headers: { 'Cache-Control': 'no-cache' }
+	})
 		.then(response => {
 			return response.data;
 		})
@@ -18,6 +21,50 @@ export const getTasks = (more = "") => {
 			throw error;
 		});
 };
+
+class RequestQueue {
+    constructor() {
+        this.queue = [];
+        this.isProcessing = false;
+    }
+
+    enqueue(requestFn) {
+        return new Promise((resolve, reject) => {
+            this.queue.push(async () => {
+                try {
+                    const result = await requestFn();
+                    resolve(result);
+                } catch (error) {
+                    reject(error);
+                }
+            });
+
+            this.processQueue();
+        });
+    }
+
+    async processQueue() {
+        if (this.isProcessing || this.queue.length === 0) {
+            return;
+        }
+
+        this.isProcessing = true;
+
+        while (this.queue.length > 0) {
+            const nextRequest = this.queue.shift();
+            try {
+                await nextRequest();
+            } catch (error) {
+                console.error("Queue request failed:", error);
+                // Continue processing other requests even if one fails
+            }
+        }
+
+        this.isProcessing = false;
+    }
+}
+
+const globalMutationQueue = new RequestQueue();
 
 /**
  * Updates a specific field of a task
@@ -28,19 +75,21 @@ export const getTasks = (more = "") => {
  * @throws {Error} If the update fails
  */
 export const updateField = async (id, field, value) => {
-	try {
-		const response = await axios.post(`${API_URL}/update`, null, {
-			params: {
-				id: id,
-				field: field,
-				value: value.toString(),
-			},
-		});
-		return response.data.item;
-	} catch (error) {
-		console.error(`Error updating task with id ${id}:`, error);
-		throw error;
-	}
+	return globalMutationQueue.enqueue(async () => {
+		try {
+			const response = await axios.post(`${API_URL}/update`, null, {
+				params: {
+					id: id,
+					field: field,
+					value: value.toString(),
+				},
+			});
+			return response.data.item;
+		} catch (error) {
+			console.error(`Error updating task with id ${id}:`, error);
+			throw error;
+		}
+	});
 };
 
 /**
@@ -55,23 +104,25 @@ export const updateField = async (id, field, value) => {
  * @throws {Error} If the creation fails
  */
 export const addTask = async (task, tdate, category = "None", priority = 0, repeatType = "NONE", repeatDuration = 0, longTerm = false) => {
-	try {
-		const response = await axios.post(`${API_URL}/add`, null, {
-			params: {
-				name: task,
-				category: category,
-				taskDate: tdate,
-				priority: priority,
-				repeatType: repeatType,
-				repeatDuration: repeatDuration,
-				longTerm: longTerm,
-			},
-		});
-		return response.data.item;
-	} catch (error) {
-		console.error('Error adding task:', error);
-		throw error;
-	}
+	return globalMutationQueue.enqueue(async () => {
+		try {
+			const response = await axios.post(`${API_URL}/add`, null, {
+				params: {
+					name: task,
+					category: category,
+					taskDate: tdate,
+					priority: priority,
+					repeatType: repeatType,
+					repeatDuration: repeatDuration,
+					longTerm: longTerm,
+				},
+			});
+			return response.data.item;
+		} catch (error) {
+			console.error('Error adding task:', error);
+			throw error;
+		}
+	});
 }
 
 
@@ -82,13 +133,15 @@ export const addTask = async (task, tdate, category = "None", priority = 0, repe
  * @throws {Error} If the deletion fails
  */
 export const deleteTask = async (taskId) => {
-	try {
-		const response = await axios.delete(`${API_URL}/delete/${taskId}`);
-		return response.data;
-	} catch (error) {
-		console.error('Error deleting task:', error.message);
-		throw error;
-	}
+	return globalMutationQueue.enqueue(async () => {
+		try {
+			const response = await axios.delete(`${API_URL}/delete/${taskId}`);
+			return response.data;
+		} catch (error) {
+			console.error('Error deleting task:', error.message);
+			throw error;
+		}
+	});
 };
 
 /**

@@ -200,19 +200,39 @@ export const applyPendingChanges = (taskDays, overdueTasks) => {
                 break;
             }
 
+            case 'CREATE_TASK': {
+                // Re-add a task that was created but not yet confirmed
+                const { taskData } = change;
+                if (!taskData || !taskData.taskDate) break;
+                const d = taskData.taskDate;
+                if (!modifiedTaskDays[d]) modifiedTaskDays[d] = [];
+                // Only add if not already present (backend may have saved it)
+                const alreadyExists = modifiedTaskDays[d].some(
+                    t => t.id?.toString() === taskData.id?.toString()
+                );
+                if (!alreadyExists) {
+                    modifiedTaskDays[d] = [...modifiedTaskDays[d], taskData]
+                        .sort((a, b) => a.dayOrder - b.dayOrder);
+                }
+                break;
+            }
+
             case 'DELETE_TASK': {
                 const { taskId, date } = change;
-
-                // Remove from overdue
                 modifiedOverdue.overdue = modifiedOverdue.overdue.filter(
                     t => t.id.toString() !== taskId.toString()
                 );
-
-                // Remove from taskDays
                 if (date && modifiedTaskDays[date]) {
                     modifiedTaskDays[date] = modifiedTaskDays[date].filter(
                         t => t.id.toString() !== taskId.toString()
                     );
+                } else {
+                    // Search all dates (date may be unknown if task was moved)
+                    for (const d in modifiedTaskDays) {
+                        modifiedTaskDays[d] = modifiedTaskDays[d].filter(
+                            t => t.id.toString() !== taskId.toString()
+                        );
+                    }
                 }
                 break;
             }
@@ -239,4 +259,50 @@ export const hasPendingChanges = () => {
  */
 export const getPendingChangeCount = () => {
     return getPendingChanges().length;
+};
+
+const TASK_SNAPSHOT_KEY = 'todo-task-snapshot';
+
+/**
+ * Save a full snapshot of the current task state with a timestamp.
+ * Call this after every mutation (move, update, add, delete).
+ * @param {{ taskDays: Object, overdueTasks: Object, completedTasks: Object }} state
+ */
+export const saveTaskSnapshot = (state) => {
+    try {
+        const snapshot = {
+            timestamp: Date.now(),
+            taskDays: state.taskDays,
+            overdueTasks: state.overdueTasks,
+            completedTasks: state.completedTasks,
+        };
+        localStorage.setItem(TASK_SNAPSHOT_KEY, JSON.stringify(snapshot));
+    } catch (error) {
+        console.error('Error saving task snapshot:', error);
+    }
+};
+
+/**
+ * Load the most recent task snapshot from localStorage.
+ * @returns {{ timestamp: number, taskDays, overdueTasks, completedTasks } | null}
+ */
+export const loadTaskSnapshot = () => {
+    try {
+        const stored = localStorage.getItem(TASK_SNAPSHOT_KEY);
+        return stored ? JSON.parse(stored) : null;
+    } catch (error) {
+        console.error('Error loading task snapshot:', error);
+        return null;
+    }
+};
+
+/**
+ * Clear the task snapshot (call after a successful confirmed fetch).
+ */
+export const clearTaskSnapshot = () => {
+    try {
+        localStorage.removeItem(TASK_SNAPSHOT_KEY);
+    } catch (error) {
+        console.error('Error clearing task snapshot:', error);
+    }
 };
