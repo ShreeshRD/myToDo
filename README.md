@@ -37,12 +37,19 @@ sequenceDiagram
     UI->>UI: Apply pending changes to fetched data
 ```
 
-Installation notes -
-Run frontend with:
+Installation notes - npm i
+Run and build frontend with:
 ```
-npm i
-npm start
+npm run dev
+npm run build
 ```
+Run and build backend with:
+```
+./mvnw spring-boot:run
+./mvnw clean package
+```
+Set profile with - SPRING_PROFILES_ACTIVE=prod
+
 Pre-Requisites - 
 Java Version 21
 MySQL instance running with an existing database called tododb
