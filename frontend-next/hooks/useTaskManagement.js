@@ -1,13 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import dayjs from 'dayjs';
 import { getTasks, updateField, deleteTask, addTask } from '../service';
-import {
-    addPendingChange,
-    removePendingChange,
-    applyPendingChanges,
-    saveTaskSnapshot,
-    loadTaskSnapshot
-} from '../lib/pendingChanges';
 
 const useTaskManagement = () => {
     const [taskDays, setTaskDays] = useState([]);
@@ -84,38 +77,19 @@ const useTaskManagement = () => {
             setCompletedTasks(newCompletedTasks);
             newOverdueTasks.overdue = sortTasks(newOverdueTasks.overdue);
 
-            // Sort each date's tasks by dayOrder before applying pending changes
+            // Sort each date's tasks by dayOrder
             for (const date in newTaskDays) {
                 newTaskDays[date].sort((a, b) => a.dayOrder - b.dayOrder);
             }
 
-            // Apply any pending changes that haven't synced yet
-            const { taskDays: mergedTaskDays, overdueTasks: mergedOverdue } =
-                applyPendingChanges(newTaskDays, newOverdueTasks);
-
-            setOverdueTasks(mergedOverdue);
-            setTaskDays(mergedTaskDays);
-
-            // Save confirmed state snapshot so next refresh starts here
-            saveTaskSnapshot({
-                taskDays: mergedTaskDays,
-                overdueTasks: mergedOverdue,
-                completedTasks: newCompletedTasks,
-            });
+            setOverdueTasks(newOverdueTasks);
+            setTaskDays(newTaskDays);
         } catch (error) {
             console.error("Error fetching tasks:", error);
         }
     }, [sortTasks]);
 
     useEffect(() => {
-        // Immediately load snapshot from localStorage (cache-first)
-        const snapshot = loadTaskSnapshot();
-        if (snapshot) {
-            setTaskDays(snapshot.taskDays || {});
-            setOverdueTasks(snapshot.overdueTasks || { overdue: [] });
-            setCompletedTasks(snapshot.completedTasks || {});
-        }
-
         const timer = setTimeout(() => fetchTasks(), 0);
         return () => clearTimeout(timer);
     }, [fetchTasks]);
@@ -133,12 +107,6 @@ const useTaskManagement = () => {
                 ...prevTaskDays,
                 overdue: updatedOverdue
             }));
-
-            saveTaskSnapshot({
-                taskDays,
-                overdueTasks: { overdue: updatedOverdue },
-                completedTasks
-            });
         }
         else {
             const updatedTaskDaysForDate = [
@@ -150,40 +118,22 @@ const useTaskManagement = () => {
                 ...prevTaskDays,
                 [task.taskDate]: updatedTaskDaysForDate
             }));
-
-            saveTaskSnapshot({
-                taskDays: {
-                    ...taskDays,
-                    [task.taskDate]: updatedTaskDaysForDate
-                },
-                overdueTasks,
-                completedTasks
-            });
         }
     }
 
     const updateTask = (id, field, value, date) => {
         const today = dayjs().format("YYYY-MM-DD");
         const isOverdue = date < today;
+        const targetId = id ? id.toString() : '';
 
-        // 1. Save pending change to localStorage FIRST (before any updates)
-        // This ensures the change persists even if page is refreshed before backend sync
-        const pendingId = addPendingChange({
-            type: 'UPDATE_FIELD',
-            taskId: id,
-            field: field,
-            value: value,
-            date: date
-        });
-
-        // 2. Update UI immediately (optimistic update)
+        // 1. Update UI immediately (optimistic update)
         if (field === "complete") {
             if (value === true) {
                 // Task is being marked as complete
                 if (isOverdue) {
                     const updatedOverdue = { ...overdueTasks };
-                    updatedOverdue.overdue = updatedOverdue.overdue.map(task =>
-                        task.id === id ? { ...task, complete: true } : task
+                    updatedOverdue.overdue = (updatedOverdue.overdue || []).map(task =>
+                        task.id.toString() === targetId ? { ...task, complete: true } : task
                     );
                     updatedOverdue.overdue = sortTasks(updatedOverdue.overdue);
                     setOverdueTasks(updatedOverdue);
@@ -191,19 +141,18 @@ const useTaskManagement = () => {
                     const updatedTaskDays = { ...taskDays };
                     if (updatedTaskDays[date]) {
                         updatedTaskDays[date] = updatedTaskDays[date].map(task =>
-                            task.id === id ? { ...task, complete: true } : task
+                            task.id.toString() === targetId ? { ...task, complete: true } : task
                         );
                         setTaskDays(updatedTaskDays);
                     }
                 }
 
                 // ALSO add to completedTasks so it appears in Completed section
-                // Find the task to get its full data
                 let taskToComplete = null;
                 if (isOverdue) {
-                    taskToComplete = overdueTasks.overdue.find(t => t.id === id);
+                    taskToComplete = (overdueTasks.overdue || []).find(t => t.id.toString() === targetId);
                 } else if (taskDays[date]) {
-                    taskToComplete = taskDays[date].find(t => t.id === id);
+                    taskToComplete = taskDays[date].find(t => t.id.toString() === targetId);
                 }
 
                 if (taskToComplete) {
@@ -211,15 +160,17 @@ const useTaskManagement = () => {
                     if (!updatedCompletedTasks[date]) {
                         updatedCompletedTasks[date] = [];
                     }
-                    updatedCompletedTasks[date].push({ ...taskToComplete, complete: true });
+                    if (!updatedCompletedTasks[date].some(t => t.id.toString() === targetId)) {
+                        updatedCompletedTasks[date].push({ ...taskToComplete, complete: true });
+                    }
                     setCompletedTasks(updatedCompletedTasks);
                 }
             } else {
                 // Task is being unmarked (uncompleted)
                 if (isOverdue) {
                     const updatedOverdue = { ...overdueTasks };
-                    updatedOverdue.overdue = updatedOverdue.overdue.map(task =>
-                        task.id === id ? { ...task, complete: false } : task
+                    updatedOverdue.overdue = (updatedOverdue.overdue || []).map(task =>
+                        task.id.toString() === targetId ? { ...task, complete: false } : task
                     );
                     updatedOverdue.overdue = sortTasks(updatedOverdue.overdue);
                     setOverdueTasks(updatedOverdue);
@@ -227,7 +178,7 @@ const useTaskManagement = () => {
                     const updatedTaskDays = { ...taskDays };
                     if (updatedTaskDays[date]) {
                         updatedTaskDays[date] = updatedTaskDays[date].map(task =>
-                            task.id === id ? { ...task, complete: false } : task
+                            task.id.toString() === targetId ? { ...task, complete: false } : task
                         );
                         setTaskDays(updatedTaskDays);
                     }
@@ -236,82 +187,40 @@ const useTaskManagement = () => {
                 // Remove from completedTasks
                 const updatedCompletedTasks = { ...completedTasks };
                 if (updatedCompletedTasks[date]) {
-                    updatedCompletedTasks[date] = updatedCompletedTasks[date].filter(task => task.id !== id);
+                    updatedCompletedTasks[date] = updatedCompletedTasks[date].filter(task => task.id.toString() !== targetId);
                     setCompletedTasks(updatedCompletedTasks);
                 }
             }
         } else {
-            // For non-complete field updates, just update the task in place
+            // For non-complete field updates, update task across overdue and taskDays
             if (isOverdue) {
                 const updatedOverdue = { ...overdueTasks };
-                updatedOverdue.overdue = updatedOverdue.overdue.map(task =>
-                    task.id === id ? { ...task, [field]: value } : task
+                updatedOverdue.overdue = (updatedOverdue.overdue || []).map(task =>
+                    task.id.toString() === targetId ? { ...task, [field]: value } : task
                 );
                 updatedOverdue.overdue = sortTasks(updatedOverdue.overdue);
                 setOverdueTasks(updatedOverdue);
             }
 
-            // Also update taskDays if it exists there
             const updatedTaskDays = { ...taskDays };
-            if (updatedTaskDays[date]) {
-                updatedTaskDays[date] = updatedTaskDays[date].map((task) =>
-                    task.id === id ? { ...task, [field]: value } : task
+            for (const d in updatedTaskDays) {
+                updatedTaskDays[d] = updatedTaskDays[d].map((task) =>
+                    task.id.toString() === targetId ? { ...task, [field]: value } : task
                 );
-                setTaskDays(updatedTaskDays);
             }
+            setTaskDays(updatedTaskDays);
         }
 
-        // Save snapshot with latest state derived from current updates
-        // Since React state updates are async, we recalculate inline for snapshotting
-        let snapTaskDays = { ...taskDays };
-        let snapOverdue = { ...overdueTasks };
-        let snapCompleted = { ...completedTasks };
-
-        if (field === "complete") {
-            if (value === true) {
-                if (isOverdue) snapOverdue.overdue = snapOverdue.overdue.map(t => t.id === id ? { ...t, complete: true } : t);
-                else if (snapTaskDays[date]) snapTaskDays[date] = snapTaskDays[date].map(t => t.id === id ? { ...t, complete: true } : t);
-
-                let taskToComplete = isOverdue ? overdueTasks.overdue.find(t => t.id === id) : (taskDays[date] && taskDays[date].find(t => t.id === id));
-                if (taskToComplete) {
-                    if (!snapCompleted[date]) snapCompleted[date] = [];
-                    // Avoid duplicates
-                    if (!snapCompleted[date].find(t => t.id === id)) {
-                        snapCompleted[date].push({ ...taskToComplete, complete: true });
-                    }
-                }
-            } else {
-                if (isOverdue) snapOverdue.overdue = snapOverdue.overdue.map(t => t.id === id ? { ...t, complete: false } : t);
-                else if (snapTaskDays[date]) snapTaskDays[date] = snapTaskDays[date].map(t => t.id === id ? { ...t, complete: false } : t);
-
-                if (snapCompleted[date]) snapCompleted[date] = snapCompleted[date].filter(t => t.id !== id);
-            }
-            if (isOverdue) snapOverdue.overdue = sortTasks(snapOverdue.overdue);
-        } else {
-            if (isOverdue) {
-                snapOverdue.overdue = snapOverdue.overdue.map(t => t.id === id ? { ...t, [field]: value } : t);
-                snapOverdue.overdue = sortTasks(snapOverdue.overdue);
-            }
-            if (snapTaskDays[date]) snapTaskDays[date] = snapTaskDays[date].map(t => t.id === id ? { ...t, [field]: value } : t);
-        }
-
-        saveTaskSnapshot({ taskDays: snapTaskDays, overdueTasks: snapOverdue, completedTasks: snapCompleted });
-
-        // 3. Send to backend async (don't block UI)
+        // 2. Send to backend async
         updateField(id, field, value)
             .then((taskItem) => {
-                // 4. Remove pending change on success
-                removePendingChange(pendingId);
-
                 // Handle repeat tasks after backend confirms (for complete field)
                 if (field === "complete" && value === true && taskItem && taskItem.repeatType !== "NONE") {
                     addNextRepeat(taskItem);
                 }
             })
             .catch((error) => {
-                // 5. Keep pending change on failure for replay on refresh
                 console.error(`Error updating task with id ${id}:`, error);
-                console.warn('Backend sync failed, keeping pending change for retry on next load');
             });
     };
 
@@ -357,17 +266,9 @@ const useTaskManagement = () => {
         // Check if task already exists in the future date
         const existingTasks = taskDays[newDate] || [];
         const isDuplicate = existingTasks.some(t => {
-            console.log("Checking duplicate:", {
-                tName: t.name,
-                taskName: task.name,
-                tCat: t.category,
-                taskCat: task.category,
-                tId: t.id,
-                taskId: task.id
-            });
             return t.name === task.name &&
                 t.category === task.category &&
-                t.id !== task.id;
+                t.id.toString() !== task.id.toString();
         });
 
         if (isDuplicate) {
@@ -386,23 +287,16 @@ const useTaskManagement = () => {
     };
 
     const removeTask = async (taskId, date, update = false) => {
-        // 1. Queue pending delete so that if backend fails, the task stays removed visually on refresh
-        const pendingId = addPendingChange({
-            type: 'DELETE_TASK',
-            taskId: taskId.toString(),
-            date: date,
-        });
-
+        const targetId = taskId ? taskId.toString() : '';
         try {
             const task_completed = await deleteTask(taskId);
-            // 2. Backend confirmed — remove pending change
-            removePendingChange(pendingId);
 
             if (task_completed) {
                 const newCompletedTasks = { ...completedTasks };
-                newCompletedTasks[date] = newCompletedTasks[date].filter((task) => task.id !== taskId);
-
-                if (!update) {
+                for (const d in newCompletedTasks) {
+                    newCompletedTasks[d] = newCompletedTasks[d].filter((task) => task.id.toString() !== targetId);
+                }
+                if (!update && date && newCompletedTasks[date]) {
                     newCompletedTasks[date].forEach((task, index) => {
                         task.dayOrder = index + 1;
                         updateBackend(task.id, "dayOrder", index + 1);
@@ -411,31 +305,28 @@ const useTaskManagement = () => {
                 setCompletedTasks(newCompletedTasks);
             }
             else {
-                if (date < dayjs().format("YYYY-MM-DD")) {
-                    const updatedOverdue = { ...overdueTasks };
-                    updatedOverdue.overdue = updatedOverdue.overdue.filter((task) => task.id !== taskId);
-                    setOverdueTasks(updatedOverdue);
-                }
-                else {
-                    const updatedTaskDays = { ...taskDays };
-                    updatedTaskDays[date] = updatedTaskDays[date].filter((task) => task.id !== taskId);
-                    if (!update) {
-                        updatedTaskDays[date].forEach((task, index) => {
-                            task.dayOrder = index + 1;
-                            updateBackend(task.id, "dayOrder", index + 1);
-                        });
-                    }
-                    setTaskDays(updatedTaskDays);
+                // Remove from overdue
+                setOverdueTasks(prevOverdue => ({
+                    ...prevOverdue,
+                    overdue: (prevOverdue.overdue || []).filter((task) => task.id.toString() !== targetId)
+                }));
 
-                    saveTaskSnapshot({
-                        taskDays: updatedTaskDays,
-                        overdueTasks,
-                        completedTasks: completedTasks
-                    });
-                }
+                // Remove from taskDays across all dates
+                setTaskDays(prevTaskDays => {
+                    const updatedTaskDays = { ...prevTaskDays };
+                    for (const d in updatedTaskDays) {
+                        updatedTaskDays[d] = updatedTaskDays[d].filter((task) => task.id.toString() !== targetId);
+                        if (!update && d === date) {
+                            updatedTaskDays[d].forEach((task, index) => {
+                                task.dayOrder = index + 1;
+                                updateBackend(task.id, "dayOrder", index + 1);
+                            });
+                        }
+                    }
+                    return updatedTaskDays;
+                });
             }
         } catch (error) {
-            // 3. Keep pending change so task stays removed on next load
             console.error(`Error deleting task with id ${taskId}:`, error);
         }
     };
@@ -468,19 +359,7 @@ const useTaskManagement = () => {
             return;
         }
 
-        // Add to pending changes queue BEFORE making any updates
-        // This ensures the change persists even if page is refreshed before backend sync
-        const pendingId = addPendingChange({
-            type: 'MOVE_TASK',
-            taskId: taskId,
-            sourceDate: isOverdue ? 'overdue' : sourceDate,
-            destDate: destDate,
-            predecessorTaskId: predecessorTaskId,
-            taskData: { ...sourceTask, taskDate: destDate }
-        });
-
         // Calculate the new destination list for both frontend and backend
-        // This ensures we use the same logic and avoid stale state issues
         let currentDestList = [...(taskDays[destDate] || [])].sort((a, b) => a.dayOrder - b.dayOrder);
 
         // Remove source task if it's in the destination date
@@ -528,18 +407,10 @@ const useTaskManagement = () => {
             // Set the new destination list
             newTaskDays[destDate] = updatedDestList;
 
-            // Save snapshot with latest state
-            saveTaskSnapshot({
-                taskDays: newTaskDays,
-                overdueTasks: isOverdue ? { ...overdueTasks, overdue: overdueTasks.overdue.filter(t => t.id.toString() !== taskId) } : overdueTasks,
-                completedTasks: completedTasks
-            });
-
             return newTaskDays;
         });
 
-        // 3. Update Backend and remove pending change on success
-        // Track all backend updates so we can remove pending change when all complete
+        // 3. Update Backend
         const backendPromises = [];
 
         backendPromises.push(
@@ -561,15 +432,9 @@ const useTaskManagement = () => {
             );
         });
 
-        // Remove pending change only when all backend updates succeed
-        Promise.all(backendPromises)
-            .then(() => {
-                removePendingChange(pendingId);
-            })
-            .catch(() => {
-                // Keep pending change in queue for replay on next load
-                console.warn('Backend sync failed, keeping pending change for retry');
-            });
+        Promise.all(backendPromises).catch(err => {
+            console.error('Backend sync failed during moveTask:', err);
+        });
     };
 
     return {

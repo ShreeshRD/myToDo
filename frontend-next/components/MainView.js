@@ -15,7 +15,6 @@ import dayjs from "dayjs";
 
 const DEFAULT_PROJECTS = ["Home", "Office", "Personal"];
 const STORAGE_KEY = "todo-projects";
-const DELETED_PROJECTS_KEY = "todo-deleted-projects";
 
 function MainView() {
 	const [projects, setProjects] = useState(DEFAULT_PROJECTS);
@@ -79,13 +78,6 @@ function MainView() {
 	};
 
 	const deleteProjectWithTasks = async (projectName, deleteIncomplete) => {
-		// Track deleted project in localStorage for edge case handling
-		const deletedProjects = JSON.parse(localStorage.getItem(DELETED_PROJECTS_KEY) || '[]');
-		if (!deletedProjects.includes(projectName)) {
-			deletedProjects.push(projectName);
-			localStorage.setItem(DELETED_PROJECTS_KEY, JSON.stringify(deletedProjects));
-		}
-
 		if (deleteIncomplete) {
 			// Delete incomplete tasks with this category
 			await deleteTasksByCategory(projectName);

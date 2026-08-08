@@ -5,10 +5,8 @@ import useTaskManagement from '../hooks/useTaskManagement';
 import { addTask } from "../service";
 import { useUI } from './UIContext';
 import { calculatePredecessor, calculatePredecessorUnfiltered } from '../lib/dragUtils';
-import { addPendingChange } from '../lib/pendingChanges';
 
 const TaskContext = createContext();
-const DELETED_PROJECTS_KEY = "todo-deleted-projects";
 
 export const useTasks = () => useContext(TaskContext);
 
@@ -67,25 +65,9 @@ export const TaskProvider = ({ children }) => {
             let task;
             try {
                 task = await addTask(taskName, dateChoice, projectChoice, priority, repeatType, repeatDuration, longTerm);
-                // Task saved to backend — no pending change needed
             } catch (err) {
-                // Backend unreachable — create a temporary task object with a local ID
-                console.warn('addTask backend failed, queuing CREATE_TASK pending change');
-                const tempTask = {
-                    id: `local-${Date.now()}`,
-                    name: taskName,
-                    taskDate: dateChoice,
-                    category: projectChoice,
-                    priority,
-                    repeatType,
-                    repeatDuration,
-                    longTerm,
-                    dayOrder: 9999,
-                    complete: false,
-                    inProgress: false,
-                };
-                addPendingChange({ type: 'CREATE_TASK', taskData: tempTask });
-                task = tempTask;
+                console.error('addTask backend failed:', err);
+                return;
             }
 
             if (assignedTime) {
@@ -103,12 +85,15 @@ export const TaskProvider = ({ children }) => {
                 await taskManagement.updateBackend(task.id, "timeTaken", timeTaken);
             }
 
-            if (deleteid !== -1) {
+            if (deleteid !== -1 && deleteid !== "-1" && deleteid !== null && deleteid !== undefined) {
                 await taskManagement.removeTask(deleteid, taskDate, true);
                 task.dayOrder = taskOrder;
                 taskManagement.updateBackend(task.id, "dayOrder", taskOrder);
+                // Refresh from backend so old task is gone before new one appears
+                await taskManagement.fetchTasks();
+            } else {
+                taskManagement.addToFrontend(task);
             }
-            taskManagement.addToFrontend(task);
         }
         setPopupDate("");
         setPopupTaskItem(null);
@@ -163,38 +148,7 @@ export const TaskProvider = ({ children }) => {
         }
     };
 
-    // Check if category is from a deleted project (for edge case handling)
-    const isDeletedProject = (category) => {
-        if (!category || category === "None") return false;
-        const deletedProjects = JSON.parse(localStorage.getItem(DELETED_PROJECTS_KEY) || '[]');
-        return deletedProjects.includes(category);
-    };
-
-    // Extended updateTask that handles deleted project edge case
     const updateTaskWithDeletedProjectCheck = async (id, field, value, date) => {
-        // If unmarking a task (complete: false), check if its category is from a deleted project
-        if (field === "complete" && value === false) {
-            // Find the task to check its category
-            let task = null;
-
-            // Check completedTasks
-            for (const d in taskManagement.completedTasks) {
-                const found = taskManagement.completedTasks[d].find(t => t.id === id);
-                if (found) {
-                    task = found;
-                    break;
-                }
-            }
-
-            if (task && isDeletedProject(task.category)) {
-                // First update complete status
-                await taskManagement.updateTask(id, field, value, date);
-                // Then clear the category
-                await taskManagement.updateTask(id, "category", "None", date);
-                return;
-            }
-        }
-
         if (field === "complete" && value === true) {
             await taskManagement.updateTask(id, "inProgress", false, date);
         }

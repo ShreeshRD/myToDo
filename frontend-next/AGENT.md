@@ -13,8 +13,7 @@ All files under `frontend-next/`.
 - Next.js App Router (`app/` directory)
 - TypeScript for new files; JavaScript for existing
 - Context-based state management (`TaskContext`, `UIContext`, `StopwatchContext`)
-- Pending changes cache via `lib/pendingChanges.js` (localStorage)
-- Backend communicates via REST API (configured in `lib/constants.js`)
+- Direct sync with Spring Boot backend via REST API (configured in `lib/constants.js`)
 - Tests in `__tests__/` using Jest
 
 ## Work Guidance
