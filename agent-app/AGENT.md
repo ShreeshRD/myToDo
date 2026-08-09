@@ -28,9 +28,22 @@ All files under `agent-app/`.
 - Typecheck: `pnpm run typecheck` (exit 0)
 - Tests: `pnpm run test` (19/19 pass)
 - Linter/formatting: `pnpm exec oxfmt --check .` inside `agent-app/`
-- Dev server: `pnpm run dev` — expect Vite ready on `http://localhost:8080`
+- Dev server: `pnpm run dev` — expect Vite ready on `http://localhost:8080` and `curl http://localhost:8080/` returning HTTP 200 with the app title.
 
 All checks use `pnpm`. The package manager is pinned to `pnpm@10.29.1` in `package.json`. If `pnpm` is not on `$PATH`, use `npx pnpm@10.29.1`.
+
+### Dev server walkthrough (agent server verification)
+
+1. Boot: `npx pnpm@10.29.1 --dir agent-app run dev` (or `pnpm run dev` inside `agent-app/`). Expect `VITE ... ready` and `Local: http://localhost:8080/`.
+2. Confirm: `curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/` returns `200` and the page `<title>` is `Chat - Open Source AI app starter with actions`.
+3. Functional action checks live in the unit tests (`pnpm run test`, 19/19); actions run in-process through the agent runtime, so there is no HTTP endpoint to probe.
+
+Known environment gotchas (verified 2026-08-09):
+- Node must be v24.x (`agent-native/.nvmrc` pins v24.14.0). If `better-sqlite3`'s native binary was built for another ABI (e.g. `NODE_MODULE_VERSION 147` vs required `137`), the Nitro dev worker crashes on DB migration (`[db] Migration failed: ... compiled against a different Node.js version`) and every request returns HTTP 500 even though Vite reports "ready". Fix: rebuild from source against the current Node —
+  `cd agent-native/node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3 && rm -rf build && npm_config_build_from_source=true npx --no-install node-gyp rebuild --release`
+  The pnpm store can reuse a stale binary after reinstall, so repeat this if the ABI error recurs.
+- Startup noise that is safe to ignore: the one-time `Failed to load url .../nitro/dist/runtime/internal/vite/dev-entry.mjs` error at boot, the `rollupOptions`/`rolldownOptions` warning, and `Tests closed successfully but something prevents Vite server from exiting` in test output (exit code stays 0).
+- `typecheck` prints production-config errors (`BETTER_AUTH_SECRET`, persistent `DATABASE_URL`) but exits 0; those only matter for production deploys, not local dev on SQLite.
 
 ## Child DOX Index
 
