@@ -6,7 +6,7 @@ Own project planning documents, flow analysis, and implementation plans. These a
 
 ## Ownership
 
-All files under `plan/` and top-level analysis/plan docs (e.g., `fix_unsaved_changes_plan.md`, `flow_analysis.md`).
+All files under `plan/`.
 
 ## Local Contracts
 
@@ -24,6 +24,8 @@ All files under `plan/` and top-level analysis/plan docs (e.g., `fix_unsaved_cha
 
 None yet.
 
-## Child DOX Index
+## Plan Document Index
 
-None
+| Document | Purpose |
+|---|---|
+| `agent-native.md` | Agent-Native conversion plan |
