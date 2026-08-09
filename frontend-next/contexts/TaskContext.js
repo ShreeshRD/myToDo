@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState } from 'react';
 import useTaskManagement from '../hooks/useTaskManagement';
-import { addTask } from "../service";
+import { addTask } from "../lib/agentClient";
 import { useUI } from './UIContext';
 import { calculatePredecessor, calculatePredecessorUnfiltered } from '../lib/dragUtils';
 

@@ -44,6 +44,7 @@ export default defineAction({
     });
     return {
       success: true,
+      completed: Boolean(response.data),
       message: `Task ${id} deleted successfully.`,
     };
   },

@@ -19,9 +19,11 @@ export default defineAction({
   readOnly: true,
   run: async () => {
     const navigation = await readAppState("navigation");
+    const pageContext = await readAppState("page-context");
 
     const screen: Record<string, unknown> = {};
     if (navigation) screen.navigation = navigation;
+    if (pageContext) screen.pageContext = pageContext;
 
     if (Object.keys(screen).length === 0) {
       return "No application state found. Is the app running?";

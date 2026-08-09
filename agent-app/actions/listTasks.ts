@@ -49,9 +49,27 @@ export default defineAction({
 
     // Apply client-side filters if provided (backend returns all tasks).
     // These can be pushed server-side once the backend supports query params.
-    let tasks = Array.isArray(response.data)
-      ? (response.data as Record<string, unknown>[])
-      : [];
+    //
+    // When groupByDate=true the backend returns { itemsByDate: { "YYYY-MM-DD": Task[] } }
+    // rather than a flat array, so we must flatten the date buckets first.
+    let tasks: Record<string, unknown>[];
+    const data = response.data as Record<string, unknown>;
+    if (
+      !Array.isArray(response.data) &&
+      data &&
+      typeof data === "object" &&
+      "itemsByDate" in data
+    ) {
+      const byDate = data["itemsByDate"] as Record<
+        string,
+        Record<string, unknown>[]
+      >;
+      tasks = Object.values(byDate).flat();
+    } else {
+      tasks = Array.isArray(response.data)
+        ? (response.data as Record<string, unknown>[])
+        : [];
+    }
 
     if (category !== undefined) {
       tasks = tasks.filter((t) => t["category"] === category);

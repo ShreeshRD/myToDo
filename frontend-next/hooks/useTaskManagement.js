@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import dayjs from 'dayjs';
-import { getTasks, updateField, deleteTask, addTask } from '../service';
+import { getTasks, updateField, deleteTask, addTask } from '../lib/agentClient';
 
 const useTaskManagement = () => {
     const [taskDays, setTaskDays] = useState([]);

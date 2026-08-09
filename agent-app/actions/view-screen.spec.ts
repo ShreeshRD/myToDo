@@ -16,13 +16,31 @@ describe("view-screen", () => {
   });
 
   it("returns the current navigation state when present", async () => {
-    mocks.readAppState.mockResolvedValue({ view: "chat", threadId: "t1" });
+    // readAppState is called twice: once for "navigation", once for "page-context"
+    mocks.readAppState
+      .mockResolvedValueOnce({ view: "chat", threadId: "t1" }) // navigation
+      .mockResolvedValueOnce(null); // page-context (absent)
 
     const result = await action.run({});
 
     expect(mocks.readAppState).toHaveBeenCalledWith("navigation");
+    expect(mocks.readAppState).toHaveBeenCalledWith("page-context");
     expect(result).toEqual({
       navigation: { view: "chat", threadId: "t1" },
+    });
+  });
+
+  it("includes pageContext when present", async () => {
+    const ctx = { view: "Today", selectedTaskId: 42, filters: ["Home"] };
+    mocks.readAppState
+      .mockResolvedValueOnce({ view: "Today" }) // navigation
+      .mockResolvedValueOnce(ctx); // page-context
+
+    const result = await action.run({});
+
+    expect(result).toEqual({
+      navigation: { view: "Today" },
+      pageContext: ctx,
     });
   });
 
