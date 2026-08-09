@@ -29,3 +29,7 @@ None yet.
 | Document | Purpose |
 |---|---|
 | `agent-native.md` | Agent-Native conversion plan |
+| `backend-endpoints.md` | Backend REST endpoints inventory |
+| `frontend-flows.md` | Frontend page views and API integrations inventory |
+| `actions-candidates.md` | Candidate Agent-Native Actions schemas and mappings |
+
