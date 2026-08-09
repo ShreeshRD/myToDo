@@ -82,8 +82,9 @@ Default section order:
 |---|---|---|
 | Frontend (Next.js) | 3001 | 3001 |
 | Backend (Spring Boot) | 8000 | 5555 |
+| Agent-Native App | 8080 | — |
 
-Frontend always runs on 3001. Backend dev runs on 8000, prod runs on 5555.
+Frontend always runs on 3001. Backend dev runs on 8000, prod runs on 5555. Agent-Native dev server (`agent-app/`) runs on 8080 via `pnpm run dev`.
 
 When the user requests a durable behavior change, record it here or in the relevant child AGENTS.md
 
@@ -94,3 +95,29 @@ When the user requests a durable behavior change, record it here or in the relev
 | Backend | `backend-springboot/AGENT.md` | Spring Boot REST API, services, data layer |
 | Frontend | `frontend-next/AGENT.md` | Next.js components, contexts, hooks, utilities |
 | Plan & Analysis | `plan/AGENT.md` | Implementation plans, flow analysis, project docs |
+| Agent-Native App | `agent-app/AGENT.md` | Agent-Native runtime, actions, chat UI, DB config, integration with backend and frontend |
+
+## Agent-Native Shared Actions Layer
+
+A shared actions layer exists in `agent-app/actions/`. All agent-exposed
+operations on the todo domain go through `defineAction` in that directory —
+never via direct `/api/*` routes. The layer proxies to the Spring Boot backend
+using `actions/lib/backendClient.ts`.
+
+All mutating actions log success/error outcomes to the `action_audit_log`
+table in `agent-app/data/app.db` via `actions/lib/audit.ts`; read-only actions
+must not. Entries capture the acting session email (`actor`) when available.
+The backend has no user/permission model, so authorization rests on the
+framework's authenticated-owner route default (`requiresAuth`) rather than
+domain permission checks.
+
+Actions currently exposed to the agent runtime:
+
+| Action | File | Backend Endpoint |
+|---|---|---|
+| `listTasks` | `agent-app/actions/listTasks.ts` | `GET /todo/allbydate` or `/todo/all` |
+| `createTask` | `agent-app/actions/createTask.ts` | `POST /todo/add` |
+| `updateTask` | `agent-app/actions/updateTask.ts` | `POST /todo/update` |
+| `deleteTask` | `agent-app/actions/deleteTask.ts` | `DELETE /todo/delete/{id}` |
+| `getScratchpad` | `agent-app/actions/getScratchpad.ts` | `GET /todo/scratchpad` |
+| `saveScratchpad` | `agent-app/actions/saveScratchpad.ts` | `POST /todo/scratchpad` |

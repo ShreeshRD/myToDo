@@ -32,4 +32,6 @@ None yet.
 | `backend-endpoints.md` | Backend REST endpoints inventory |
 | `frontend-flows.md` | Frontend page views and API integrations inventory |
 | `actions-candidates.md` | Candidate Agent-Native Actions schemas and mappings |
+| `runtime-db.md` | Database boundary decision: isolated SQLite for agent-app vs Spring Boot DB |
+| `open-items.md` | Open work items tracked across phases |
 

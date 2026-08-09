@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "onboarding": {
+    "firstRun": {
+      "development": "off",
+      "production": "connect-and-integrations"
+    }
+  },
+  "doctor": {
+    "failOnBuild": false
+  },
+  "actions": {
+    "listTasks": {
+      "file": "actions/listTasks.ts",
+      "description": "Retrieve all tasks, optionally filtered by date group, category, completion, or priority."
+    },
+    "createTask": {
+      "file": "actions/createTask.ts",
+      "description": "Create a new task."
+    },
+    "updateTask": {
+      "file": "actions/updateTask.ts",
+      "description": "Update a single field of an existing task by id."
+    },
+    "deleteTask": {
+      "file": "actions/deleteTask.ts",
+      "description": "Permanently delete a task by id."
+    },
+    "getScratchpad": {
+      "file": "actions/getScratchpad.ts",
+      "description": "Retrieve the active scratchpad document."
+    },
+    "saveScratchpad": {
+      "file": "actions/saveScratchpad.ts",
+      "description": "Overwrite the scratchpad document content."
+    }
+  }
+}
