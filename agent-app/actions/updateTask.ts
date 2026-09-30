@@ -32,12 +32,13 @@ export default defineAction({
         "inProgress",
         "longTerm",
         "timeTaken",
+        "reminderMinutesBefore",
       ])
       .describe("The task field to update"),
     value: z
       .string()
       .describe(
-        "The new value for the field (always a string; booleans as 'true'/'false', numbers as their string form)",
+        "The new value for the field (always a string; booleans as 'true'/'false', numbers as their string form; assignedTime as HH:mm:ss; 'null' clears assignedTime or reminderMinutesBefore). Completing a recurring task makes the backend create its next occurrence, returned as nextItem.",
       ),
   }),
   http: { method: "POST" },
@@ -46,7 +47,7 @@ export default defineAction({
     const response = await callBackend<Record<string, unknown>>({
       method: "POST",
       path: "/todo/update",
-      body: input,
+      query: input,
     });
 
     if (!response.ok) {

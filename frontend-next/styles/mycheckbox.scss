@@ -1,12 +1,22 @@
 .checkmark {
     position: relative;
-    font-size: 23px !important;
     display: inline-flex;
+    flex-shrink: 0;
     width: fit-content;
     height: fit-content;
     align-items: center;
     justify-content: center;
+    font-size: 20px !important;
+    color: var(--text-3);
     cursor: pointer;
+}
+
+.checkbox_icon_unchecked {
+    color: var(--text-3);
+}
+
+.checkbox_icon_checked {
+    color: var(--accent);
 }
 
 .checkmark-letter {
@@ -14,10 +24,58 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 14px;
-    color: black;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-2);
 
     &.checked {
-        color: white;
+        color: var(--accent-contrast);
     }
+}
+
+/* Priority ring (design system) */
+.checkmark--ring {
+    --ring: var(--p0);
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+    border: 1.5px solid var(--ring);
+    border-radius: var(--radius-full);
+    background: transparent;
+    transition: background var(--duration) var(--ease), transform var(--duration) var(--ease);
+
+    svg {
+        width: 12px;
+        height: 12px;
+        stroke: var(--ring);
+        opacity: 0;
+        transition: opacity var(--duration) var(--ease);
+    }
+
+    &:hover {
+        background: color-mix(in srgb, var(--ring) 12%, transparent);
+
+        svg {
+            opacity: 1;
+        }
+    }
+
+    &:active {
+        transform: scale(0.9);
+    }
+
+    &.checked {
+        background: var(--ring);
+
+        svg {
+            stroke: #fff;
+            opacity: 1;
+        }
+    }
+
+    &.p0 { --ring: var(--p0); }
+    &.p1 { --ring: var(--p1); border-width: 2px; }
+    &.p2 { --ring: var(--p2); border-width: 2px; }
+    &.p3 { --ring: var(--p3); border-width: 2px; }
+    &.p4 { --ring: var(--p4); border-width: 2px; }
 }

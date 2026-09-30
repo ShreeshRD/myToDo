@@ -30,7 +30,7 @@ export default defineAction({
     const response = await callBackend<Record<string, unknown>>({
       method: "POST",
       path: "/todo/scratchpad",
-      body: input,
+      rawBody: content,
     });
 
     if (!response.ok) {

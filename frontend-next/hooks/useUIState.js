@@ -36,6 +36,8 @@ const useUIState = () => {
     }, [showSidebar, mounted]);
 
     useEffect(() => {
+        // Design tokens (styles/tokens.scss) switch on this attribute, portals included
+        document.documentElement.dataset.theme = theme;
         if (mounted) localStorage.setItem('theme', JSON.stringify(theme));
     }, [theme, mounted]);
 

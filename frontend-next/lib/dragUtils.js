@@ -45,7 +45,7 @@ export function calculatePredecessor(destination, source, filteredDestTasks) {
  * @param {Array} unfilteredDestTasks - all tasks for the date (unfiltered)
  * @returns {string|null}
  */
-export function calculatePredecessorUnfiltered(destination, source, filteredDestTasks, unfilteredDestTasks) {
+export function calculatePredecessorUnfiltered(destination, source, filteredDestTasks, _unfilteredDestTasks) {
     // Get the predecessor task from the filtered view (index-based)
     const filteredPredecessorId = calculatePredecessor(destination, source, filteredDestTasks);
 

@@ -30,6 +30,15 @@ public class TodoItem {
     private Integer priority;
     private boolean inProgress;
     private boolean longTerm;
+    // Stable id shared with offline clients (Android); server ids are not known offline.
+    // Not a UNIQUE column: SQLite cannot add one to an existing table, so services keep it unique.
+    private String uuid;
+    // Epoch millis of the last change; drives sync (last write wins)
+    private Long updatedAt;
+    // Tombstone so sync clients learn about deletions; Boolean because pre-existing rows hold NULL
+    private Boolean deleted;
+    // Minutes before assignedTime to notify; null means no reminder
+    private Integer reminderMinutesBefore;
 
     public TodoItem() {
     }
@@ -40,6 +49,7 @@ public class TodoItem {
         this.category = category;
         this.name = name;
         this.complete = false;
+        this.deleted = false;
     }
 
     @Override
@@ -165,5 +175,37 @@ public class TodoItem {
 
     public void setTimeTaken(Long timeTaken) {
         this.timeTaken = timeTaken;
+    }
+
+    public String getUuid() {
+        return uuid;
+    }
+
+    public void setUuid(String uuid) {
+        this.uuid = uuid;
+    }
+
+    public Long getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Long updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public boolean isDeleted() {
+        return Boolean.TRUE.equals(deleted);
+    }
+
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
+    }
+
+    public Integer getReminderMinutesBefore() {
+        return reminderMinutesBefore;
+    }
+
+    public void setReminderMinutesBefore(Integer reminderMinutesBefore) {
+        this.reminderMinutesBefore = reminderMinutesBefore;
     }
 }

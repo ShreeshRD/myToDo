@@ -58,13 +58,24 @@ export default defineAction({
       .optional()
       .default(false)
       .describe("Mark as a long-term goal task"),
+    assignedTime: z
+      .string()
+      .regex(/^\d{2}:\d{2}(:\d{2})?$/, "Must be HH:mm or HH:mm:ss")
+      .optional()
+      .describe("Time of day the task is scheduled for (HH:mm:ss)"),
+    reminderMinutesBefore: z
+      .number()
+      .int()
+      .nonnegative()
+      .optional()
+      .describe("Send a reminder this many minutes before assignedTime (requires assignedTime)"),
   }),
   http: { method: "POST" },
   run: async (input, ctx) => {
     const response = await callBackend<Record<string, unknown>>({
       method: "POST",
       path: "/todo/add",
-      body: input,
+      query: input,
     });
 
     if (!response.ok) {

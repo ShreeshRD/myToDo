@@ -1,24 +1,20 @@
-FROM openjdk:21-jdk-slim
-# Set the working directory in docker
+# Build stage: compile the Spring Boot jar (includes any frontend copied into
+# src/main/resources/static by `npm run build` in frontend-next)
+FROM eclipse-temurin:21-jdk AS build
 WORKDIR /app
+COPY mvnw pom.xml ./
+COPY .mvn .mvn
+RUN ./mvnw -B dependency:go-offline
+COPY src src
+RUN ./mvnw -B package -DskipTests && cp target/todo-*.jar /app/app.jar
 
-COPY pom.xml /app/
-
-# Copy the Maven wrapper and dependencies
-COPY mvnw /app/
-COPY .mvn /app/.mvn
-
-# Download the dependencies
-RUN ./mvnw dependency:go-offline -B
-
-# Copy the rest of the application code
-COPY . /app
-
-# Build the application
-RUN ./mvnw package -DskipTests
-
-# Expose the port the app runs on
-EXPOSE 8080
-
-# Command to run the application
-CMD ["java", "-jar", "target/todo-0.0.1-SNAPSHOT.jar"]
+# Runtime stage
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+COPY --from=build /app/app.jar app.jar
+# SQLite database lives on a volume so it survives container rebuilds
+VOLUME /data
+ENV SPRING_PROFILES_ACTIVE=prod \
+    SPRING_DATASOURCE_URL=jdbc:sqlite:/data/todo.db
+EXPOSE 5555
+CMD ["java", "-jar", "app.jar"]

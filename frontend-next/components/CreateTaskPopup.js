@@ -5,12 +5,17 @@ import dayjs from "dayjs";
 import Dropdown from "./Dropdown";
 import DateComponent from "./DateComponent";
 import TimeComponent from "./TimeComponent";
+import { IoNotificationsOutline } from "react-icons/io5";
+import { REMINDER_OPTIONS, reminderLabel } from "../lib/reminders";
+
+const REMINDER_CHIP_LABELS = { 0: 'At time', 5: '5m before', 10: '10m before', 15: '15m before', 30: '30m before', 60: '1h before', 1440: '1d before' };
 import CustomCheckbox from "./CustomCheckbox";
 import { FaRegCircle, FaCircle, FaFlag } from "react-icons/fa";
 import { BsArrowRepeat } from "react-icons/bs";
 import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
 import '../styles/popup.scss'
 import { useTasks } from "../contexts/TaskContext";
+import { projectColor } from "../lib/projectColors";
 import {
   PRIORITY_MAP,
   REPEAT_TYPE_MAP,
@@ -54,6 +59,7 @@ function CreateTaskPopup({ projects, theme, date, task }) {
   const [repeatDuration, setRepeatDuration] = useState('');
   const [repeatCustom, setRepeatCustom] = useState(1);
   const [assignedTime, setAssignedTime] = useState(null);
+  const [reminder, setReminder] = useState(null); // minutes before assignedTime, null = none
   const [error, setError] = useState('');
   const [days, setDays] = useState([...WEEKDAYS]);
   const [order, setOrder] = useState(0);
@@ -73,6 +79,7 @@ function CreateTaskPopup({ projects, theme, date, task }) {
       setRepeatDuration(task.repeatType === "SPECIFIC_WEEKDAYS" ? '' : (task.repeatDuration === 0 ? '' : task.repeatDuration));
       setOrder(task.dayOrder);
       setAssignedTime(task.assignedTime && task.assignedTime !== "null" ? dayjs(`${task.taskDate}T${task.assignedTime}`) : null);
+      setReminder(task.reminderMinutesBefore ?? null);
     }
   }, [task]);
 
@@ -87,7 +94,9 @@ function CreateTaskPopup({ projects, theme, date, task }) {
     const timeTaken = task?.timeTaken || 0;
     const longTerm = task?.longTerm || false;
 
-    onPopupClose(taskID, taskDate, taskName, formattedDate, projectToPass, priorityValue, repeatTypeValue, repeatDurationInt, order, timeToPass, inProgress, timeTaken, longTerm);
+    const reminderToPass = timeToPass ? reminder : null;
+
+    onPopupClose(taskID, taskDate, taskName, formattedDate, projectToPass, priorityValue, repeatTypeValue, repeatDurationInt, order, timeToPass, inProgress, timeTaken, longTerm, reminderToPass);
     setTaskName('');
     setSelectedDate(dayjs());
   };
@@ -140,7 +149,21 @@ function CreateTaskPopup({ projects, theme, date, task }) {
 
   const handleTimeChange = (newTime) => {
     setAssignedTime(newTime);
+    if (!newTime) setReminder(null);
   };
+
+  const handleReminderSelect = (e) => {
+    const option = REMINDER_OPTIONS.find(o => o.label === e.target.textContent);
+    setReminder(option ? option.value : null);
+  };
+
+  const hasReminder = reminder !== null;
+  const getReminderLabel = () => (
+    <>
+      <IoNotificationsOutline style={{ color: hasReminder ? 'var(--accent)' : 'var(--text-3)' }} />
+      {hasReminder && <span>{REMINDER_CHIP_LABELS[reminder] ?? `${reminder}m before`}</span>}
+    </>
+  );
 
   const handleDurationChange = (event) => {
     const value = event.target.value;
@@ -167,51 +190,45 @@ function CreateTaskPopup({ projects, theme, date, task }) {
     };
   }, [handleClosePopup]);
 
-  const getPriorityIcon = () => {
-    let color = 'inherit';
-    let priorityNumber = '';
+  const priorityNumber = String(selectedPriority).replace('P', '');
+  const hasPriority = selectedPriority !== 'P0';
+  const hasProject = selectedProject !== 'Project';
+  const hasRepeat = repeatType !== 'Repeat Type' && repeatType !== 'Off';
 
-    if (selectedPriority === 'P0') {
-      color = (theme === 'glass' || theme === 'dark') ? 'black' : 'white';
-      priorityNumber = '0';
-    }
-    if (selectedPriority === 'P1') {
-      color = '#d1453b';
-      priorityNumber = '1';
-    }
-    if (selectedPriority === 'P2') {
-      color = '#eb8909';
-      priorityNumber = '2';
-    }
-    if (selectedPriority === 'P3') {
-      color = '#246fe0';
-      priorityNumber = '3';
-    }
-    if (selectedPriority === 'P4') {
-      color = 'grey';
-      priorityNumber = '4';
-    }
+  const getPriorityIcon = () => (
+    <>
+      <FaFlag
+        className="chip-flag"
+        style={{ color: hasPriority ? `var(--p${priorityNumber})` : 'var(--text-3)' }}
+      />
+      {hasPriority && <span>P{priorityNumber}</span>}
+    </>
+  );
 
-    return (
-      <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-        <FaFlag style={{ color, fontSize: '1.2rem' }} />
-        {priorityNumber && <span style={{ fontSize: '0.9rem' }}>{priorityNumber}</span>}
-      </span>
-    );
+  const getProjectLabel = () => (
+    <>
+      <span className="chip-hash" style={{ color: hasProject ? projectColor(selectedProject) : 'var(--text-3)' }}>#</span>
+      <span>{hasProject ? selectedProject : 'Project'}</span>
+    </>
+  );
+
+  const REPEAT_CHIP_LABELS = {
+    'Every X Days': 'Daily',
+    'Every X Weeks': 'Weekly',
+    'Every X Months': 'Monthly',
+    'Specific Weekdays': 'Weekdays',
   };
 
-  const getRepeatIcon = () => {
-    return <BsArrowRepeat style={{ color: (theme === 'glass' || theme === 'dark') ? 'black' : 'white', fontSize: '1.5rem' }} />;
-  };
+  const getRepeatIcon = () => (
+    <>
+      <BsArrowRepeat style={{ color: hasRepeat ? 'var(--accent)' : 'var(--text-3)' }} />
+      {hasRepeat && <span>{REPEAT_CHIP_LABELS[repeatType] || repeatType}</span>}
+    </>
+  );
 
   return (
     <div className={`taskPopup ${theme}`}>
-      <div className={`createTask ${theme}`}>
-        <div className="date-nav-arrows">
-          <IoIosArrowBack className="date-btns" onClick={() => setSelectedDate((prevDate) => prevDate.subtract(1, 'day'))} />
-          <DateComponent selectedDate={selectedDate} handler={handleDateChange} theme={theme} location="popup" />
-          <IoIosArrowForward className="date-btns" onClick={() => setSelectedDate((prevDate) => prevDate.add(1, 'day'))} />
-        </div>
+      <div className={`createTask ${theme}`} role="dialog" aria-modal="true" aria-label={poptype === "Update" ? "Edit task" : "New task"}>
         <div className="task-text">
           <textarea
             className="no-background"
@@ -220,53 +237,74 @@ function CreateTaskPopup({ projects, theme, date, task }) {
             onChange={handleTaskNameChange}
             onKeyDown={handleInputKeyDown}
             ref={inputRef}
-            rows={3}
+            rows={2}
             maxLength={255}
           />
           <div className="char-counter">
             {taskName.length}/255
           </div>
         </div>
+        {/* Chip row: date · time · reminder (only once a time is set) · project · priority · repeat */}
         <div className="task-options">
-          <Dropdown placeholder={selectedProject} items={['None', ...projects]} handler={handleProjectSelect} />
-          <div className="split-dropdowns">
-            <Dropdown placeholder={getPriorityIcon()} items={PRIORITIES} handler={handlePrioritySelect} />
-            <Dropdown placeholder={getRepeatIcon()} items={REPEAT_OPTIONS} handler={handleRepeatTypeSelect} />
+          <div className="date-nav-arrows">
+            <IoIosArrowBack className="date-btns" aria-label="Previous day" onClick={() => setSelectedDate((prevDate) => prevDate.subtract(1, 'day'))} />
+            <DateComponent selectedDate={selectedDate} handler={handleDateChange} theme={theme} location="popup" />
+            <IoIosArrowForward className="date-btns" aria-label="Next day" onClick={() => setSelectedDate((prevDate) => prevDate.add(1, 'day'))} />
           </div>
           <TimeComponent selectedTime={assignedTime} handler={handleTimeChange} theme={theme} />
-
-          {repeatType !== "Repeat Type" && repeatType !== "Off" && repeatType !== "Specific Weekdays" && (
-            <input
-              type="text"
-              className="no-background"
-              placeholder="Duration"
-              value={repeatDuration}
-              onChange={handleDurationChange}
+          {assignedTime && (
+            <Dropdown
+              placeholder={getReminderLabel()}
+              items={REMINDER_OPTIONS.map(o => o.label)}
+              handler={handleReminderSelect}
+              selected={reminderLabel(reminder)}
+              isSet={hasReminder}
+              ariaLabel="Reminder"
             />
           )}
-          {repeatType === "Specific Weekdays" && (<div className="weekday-picker">
-            {days.map((day, index) => (
-              <CustomCheckbox
-                key={day.day}
-                checked={day.checked}
-                onChange={() => { handleDayChange(index); }}
-                icon={<FaRegCircle className="checkbox_icon_unchecked" />}
-                checkedIcon={<FaCircle className="checkbox_icon_checked" />}
-                letter={day.day[0]}
+          <Dropdown placeholder={getProjectLabel()} items={['None', ...projects]} handler={handleProjectSelect} selected={hasProject ? selectedProject : 'None'} isSet={hasProject} ariaLabel="Project" />
+          <Dropdown placeholder={getPriorityIcon()} items={PRIORITIES} handler={handlePrioritySelect} selected={selectedPriority} isSet={hasPriority} ariaLabel="Priority" />
+          <Dropdown placeholder={getRepeatIcon()} items={REPEAT_OPTIONS} handler={handleRepeatTypeSelect} selected={repeatType} isSet={hasRepeat} ariaLabel="Repeat" />
+
+          {repeatType !== "Repeat Type" && repeatType !== "Off" && repeatType !== "Specific Weekdays" && (
+            <div className="repeat-extra">
+              <span>Every</span>
+              <input
+                type="text"
+                className="no-background repeat-duration"
+                placeholder="Duration"
+                value={repeatDuration}
+                onChange={handleDurationChange}
               />
-            ))}
+              <span>{repeatType.replace('Every X ', '').toLowerCase()}</span>
+            </div>
+          )}
+          {repeatType === "Specific Weekdays" && (<div className="repeat-extra">
+            <span>On</span>
+            <div className="weekday-picker">
+              {days.map((day, index) => (
+                <CustomCheckbox
+                  key={day.day}
+                  checked={day.checked}
+                  onChange={() => { handleDayChange(index); }}
+                  icon={<FaRegCircle className="checkbox_icon_unchecked" />}
+                  checkedIcon={<FaCircle className="checkbox_icon_checked" />}
+                  letter={day.day[0]}
+                />
+              ))}
+            </div>
           </div>)}
         </div>
         <div className="bottom-btns">
+          {error && <p className="myerror">{error}</p>}
           <button
             className={`btn cancel-btn ${theme}`}
             onClick={handleClosePopup}
           >
             Cancel
           </button>
-          <button onClick={createTask} className="btn btn-primary add-btn" data-testid="add-task-btn">{poptype}</button>
+          <button onClick={createTask} className="btn btn-primary add-btn" data-testid="add-task-btn">{poptype === "Update" ? "Save" : "Add task"}</button>
         </div>
-        {error && <p className="myerror">{error}</p>}
       </div>
     </div>
   )

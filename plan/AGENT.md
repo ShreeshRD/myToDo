@@ -28,6 +28,8 @@ None yet.
 
 | Document | Purpose |
 |---|---|
+| `project-overview.md` | What the app does, architecture, and how to run/test every service |
+| `design-system.md` | Visual design tokens and component rules shared by the web app and the Android app |
 | `agent-native.md` | Agent-Native conversion plan |
 | `backend-endpoints.md` | Backend REST endpoints inventory |
 | `frontend-flows.md` | Frontend page views and API integrations inventory |

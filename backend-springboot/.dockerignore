@@ -1,0 +1,5 @@
+.git
+target
+todo.db
+todo-dev.db
+*.db-*

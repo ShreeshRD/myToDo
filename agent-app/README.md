@@ -1,32 +1,48 @@
-# Chat
+# myToDo — Agent app
 
-The minimal agent-native starter app — a clean, ChatGPT-style shell with chat at
-the center, durable threads, standard app navigation, auth, live sync, and
-actions. Start here when you want a real browser app to build on without
-committing to a domain template.
+An [agent-native](https://agent-native.com) chat app that reads and edits myToDo tasks through typed actions (`actions/`), each proxying to the Spring Boot backend. It also serves an MCP endpoint (`/mcp`) that exposes only the read-only actions to external agents.
 
-**Live app: [chat.agent-native.com](https://chat.agent-native.com)**
+See [`../plan/project-overview.md`](../plan/project-overview.md) for the whole project, and [`AGENT.md`](AGENT.md) for contracts, verification and known environment issues.
 
-Chat is the basic agent-native app starting point. It gives you the app-agent
-loop wired end to end and one example action, so you can add your own UI, data,
-and actions on top.
+## Prerequisites
 
-## Features
+- Node v24.x and `pnpm@10.29.1` (`npx pnpm@10.29.1` works too)
+- The agent-native framework checked out at `../agent-native` — it is linked, not installed from npm. The folder is an empty gitlink after cloning this repo; clone the framework there and check out commit `40982a7f` (details in `AGENT.md`).
+- The backend running on port 8000 (dev) or 5555 (prod)
 
-- ChatGPT-style shell with a threads list and durable chat history.
-- Auth, live sync, and application state wired out of the box.
-- The action surface the agent and UI share, plus one example action to copy.
-- A minimal, brandable base for any domain app.
-
-## Develop locally
-
-Scaffold your own copy and run it:
+## Run
 
 ```bash
-npx @agent-native/core@latest create my-app --standalone --template chat
-cd my-app
+cp .env.example .env          # set AUTH_DISABLED=true to skip login locally
 pnpm install
-pnpm dev
+pnpm run dev                  # http://localhost:8080
 ```
 
-Full docs: [agent-native.com/docs/template-chat](https://agent-native.com/docs/template-chat).
+| Variable | Purpose |
+|---|---|
+| `BACKEND_URL` | Spring Boot base URL (default `http://localhost:8000`, or `:5555` when `NODE_ENV=production`) |
+| `BACKEND_AUTH_TOKEN` | Optional bearer token sent to the backend |
+| `AUTH_DISABLED` | `true` skips the login screen in local dev |
+| `BETTER_AUTH_SECRET` | Session secret (required in production) |
+
+## Actions
+
+| Action | Backend call | Approval |
+|---|---|---|
+| `listTasks` | `GET /todo/allbydate` or `/todo/all` | — |
+| `getScratchpad` | `GET /todo/scratchpad` | — |
+| `createTask` | `POST /todo/add` | — |
+| `updateTask` | `POST /todo/update` | required |
+| `deleteTask` | `DELETE /todo/delete/{id}` | required |
+| `saveScratchpad` | `POST /todo/scratchpad` | required |
+
+Mutating actions are recorded in the `action_audit_log` table of `data/app.db`.
+
+## Checks
+
+```bash
+pnpm test
+pnpm typecheck
+pnpm exec oxfmt --check .
+python3 verify-mcp.py   # with the dev server running
+```

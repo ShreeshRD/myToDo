@@ -5,6 +5,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import { projectColor } from '../lib/projectColors';
 import '../styles/projectManagerModal.scss';
 
 const ProjectManagerModal = ({
@@ -104,10 +105,10 @@ const ProjectManagerModal = ({
 
     return (
         <div className={`pm-overlay ${theme}`}>
-            <div className="pm-modal" ref={modalRef}>
+            <div className="pm-modal" ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="pm-title">
                 <div className="pm-header">
-                    <h2>Manage Projects</h2>
-                    <button className="pm-close-btn" onClick={onClose}>
+                    <h2 id="pm-title">Manage Projects</h2>
+                    <button className="pm-close-btn" onClick={onClose} aria-label="Close" title="Close">
                         <CloseIcon />
                     </button>
                 </div>
@@ -128,12 +129,14 @@ const ProjectManagerModal = ({
                                 >
                                     <div className="pm-project-left">
                                         <DragIndicatorIcon className="pm-drag-handle" />
+                                        <span className="pm-project-dot" style={{ '--dot': projectColor(project) }} />
                                         <span className="pm-project-name">{project}</span>
                                     </div>
                                     <button
                                         className="pm-delete-btn"
                                         onClick={() => handleDeleteClick(project)}
                                         title="Delete project"
+                                        aria-label={`Delete ${project}`}
                                     >
                                         <DeleteIcon />
                                     </button>
@@ -142,6 +145,10 @@ const ProjectManagerModal = ({
                         </ul>
                     )}
                 </div>
+
+                {localProjects.length > 1 && (
+                    <div className="pm-footer">Drag to reorder</div>
+                )}
 
                 {/* Delete Confirmation Popup */}
                 {deleteConfirm && (

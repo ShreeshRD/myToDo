@@ -1,0 +1,66 @@
+# Builds the Android debug APK and attaches it to the android-* release that triggered the run.
+# Rebuild an existing release from the Actions tab with "Run workflow" and its tag.
+name: Android APK
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build and attach the APK to (must start with android-)
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    # Only Android releases (android-v1.2); other releases skip the job
+    if: startsWith(github.event.release.tag_name || inputs.tag, 'android-')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platforms;android-35 build-tools;35.0.0
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Unit tests and APK
+        run: ./gradlew --no-daemon testDebugUnitTest assembleDebug
+
+      - name: Upload test report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-report
+          path: android/app/build/reports/tests/testDebugUnitTest
+
+      - name: Attach APK to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # android-v1.2 -> myToDo-android-v1.2-debug.apk
+          apk="myToDo-android-${TAG#android-}-debug.apk"
+          cp app/build/outputs/apk/debug/app-debug.apk "$apk"
+          sha256sum "$apk" | tee "$apk.sha256"
+          gh release upload "$TAG" "$apk" "$apk.sha256" --clobber --repo "$GITHUB_REPOSITORY"

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import dayjs from 'dayjs';
-import { getTasks, updateField, deleteTask, addTask } from '../lib/agentClient';
+import { getTasks, updateField, deleteTask } from '../lib/agentClient';
 
 const useTaskManagement = () => {
     const [taskDays, setTaskDays] = useState([]);
@@ -101,22 +101,17 @@ const useTaskManagement = () => {
             return;
         }
 
+        // Functional updates: this also runs from async callbacks holding stale state
         if (task.taskDate < dayjs().format("YYYY-MM-DD")) {
-            const updatedOverdue = sortTasks([...(overdueTasks.overdue || []), task]);
-            setOverdueTasks(prevTaskDays => ({
-                ...prevTaskDays,
-                overdue: updatedOverdue
+            setOverdueTasks(prev => ({
+                ...prev,
+                overdue: sortTasks([...(prev.overdue || []), task])
             }));
         }
         else {
-            const updatedTaskDaysForDate = [
-                ...(taskDays[task.taskDate] || []),
-                task
-            ].sort((a, b) => a.dayOrder - b.dayOrder);
-
-            setTaskDays(prevTaskDays => ({
-                ...prevTaskDays,
-                [task.taskDate]: updatedTaskDaysForDate
+            setTaskDays(prev => ({
+                ...prev,
+                [task.taskDate]: [...(prev[task.taskDate] || []), task].sort((a, b) => a.dayOrder - b.dayOrder)
             }));
         }
     }
@@ -213,10 +208,10 @@ const useTaskManagement = () => {
 
         // 2. Send to backend async
         updateField(id, field, value)
-            .then((taskItem) => {
-                // Handle repeat tasks after backend confirms (for complete field)
-                if (field === "complete" && value === true && taskItem && taskItem.repeatType !== "NONE") {
-                    addNextRepeat(taskItem);
+            .then((result) => {
+                // The backend creates the next occurrence when a recurring task is completed
+                if (result && result.nextItem) {
+                    addToFrontend(result.nextItem);
                 }
             })
             .catch((error) => {
@@ -231,60 +226,6 @@ const useTaskManagement = () => {
             console.error(`Error updating task with id ${id}:`, error);
         }
     }
-
-    const addNextRepeat = async (task) => {
-        const { taskDate, repeatType, repeatDuration } = task;
-        let date = dayjs(taskDate);
-
-        switch (repeatType) {
-            case "EVERY_X_DAYS":
-                date = date.add(repeatDuration, 'day');
-                break;
-            case "EVERY_X_WEEKS":
-                date = date.add(repeatDuration, 'week');
-                break;
-            case "EVERY_X_MONTHS":
-                date = date.add(repeatDuration, 'month');
-                break;
-            case "SPECIFIC_WEEKDAYS":
-                const binaryString = repeatDuration.toString(2).padStart(7, '0');
-                let nextDayFound = false;
-                while (!nextDayFound) {
-                    date = date.add(1, 'day');
-                    const dayIndex = (date.day() + 6) % 7;
-                    if (binaryString[dayIndex] === '1') {
-                        nextDayFound = true;
-                    }
-                }
-                break;
-            default:
-                break;
-        }
-
-        const newDate = date.format('YYYY-MM-DD');
-
-        // Check if task already exists in the future date
-        const existingTasks = taskDays[newDate] || [];
-        const isDuplicate = existingTasks.some(t => {
-            return t.name === task.name &&
-                t.category === task.category &&
-                t.id.toString() !== task.id.toString();
-        });
-
-        if (isDuplicate) {
-            console.log("Recurring task already exists for date:", newDate);
-            return;
-        }
-
-        task.taskDate = newDate;
-
-        try {
-            const newTask = await addTask(task.name, newDate, task.category, task.priority, repeatType, repeatDuration, task.longTerm);
-            addToFrontend(newTask);
-        } catch (error) {
-            console.error('Error adding task:', error);
-        }
-    };
 
     const removeTask = async (taskId, date, update = false) => {
         const targetId = taskId ? taskId.toString() : '';
@@ -454,7 +395,6 @@ const useTaskManagement = () => {
         removeTask,
         moveTask,
         updateBackend,
-        addNextRepeat
     };
 };
 

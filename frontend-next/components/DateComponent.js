@@ -5,69 +5,89 @@ import React from 'react';
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { ThemeProvider, createTheme } from '@mui/material';
 
+/**
+ * Text-field slot for MUI pickers that renders as a compact chip.
+ * Colours are design tokens, so it follows the light/dark/glass theme.
+ * `location` = 'header' gives the pill used in the page header; anything else
+ * is the borderless variant that sits inside a dialog chip.
+ */
+export const PickerChipField = React.forwardRef((props, ref) => {
+    const {
+        inputProps = {}, location, value, onChange, onClick, inputRef, error,
+        InputProps, ownerState, chipWidth = '10ch', emptyWidth, emptyLabel, placeholder, className = '',
+        // Props MUI passes to text fields that don't belong on a <div>
+        theme, label, focused, fullWidth, size, variant, clearable, onClear, sectionListRef,
+        areAllSectionsEmpty, enableAccessibleFieldDOMStructure, openPickerAriaLabel, triggerRef,
+        ...other
+    } = props;
 
-const CustomDateInput = React.forwardRef((props, ref) => {
-    const { inputProps = {}, theme, location, value, onChange, onClick, inputRef, error, InputProps, ownerState, ...other } = props;
-
-    // inputProps.onClick handles simple clicks (like opening text caret)
-    // onClick (from props) handles the DatePicker opening if openPickerOnInputClick is true?
-    // Actually MUI DatePicker usually requires onClick on the input or container to open.
-    // Let's combine clicks if needed, but usually InputProps.endAdornment (icon) opens it too.
+    const isHeader = location === 'header';
 
     return (
         <div
-            className={`custom-date-pill ${theme === 'glass' ? 'glass-pill' : ''} ${error ? 'error' : ''}`}
+            className={`custom-date-pill ${isHeader ? 'custom-date-pill--header' : 'custom-date-pill--chip'} ${error ? 'error' : ''} ${className}`}
             ref={ref}
             style={{
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                padding: '4px 8px',
-                borderRadius: '20px',
-                backgroundColor: theme === 'glass'
-                    ? 'rgba(255, 255, 255, 0.25)'
-                    : (theme === 'dark'
-                        ? (location === 'header' ? '#5a5a5a' : '#d5d5d5')
-                        : '#f5f5f5'),
-                border: theme === 'glass' ? '1px solid rgba(255, 255, 255, 0.3)' : '1px solid #ddd',
-                backdropFilter: theme === 'glass' ? 'blur(4px)' : 'none',
+                gap: '2px',
+                height: isHeader ? '32px' : '28px',
+                padding: isHeader ? '0 4px 0 12px' : '0 0 0 4px',
+                borderRadius: isHeader ? 'var(--radius-full)' : 'var(--radius-sm)',
+                backgroundColor: isHeader ? 'var(--surface)' : 'transparent',
+                border: isHeader ? '1px solid var(--border)' : 'none',
+                color: error ? 'var(--danger)' : 'var(--text)',
                 width: 'fit-content',
-                transition: 'all 0.2s ease',
                 cursor: 'text',
-                boxShadow: theme === 'glass' ? '0 2px 5px rgba(0,0,0,0.05)' : 'none',
+                transition: 'border-color var(--duration) var(--ease)',
             }}
-            // Pass the onClick from props to the div to serve as anchor trigger if needed,
-            // or just ensure input gets it.
-            // MUI DatePicker passes onClick that toggles the modal.
             onClick={onClick}
             {...other}
         >
             <input
                 ref={inputRef}
                 {...inputProps}
+                placeholder={emptyLabel ?? placeholder ?? inputProps.placeholder}
+                aria-label={emptyLabel ?? inputProps['aria-label']}
                 value={value || ''}
                 onChange={onChange}
                 style={{
                     border: 'none',
                     background: 'transparent',
                     outline: 'none',
-                    fontSize: '14px',
-                    color: (theme === 'glass' && location === 'header') ? 'white' : (theme === 'dark' && location === 'header' ? '#eee' : '#333'),
-                    width: '80px',
+                    padding: 0,
+                    fontFamily: 'inherit',
+                    fontSize: 'var(--text-sm)',
+                    fontWeight: 500,
+                    fontVariantNumeric: 'tabular-nums',
+                    color: 'inherit',
+                    width: !value && emptyWidth ? emptyWidth : chipWidth,
+                    transition: 'width var(--duration) var(--ease)',
                     cursor: 'text',
                     ...inputProps.style,
                 }}
             />
             {InputProps?.endAdornment && (
-                <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center' }}>
+                <div className="custom-date-pill__adornment" style={{ display: 'flex', alignItems: 'center' }}>
                     {InputProps.endAdornment}
                 </div>
             )}
         </div>
     );
 });
-CustomDateInput.displayName = 'CustomDateInput';
+PickerChipField.displayName = 'PickerChipField';
+
+// Small ghost icon button for the picker's open icon
+export const pickerOpenButtonSx = {
+    width: 24,
+    height: 24,
+    padding: '4px',
+    borderRadius: 'var(--radius-sm)',
+    color: 'var(--text-3)',
+    '&:hover': { backgroundColor: 'var(--surface-3)', color: 'var(--text)' },
+    '& .MuiSvgIcon-root': { fontSize: 16, color: 'inherit' },
+};
 
 export default function DateComponent({ value, onChange, selectedDate, handler, theme = 'light', location = 'popup' }) {
     const [anchorEl, setAnchorEl] = React.useState(null);
@@ -76,86 +96,44 @@ export default function DateComponent({ value, onChange, selectedDate, handler, 
     const dateValue = value || selectedDate;
     const dateChangeHandler = onChange || handler;
 
-    // Minimal MUI theme just for the popup calendar
-    const muiTheme = createTheme({
-        palette: {
-            mode: theme === 'dark' ? 'dark' : 'light',
-        },
-        components: {
-            MuiIconButton: {
-                styleOverrides: {
-                    root: {
-                        color: (theme === 'glass' && location === 'header') ? 'white' : (theme === 'dark' && location === 'header' ? '#eee' : '#333'),
-                    }
-                }
-            },
-            MuiSvgIcon: {
-                styleOverrides: {
-                    root: {
-                        color: (theme === 'glass' && location === 'header') ? 'white' : (theme === 'dark' && location === 'header' ? '#eee' : '#333'),
-                    }
-                }
-            },
-            MuiPaper: {
-                styleOverrides: {
-                    root: theme === 'glass' ? {
-                        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                        backdropFilter: 'blur(20px)',
-                        borderRadius: '16px',
-                        color: 'black'
-                    } : {}
-                }
-            },
-            MuiPickersDay: {
-                styleOverrides: {
-                    root: theme === 'glass' ? {
-                        color: 'black',
-                        '&.Mui-selected': { backgroundColor: 'black', color: 'white' }
-                    } : {}
-                }
-            }
-        }
-    });
-
     return (
-        <ThemeProvider theme={muiTheme}>
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-                <div ref={setAnchorEl} style={{ width: 'fit-content' }} className="date-component">
-                    <DatePicker
-                        value={dateValue}
-                        onChange={dateChangeHandler}
-                        format="DD/MM/YYYY"
-                        enableAccessibleFieldDOMStructure={false}
-                        slots={{ textField: CustomDateInput }}
-                        slotProps={{
-                            textField: {
-                                theme: theme,
-                                location: location
-                            },
-                            popper: {
-                                anchorEl: anchorEl,
-                                placement: 'bottom-start',
-                                modifiers: [
-                                    {
-                                        name: 'offset',
-                                        options: {
-                                            offset: [0, 8],
-                                        },
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <div ref={setAnchorEl} style={{ width: 'fit-content' }} className="date-component">
+                <DatePicker
+                    value={dateValue}
+                    onChange={dateChangeHandler}
+                    format="DD/MM/YYYY"
+                    enableAccessibleFieldDOMStructure={false}
+                    slots={{ textField: PickerChipField }}
+                    slotProps={{
+                        textField: {
+                            theme: theme,
+                            location: location
+                        },
+                        openPickerButton: { sx: pickerOpenButtonSx },
+                        popper: {
+                            anchorEl: anchorEl,
+                            placement: 'bottom-start',
+                            modifiers: [
+                                {
+                                    name: 'offset',
+                                    options: {
+                                        offset: [0, 8],
                                     },
-                                    {
-                                        name: 'preventOverflow',
-                                        options: {
-                                            boundary: 'viewport',
-                                            altAxis: true,
-                                        },
+                                },
+                                {
+                                    name: 'preventOverflow',
+                                    options: {
+                                        boundary: 'viewport',
+                                        altAxis: true,
                                     },
-                                ],
-                            }
-                        }}
-                        disableOpenPicker={false}
-                    />
-                </div>
-            </LocalizationProvider>
-        </ThemeProvider>
+                                },
+                            ],
+                        }
+                    }}
+                    disableOpenPicker={false}
+                />
+            </div>
+        </LocalizationProvider>
     );
 }

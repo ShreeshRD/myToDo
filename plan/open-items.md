@@ -10,8 +10,16 @@ Remaining work after the Agent-Native conversion (post Phase 8 closeout, 2026-08
 
 ## Frontend
 
-- Fix the pre-existing `__tests__/TaskContext.test.js` failure ("should persist inProgress, timeTaken, and longTerm when updating a task"): the mocked `onPopupClose` path calls `taskManagement.fetchTasks()`, which the test's mock does not provide. Unrelated to the conversion.
-- Clean up 4 pre-existing eslint `no-unused-vars` warnings (`components/DateComponent.js`, `components/Scratchpad/hooks/useScratchpadSlashMenu.js`, `contexts/TaskContext.js`, `lib/dragUtils.js`).
+- Pagination styling in Search is unverified visually (seed data never exceeds one page).
+
+## Android
+
+- Never launched on a device or emulator in this environment (no SDK/emulator). Install `android/app/build/outputs/apk/debug/app-debug.apk` and verify: first-run server prompt, sync both ways with the web app, reminder notification + "Mark done", swipe complete/delete with undo, reboot rescheduling.
+- Recurring next occurrences only appear after a sync (server-side recurrence by design).
+
+## Backend
+
+- Tombstones (`deleted=true`) are never purged.
 
 ## Actions / MCP surface
 

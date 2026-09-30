@@ -8,6 +8,7 @@ import useTaskManagement from '../hooks/useTaskManagement';
 // Mock dependencies
 jest.mock('../service', () => ({
     addTask: jest.fn(),
+    editTask: jest.fn(),
 }));
 
 jest.mock('../hooks/useTaskManagement', () => jest.fn());
@@ -22,11 +23,13 @@ describe('TaskContext', () => {
     let mockUpdateBackend;
     let mockRemoveTask;
     let mockAddToFrontend;
+    let mockFetchTasks;
 
     beforeEach(() => {
         mockUpdateBackend = jest.fn();
         mockRemoveTask = jest.fn();
         mockAddToFrontend = jest.fn();
+        mockFetchTasks = jest.fn();
 
         useTaskManagement.mockReturnValue({
             taskDays: {},
@@ -35,6 +38,8 @@ describe('TaskContext', () => {
             updateBackend: mockUpdateBackend,
             removeTask: mockRemoveTask,
             addToFrontend: mockAddToFrontend,
+            // onPopupClose refetches after editing a task
+            fetchTasks: mockFetchTasks,
             startDate: { add: jest.fn() }, // minimal mock for moment/dayjs
         });
 
@@ -42,63 +47,69 @@ describe('TaskContext', () => {
             id: 123,
             name: 'Test Task',
         });
+        service.editTask.mockResolvedValue({
+            id: 1,
+            name: 'Updated Task',
+        });
     });
 
     afterEach(() => {
         jest.clearAllMocks();
     });
 
-    it('should persist inProgress, timeTaken, and longTerm when updating a task', async () => {
-        const wrapper = ({ children }) => <TaskProvider>{children}</TaskProvider>;
-        const { result } = renderHook(() => useTasks(), { wrapper });
+    const wrapper = ({ children }) => <TaskProvider>{children}</TaskProvider>;
 
-        const taskID = 1;
-        const taskDate = '2025-12-20';
-        const taskName = 'Updated Task';
-        const dateChoice = '2025-12-21';
-        const projectChoice = 'Work';
-        const priority = 1;
-        const repeatType = 'NONE';
-        const repeatDuration = 0;
-        const taskOrder = 5;
-        const assignedTime = null;
-        const inProgress = true;
-        const timeTaken = 3600;
-        const longTerm = true;
+    it('edits an existing task in place instead of deleting and re-creating it', async () => {
+        const { result } = renderHook(() => useTasks(), { wrapper });
 
         await act(async () => {
             await result.current.onPopupClose(
-                taskID,
-                taskDate,
-                taskName,
-                dateChoice,
-                projectChoice,
-                priority,
-                repeatType,
-                repeatDuration,
-                taskOrder,
-                assignedTime,
-                inProgress,
-                timeTaken,
-                longTerm
+                1, '2025-12-20', 'Updated Task', '2025-12-21', 'Work', 1, 'NONE', 0, 5,
+                '09:00:00', true, 3600, true, 15
             );
         });
 
-        // Verify addTask was called with longTerm
-        expect(service.addTask).toHaveBeenCalledWith(
-            taskName,
-            dateChoice,
-            projectChoice,
-            priority,
-            repeatType,
-            repeatDuration,
-            longTerm
+        expect(service.editTask).toHaveBeenCalledWith(
+            1, 'Updated Task', '2025-12-21', 'Work', 1, 'NONE', 0, true, '09:00:00', 15
         );
+        expect(service.addTask).not.toHaveBeenCalled();
+        expect(mockRemoveTask).not.toHaveBeenCalled();
+        // Progress lives on the existing row, so it is not re-sent
+        expect(mockUpdateBackend).not.toHaveBeenCalled();
+        expect(mockFetchTasks).toHaveBeenCalled();
+    });
 
-        // Verify updateBackend was called for inProgress
+    it('drops the reminder when an edited task has no time', async () => {
+        const { result } = renderHook(() => useTasks(), { wrapper });
+
+        await act(async () => {
+            await result.current.onPopupClose(
+                1, '2025-12-20', 'Updated Task', '2025-12-21', 'Work', 1, 'NONE', 0, 5,
+                null, false, 0, false, 15
+            );
+        });
+
+        expect(service.editTask).toHaveBeenCalledWith(
+            1, 'Updated Task', '2025-12-21', 'Work', 1, 'NONE', 0, false, null, null
+        );
+    });
+
+    it('persists inProgress and timeTaken when creating a task', async () => {
+        const { result } = renderHook(() => useTasks(), { wrapper });
+
+        await act(async () => {
+            await result.current.onPopupClose(
+                -1, '2025-12-20', 'New Task', '2025-12-21', 'Work', 1, 'NONE', 0, 0,
+                null, true, 3600, true
+            );
+        });
+
+        expect(service.addTask).toHaveBeenCalledWith(
+            'New Task', '2025-12-21', 'Work', 1, 'NONE', 0, true, null, null
+        );
+        expect(service.editTask).not.toHaveBeenCalled();
         expect(mockUpdateBackend).toHaveBeenCalledWith(123, 'inProgress', true);
-
-        // Verify updateBackend was called for timeTaken
-        expect(mockUpdateBackend).toHaveBeenCalledWith(123, 'timeTaken', timeTaken);
+        expect(mockUpdateBackend).toHaveBeenCalledWith(123, 'timeTaken', 3600);
+        expect(mockAddToFrontend).toHaveBeenCalledWith(expect.objectContaining({ id: 123 }));
     });
 });

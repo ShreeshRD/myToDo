@@ -1,119 +1,35 @@
+/* Month completion heatmap (header, Calendar view)
+   Colours come from --heat-0..--heat-5 in styles/tokens.scss, so every theme is covered.
+============================================ */
 .heatmap-container {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0 10px;
-
-  h3 {
-    display: none; // Hide title as requested "no other info" or just grid
-  }
+  padding: 0 var(--space-2);
 }
 
 .heatmap-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 3px;
+  grid-template-columns: repeat(7, 9px);
+  gap: 2px;
   width: fit-content;
 }
 
 .heatmap-cell {
-  width: 10px; // Rendered size
-  height: 10px;
-  border-radius: 2px;
-  background-color: rgba(255, 255, 255, 0.1); // Default empty
-  transition: background-color 0.3s;
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  background-color: var(--heat-0);
+  transition: background-color var(--duration) var(--ease);
 
   &.empty-pad {
     background-color: transparent;
-    box-shadow: none;
   }
 
-  // Blue Gradient: Dark -> Light (Brightest at 5)
-  // 0: Empty/Dark
-  // 1: #0c2d48 (Deep Blue)
-  // 2: #145da0 (Medium Blue)
-  // 3: #2e8bc0 (Bright Blue)
-  // 4: #b1d4e0 (Pale Blue)
-  // 5+: #ffffff (White/Brightest) or #dbe9f6
-  // Common Active Colors (Dark Mode Scheme)
-  &.intensity-1 {
-    background-color: #1f3a52;
-  }
-
-  &.intensity-2 {
-    background-color: #2a5275;
-  }
-
-  &.intensity-3 {
-    background-color: #36749e;
-  }
-
-  &.intensity-4 {
-    background-color: #4e9bc4;
-  }
-
-  &.intensity-5 {
-    background-color: #8ac6eb;
-    box-shadow: 0 0 5px #8ac6eb;
-  }
-}
-
-// Mode Separation for Grid Visibility
-
-// Light Mode
-.myheader:not(.dark) {
-  .heatmap-cell {
-    &.intensity-0 {
-      background-color: #ebedf0;
-    }
-
-    // Gray for visibility
-  }
-}
-
-// Dark Mode
-.myheader.dark {
-  .heatmap-cell {
-    &.intensity-0 {
-      background-color: rgba(255, 255, 255, 0.05);
-    }
-
-    // Transparent/Dim
-  }
-}
-
-// Glass Mode
-.app-container.glass {
-  .heatmap-cell {
-    &:not(.empty-pad) {
-      background-color: rgba(255, 255, 255, 0.1);
-    }
-
-    &.intensity-0 {
-      background-color: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    &.intensity-1 {
-      background-color: rgba(255, 255, 255, 0.2);
-    }
-
-    &.intensity-2 {
-      background-color: rgba(255, 255, 255, 0.35);
-    }
-
-    &.intensity-3 {
-      background-color: rgba(255, 255, 255, 0.5);
-    }
-
-    &.intensity-4 {
-      background-color: rgba(255, 255, 255, 0.65);
-    }
-
-    &.intensity-5 {
-      background-color: rgba(255, 255, 255, 0.8);
-      box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
-    }
-  }
+  &.intensity-0 { background-color: var(--heat-0); }
+  &.intensity-1 { background-color: var(--heat-1); }
+  &.intensity-2 { background-color: var(--heat-2); }
+  &.intensity-3 { background-color: var(--heat-3); }
+  &.intensity-4 { background-color: var(--heat-4); }
+  &.intensity-5 { background-color: var(--heat-5); }
 }

@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { MENU_ITEMS } from '../SlashMenu';
 
 export const useScratchpadSlashMenu = (convertToType) => {
     const [slashMenu, setSlashMenu] = useState({

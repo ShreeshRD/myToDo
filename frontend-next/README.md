@@ -1,36 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# myToDo — Web frontend
 
-## Getting Started
+Next.js 16 / React 19 single-page app for myToDo: Upcoming, Today, Calendar, Search and Scratchpad views, task reminders, stopwatches and the optional "Ask AI" agent panel.
 
-First, run the development server:
+See [`../plan/project-overview.md`](../plan/project-overview.md) for how the whole project fits together.
+
+## Run
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev        # http://localhost:3001
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The backend must be running (`../backend-springboot`, port 8000 in dev). Endpoints come from `.env.development` / `.env.production`:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Variable | Dev | Prod |
+|---|---|---|
+| `NEXT_PUBLIC_BACKEND_URL` | `http://localhost:8000/todo` | `http://localhost:5555/todo` |
+| `NEXT_PUBLIC_AGENT_URL` | `http://localhost:8080` | empty (agent panel hidden) |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Build
 
-## Learn More
+`npm run build` produces a static export in `out/` and its `postbuild` step **replaces** `../backend-springboot/src/main/resources/static/` with it, so the Spring Boot jar serves the UI.
 
-To learn more about Next.js, take a look at the following resources:
+## Checks
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run lint
+npm test                 # unit tests + drag-logic script
+npm run test:integration # everything, including integration tests
+npm run typecheck
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Conventions for contributors and agents live in [`AGENT.md`](AGENT.md).

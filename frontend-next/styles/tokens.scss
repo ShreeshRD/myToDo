@@ -1,0 +1,185 @@
+// Design tokens — the single source of colour, type, radius, shadow and motion.
+// Themes switch by <html data-theme="light|dark|glass"> (set in hooks/useUIState.js),
+// so portals (MUI popovers, menus) see the same values as the app tree.
+// The Android app mirrors these values in android/app/src/main/java/.../ui/theme.
+// Spec: plan/design-system.md
+
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+
+  // Surfaces
+  --bg: #f7f7f8;              // app canvas
+  --surface: #ffffff;         // cards, panels, main content
+  --surface-2: #f1f1f3;       // sidebar, inset areas, hover
+  --surface-3: #e8e8ec;       // pressed / selected neutral
+  --overlay: rgba(17, 17, 19, 0.36);
+  --blur: none;
+
+  // Lines
+  --border: #e4e4e8;
+  --border-strong: #d0d0d7;
+
+  // Text
+  --text: #18181b;
+  --text-2: #52525b;          // secondary
+  --text-3: #8b8b94;          // tertiary, placeholders, meta
+
+  // Accent (indigo)
+  --accent: #5b5bd6;
+  --accent-hover: #4f4fc4;
+  --accent-soft: rgba(91, 91, 214, 0.1);
+  --accent-contrast: #ffffff;
+
+  // Status
+  --danger: #e5484d;
+  --danger-soft: rgba(229, 72, 77, 0.1);
+  --warning: #f5a524;
+  --success: #30a46c;
+  --success-soft: rgba(48, 164, 108, 0.12);
+
+  // Priority (P1 highest … P4 lowest, P0 none) — checkbox ring + flag colour
+  --p0: #a1a1aa;
+  --p1: #e5484d;
+  --p2: #f5a524;
+  --p3: #3e63dd;
+  --p4: #8e4ec6;
+
+  // Heatmap intensity 0–5
+  --heat-0: #ececf0;
+  --heat-1: #d9d9fb;
+  --heat-2: #b4b4f5;
+  --heat-3: #8d8deb;
+  --heat-4: #6c6cdf;
+  --heat-5: #4b4bc9;
+
+  --shadow-sm: 0 1px 2px rgba(16, 16, 20, 0.06);
+  --shadow-md: 0 4px 12px rgba(16, 16, 20, 0.08), 0 1px 3px rgba(16, 16, 20, 0.06);
+  --shadow-lg: 0 16px 40px rgba(16, 16, 20, 0.16), 0 2px 8px rgba(16, 16, 20, 0.08);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0f0f11;
+  --surface: #161618;
+  --surface-2: #1c1c1f;
+  --surface-3: #26262b;
+  --overlay: rgba(0, 0, 0, 0.6);
+
+  --border: #2a2a2f;
+  --border-strong: #3a3a41;
+
+  --text: #ededef;
+  --text-2: #a8a8b0;
+  --text-3: #6f6f78;
+
+  --accent: #8b8bf5;
+  --accent-hover: #a0a0f8;
+  --accent-soft: rgba(139, 139, 245, 0.14);
+  --accent-contrast: #0f0f11;
+
+  --danger: #f2555a;
+  --danger-soft: rgba(242, 85, 90, 0.14);
+  --warning: #ffb224;
+  --success: #3dd68c;
+  --success-soft: rgba(61, 214, 140, 0.14);
+
+  --p0: #6f6f78;
+  --p1: #f2555a;
+  --p2: #ffb224;
+  --p3: #6e8cf5;
+  --p4: #b07ee8;
+
+  --heat-0: #1f1f23;
+  --heat-1: #2c2c55;
+  --heat-2: #3d3d85;
+  --heat-3: #5454b5;
+  --heat-4: #7070dd;
+  --heat-5: #9c9cff;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+// Glass: translucent surfaces over a gradient canvas
+[data-theme="glass"] {
+  color-scheme: dark;
+
+  --bg: linear-gradient(135deg, #3b3b98 0%, #1b1b3a 55%, #0b0b14 100%);
+  --surface: rgba(255, 255, 255, 0.08);
+  --surface-2: rgba(255, 255, 255, 0.05);
+  --surface-3: rgba(255, 255, 255, 0.14);
+  --overlay: rgba(5, 5, 15, 0.5);
+  --blur: blur(18px) saturate(140%);
+
+  --border: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.22);
+
+  --text: #f4f4ff;
+  --text-2: rgba(244, 244, 255, 0.72);
+  --text-3: rgba(244, 244, 255, 0.48);
+
+  --accent: #a5a5ff;
+  --accent-hover: #bdbdff;
+  --accent-soft: rgba(165, 165, 255, 0.18);
+  --accent-contrast: #14142b;
+
+  --danger: #ff6b70;
+  --danger-soft: rgba(255, 107, 112, 0.18);
+  --warning: #ffc553;
+  --success: #5ee6a8;
+  --success-soft: rgba(94, 230, 168, 0.16);
+
+  --p0: rgba(244, 244, 255, 0.5);
+  --p1: #ff6b70;
+  --p2: #ffc553;
+  --p3: #8aa4ff;
+  --p4: #c79bff;
+
+  --heat-0: rgba(255, 255, 255, 0.08);
+  --heat-1: rgba(165, 165, 255, 0.25);
+  --heat-2: rgba(165, 165, 255, 0.42);
+  --heat-3: rgba(165, 165, 255, 0.6);
+  --heat-4: rgba(165, 165, 255, 0.78);
+  --heat-5: #c9c9ff;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.45);
+}
+
+:root {
+  // Type
+  --font-sans: var(--font-inter, "Inter"), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 20px;
+  --text-2xl: 26px;
+
+  // Radius
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-full: 999px;
+
+  // Spacing (4px grid)
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  // Layout
+  --sidebar-width: 264px;
+  --header-height: 72px;
+
+  // Motion
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --duration: 160ms;
+}

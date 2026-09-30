@@ -2,10 +2,10 @@
 
 import React from "react";
 import { Droppable, Draggable } from "@hello-pangea/dnd";
-import { RiCheckboxBlankCircleLine, RiCheckboxCircleFill } from "react-icons/ri";
 import { BsArrowRepeat } from "react-icons/bs";
 import AddIcon from "@mui/icons-material/Add";
-import DeleteIcon from '@mui/icons-material/Delete';
+import DeleteIcon from '@mui/icons-material/DeleteOutline';
+import { IoNotificationsOutline, IoTimeOutline } from "react-icons/io5";
 import CustomCheckbox from "./CustomCheckbox";
 import CustomContextMenu from "./CustomContextMenu";
 import '../styles/todoitem.css';
@@ -13,6 +13,8 @@ import { useTasks } from "../contexts/TaskContext";
 import { useStopwatch } from "../contexts/StopwatchContext";
 import { useUI } from "../contexts/UIContext";
 import { formatTaskDate, formatDateShort } from "../lib/dateHelpers";
+import { projectColor } from "../lib/projectColors";
+import dayjs from "dayjs";
 
 function ToDoDay({ tasks, date, id }) {
     const { updateTask, removeTask, callPopup } = useTasks();
@@ -73,7 +75,10 @@ function ToDoDay({ tasks, date, id }) {
 
     return (
         <div className="tasks">
-            <div className="todo_items_title"><b suppressHydrationWarning>{title}</b></div>
+            <div className={`todo_items_title${id === 100 ? ' overdue' : ''}`}>
+                <span suppressHydrationWarning>{title}</span>
+                {tasks.length > 0 && <span className="todo_items_count">{tasks.filter(t => !t.complete).length || ''}</span>}
+            </div>
             <Droppable droppableId={`tasks__list${id}`}>
                 {(provided) => (
                     <div
@@ -104,8 +109,7 @@ function ToDoDay({ tasks, date, id }) {
                                                     }
                                                     await updateTask(task.id, "complete", newComplete, task.taskDate);
                                                 }}
-                                                icon={<RiCheckboxBlankCircleLine className="checkbox_icon_unchecked" />}
-                                                checkedIcon={<RiCheckboxCircleFill className="checkbox_icon_checked" />}
+                                                priority={task.priority ?? 0}
                                             />
                                             <div className="task_label">
                                                 <span className={task.complete ? 'strikethrough' : ''}>
@@ -114,6 +118,7 @@ function ToDoDay({ tasks, date, id }) {
                                             </div>
                                             <button
                                                 className="todo_delete"
+                                                aria-label="Delete task"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     removeTask(task.id, task.taskDate);
@@ -123,12 +128,29 @@ function ToDoDay({ tasks, date, id }) {
                                             </button>
                                         </div>
                                         <div className="task_infobar">
-                                            <span>
-                                                {date === "Overdue" && formatDateShort(task.taskDate)}
-                                                {task.repeatType !== "NONE" && <BsArrowRepeat className="repeat_icon" />}
-                                                {task.category !== 'None' && ` #${task.category}`}
-                                                {task.complete && task.timeTaken > 0 && ` • ${Math.floor(task.timeTaken / 60000)}m`}
-                                            </span>
+                                            {date === "Overdue" && (
+                                                <span className="task_meta task_meta--overdue">{formatDateShort(task.taskDate)}</span>
+                                            )}
+                                            {task.assignedTime && !task.complete && (
+                                                <span className="task_meta">
+                                                    {task.reminderMinutesBefore != null
+                                                        ? <IoNotificationsOutline className="task_meta_icon" title="Reminder set" />
+                                                        : <IoTimeOutline className="task_meta_icon" />}
+                                                    {dayjs(`2000-01-01T${task.assignedTime}`).format('h:mm A')}
+                                                </span>
+                                            )}
+                                            {task.repeatType && task.repeatType !== "NONE" && (
+                                                <span className="task_meta"><BsArrowRepeat className="repeat_icon" /></span>
+                                            )}
+                                            {task.complete && task.timeTaken > 0 && (
+                                                <span className="task_meta">{Math.floor(task.timeTaken / 60000)}m</span>
+                                            )}
+                                            {task.category && task.category !== 'None' && (
+                                                <span className="task_meta task_meta--project">
+                                                    <span className="task_project_hash" style={{ color: projectColor(task.category) }}>#</span>
+                                                    {task.category}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                 )}
@@ -137,7 +159,7 @@ function ToDoDay({ tasks, date, id }) {
                         {date !== "Overdue" ? (
                             <div className="footer_div">
                                 <button className={`tasks_footer ${theme}`} onClick={() => callPopup(date)}>
-                                    <AddIcon className="add-icon" />
+                                    <span className="tasks_footer_icon"><AddIcon className="add-icon" /></span>
                                     Add task
                                 </button>
                             </div>

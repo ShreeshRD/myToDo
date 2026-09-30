@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Sidebar from "./Sidebar";
+import ReminderCenter from './ReminderCenter';
 import Header from "./Header";
 import CalendarView from "./CalendarView";
 import CreateTaskPopup from "./CreateTaskPopup";
@@ -142,6 +143,7 @@ function MainView() {
 		<div className="App">
 			<div className={`app-container ${theme}`}>
 				<Sidebar setShowPopup={callPopup} show={showSidebar} setShowSidebar={setShowSidebar} setTheme={setTheme} theme={theme} viewPage={viewPage} setViewPage={setViewPage} projects={projects} addProject={addProject} removeProject={removeProject} reorderProjects={reorderProjects} deleteProjectWithTasks={deleteProjectWithTasks} popupBlur={showPopup && theme === 'glass'} />
+				<ReminderCenter />
 				{showPopup && (<CreateTaskPopup setTrigger={onPopupClose} onPopupClose={onPopupClose} date={popupDate} projects={projects} theme={theme} task={popupTaskItem} />)}
 
 				{/* Main content — shifts left when agent sidebar opens */}

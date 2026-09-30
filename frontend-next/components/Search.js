@@ -2,15 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTasks } from '../contexts/TaskContext';
-import { useUI } from '../contexts/UIContext';
-import { TextField, Typography, Paper, List, ListItem, ListItemText, Chip, InputAdornment, Pagination } from '@mui/material';
+import { Pagination } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import dayjs from 'dayjs';
+import { projectColor } from '../lib/projectColors';
 import styles from './Search.module.css';
 
 function Search() {
-    const { taskDays, completedTasks, overdueTasks, darkMode, callPopup } = useTasks();
-    const { theme } = useUI();
+    const { taskDays, completedTasks, overdueTasks, callPopup } = useTasks();
     const [query, setQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState('All');
     const [page, setPage] = useState(1);
@@ -76,12 +75,6 @@ function Search() {
         setPage(value);
     };
 
-    const getStatusColor = (task) => {
-        if (task.complete) return '#4caf50'; // Green
-        if (dayjs(task.taskDate).isBefore(dayjs(), 'day')) return '#f44336'; // Red
-        return '#2196f3'; // Blue
-    };
-
     const getStatusText = (task) => {
         if (task.complete) return 'Completed';
         if (dayjs(task.taskDate).isBefore(dayjs(), 'day')) return 'Overdue';
@@ -90,146 +83,105 @@ function Search() {
 
     const filters = ['All', 'Completed', 'Active', 'Recurring', 'Project'];
 
-    const getFilterColor = (filter) => {
-        if (activeFilter !== filter) return darkMode ? '#222' : '#f0f0f0';
-        switch (filter) {
-            case 'Completed': return '#4caf50';
-            case 'Active': return '#2196f3';
-            default: return '#2196f3'; // Default active color
-        }
-    };
-
     const isOverdue = (task) => !task.complete && dayjs(task.taskDate).isBefore(dayjs(), 'day');
 
     const handleTaskClick = (task) => {
         callPopup(task.taskDate, task);
     };
 
-    const themeClass = theme === 'glass' ? 'glass' : (darkMode ? 'dark' : 'light');
+    const handleRowKeyDown = (event, task) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            handleTaskClick(task);
+        }
+    };
+
+    const hasCriteria = activeFilter !== 'All' || query.trim();
 
     return (
-        <div className={`${styles.searchContainer} ${themeClass === 'glass' ? styles.glass : (darkMode ? styles.dark : '')}`}>
+        <div className={styles.searchContainer}>
             {/* Search Bar */}
-            <TextField
-                fullWidth
-                placeholder="Search tasks, projects, or dates..."
-                variant="outlined"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className={styles.searchBar}
-                InputProps={{
-                    startAdornment: (
-                        <InputAdornment position="start">
-                            <SearchIcon sx={{ color: '#888' }} />
-                        </InputAdornment>
-                    ),
-                    className: `${styles.searchBarInput} ${styles[themeClass]}`
-                }}
-                sx={{
-                    '& .MuiOutlinedInput-root': {
-                        '& fieldset': { border: 'none' }
-                    }
-                }}
-            />
+            <label className={styles.searchBar}>
+                <SearchIcon className={styles.searchIcon} aria-hidden="true" />
+                <input
+                    type="search"
+                    className={styles.searchInput}
+                    placeholder="Search tasks, projects, or dates..."
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    aria-label="Search tasks"
+                />
+            </label>
 
-            {/* Filter Chips */}
-            <div className={styles.filterContainer}>
+            {/* Filter segmented control */}
+            <div className={styles.filterContainer} role="tablist" aria-label="Filter">
                 {filters.map(filter => {
                     const isActive = activeFilter === filter;
-                    const chipClass = isActive
-                        ? `${styles.filterChip} ${styles.active} ${filter === 'Completed' ? styles.activeCompleted : styles.activeOther}`
-                        : `${styles.filterChip} ${styles.inactive} ${styles[themeClass]}`;
-
                     return (
-                        <Chip
+                        <button
                             key={filter}
-                            label={filter}
+                            type="button"
+                            role="tab"
+                            aria-selected={isActive}
                             onClick={() => setActiveFilter(filter)}
-                            className={chipClass}
-                            sx={{
-                                backgroundColor: getFilterColor(filter),
-                                '&:hover': {
-                                    backgroundColor: isActive ? getFilterColor(filter) : (darkMode ? '#555' : '#ddd')
-                                }
-                            }}
-                        />
+                            className={`${styles.filterChip}${isActive ? ` ${styles.active}` : ''}`}
+                        >
+                            {filter}
+                        </button>
                     );
                 })}
+                {filteredTasks.length > 0 && (
+                    <span className={styles.resultCount}>
+                        {filteredTasks.length} {filteredTasks.length === 1 ? 'result' : 'results'}
+                    </span>
+                )}
             </div>
 
-            <List className={`${styles.taskList} ${styles[themeClass]}`}>
+            <ul className={styles.taskList}>
                 {paginatedTasks.map((task, index) => {
                     const taskOverdue = isOverdue(task);
                     const statusText = getStatusText(task);
+                    const statusClass = task.complete ? styles.completed : (taskOverdue ? styles.overdue : styles.activeStatus);
 
                     return (
-                        <React.Fragment key={task.id || index}>
-                            <Paper
-                                elevation={0}
-                                onClick={() => handleTaskClick(task)}
-                                className={`${styles.taskPaper} ${styles[themeClass]}`}
-                            >
-                                <ListItem>
-                                    <ListItemText
-                                        primary={
-                                            <div className={styles.taskHeader}>
-                                                <Typography
-                                                    variant="h6"
-                                                    component="div"
-                                                    className={styles.taskTitle}
-                                                >
-                                                    {task.name}
-                                                </Typography>
-                                                {task.assignedTime && (
-                                                    <Typography
-                                                        variant="body2"
-                                                        className={`${styles.taskTime} ${styles[themeClass]}`}
-                                                    >
-                                                        {dayjs(task.assignedTime, 'HH:mm').format('h:mm A')}
-                                                    </Typography>
-                                                )}
-                                            </div>
-                                        }
-                                        secondary={
-                                            <div className={styles.taskMeta}>
-                                                <Chip
-                                                    label={statusText}
-                                                    size="small"
-                                                    className={`${styles.statusChip} ${task.complete ? styles.completed :
-                                                        taskOverdue ? styles.overdue :
-                                                            styles.active
-                                                        }`}
-                                                    sx={{ backgroundColor: getStatusColor(task) }}
-                                                />
-                                                <Typography
-                                                    variant="body2"
-                                                    className={`${styles.taskDate} ${taskOverdue ? styles.overdue : styles[themeClass]
-                                                        }`}
-                                                >
-                                                    {dayjs(task.taskDate).format('MMM D')}
-                                                </Typography>
-                                                {task.category && task.category !== 'None' && (
-                                                    <Chip
-                                                        label={task.category}
-                                                        size="small"
-                                                        className={`${styles.categoryChip} ${styles[themeClass]}`}
-                                                    />
-                                                )}
-                                            </div>
-                                        }
-                                        secondaryTypographyProps={{ component: 'div' }}
-                                    />
-                                </ListItem>
-                            </Paper>
-                        </React.Fragment>
+                        <li
+                            key={task.id || index}
+                            className={styles.taskPaper}
+                            onClick={() => handleTaskClick(task)}
+                            onKeyDown={(e) => handleRowKeyDown(e, task)}
+                            tabIndex={0}
+                        >
+                            <div className={styles.taskHeader}>
+                                <span className={`${styles.taskTitle}${task.complete ? ` ${styles.taskTitleDone}` : ''}`}>
+                                    {task.name}
+                                </span>
+                                {task.assignedTime && (
+                                    <span className={styles.taskTime}>
+                                        {dayjs(task.assignedTime, 'HH:mm').format('h:mm A')}
+                                    </span>
+                                )}
+                            </div>
+                            <div className={styles.taskMeta}>
+                                <span className={`${styles.statusChip} ${statusClass}`}>{statusText}</span>
+                                <span className={`${styles.taskDate}${taskOverdue ? ` ${styles.overdue}` : ''}`}>
+                                    {dayjs(task.taskDate).format('MMM D')}
+                                </span>
+                                {task.category && task.category !== 'None' && (
+                                    <span className={styles.categoryChip}>
+                                        <span className={styles.categoryHash} style={{ color: projectColor(task.category) }}>#</span> {task.category}
+                                    </span>
+                                )}
+                            </div>
+                        </li>
                     );
                 })}
                 {filteredTasks.length === 0 && (
-                    <Typography variant="body1" color="textSecondary" className={styles.noTasks}>
-                        No tasks found
-                    </Typography>
+                    <li className={styles.noTasks}>
+                        <SearchIcon className={styles.noTasksIcon} aria-hidden="true" />
+                        <span>{hasCriteria ? 'No tasks found' : 'Type to search your tasks'}</span>
+                    </li>
                 )}
-            </List>
+            </ul>
 
             {/* Pagination Control */}
             {totalPages > 1 && (
@@ -238,12 +190,8 @@ function Search() {
                         count={totalPages}
                         page={page}
                         onChange={handlePageChange}
-                        color="primary"
-                        sx={{
-                            '& .MuiPaginationItem-root': {
-                                color: darkMode ? '#eee' : 'inherit',
-                            },
-                        }}
+                        shape="rounded"
+                        className={styles.pagination}
                     />
                 </div>
             )}

@@ -18,6 +18,13 @@ export interface BackendRequestOptions {
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   path: string;
   body?: unknown;
+  /**
+   * Sent as URL query parameters. The Spring Boot /todo/add and /todo/update
+   * endpoints bind @RequestParam, which never reads a JSON body.
+   */
+  query?: Record<string, string | number | boolean | null | undefined>;
+  /** Sent verbatim as text/plain (e.g. scratchpad content, stored as the raw body). */
+  rawBody?: string;
   /** JWT or session token forwarded from the agent actor session. */
   authToken?: string;
 }
@@ -35,10 +42,10 @@ export interface BackendResponse<T = unknown> {
 export async function callBackend<T = unknown>(
   opts: BackendRequestOptions,
 ): Promise<BackendResponse<T>> {
-  const { method = "GET", path, body, authToken } = opts;
+  const { method = "GET", path, body, query, rawBody, authToken } = opts;
 
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
+    "Content-Type": rawBody !== undefined ? "text/plain" : "application/json",
     Accept: "application/json",
   };
 
@@ -47,12 +54,17 @@ export async function callBackend<T = unknown>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const url = `${BACKEND_BASE_URL}${path}`;
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query ?? {})) {
+    if (value !== undefined && value !== null) params.set(key, String(value));
+  }
+  const qs = params.toString();
+  const url = `${BACKEND_BASE_URL}${path}${qs ? `?${qs}` : ""}`;
 
   const response = await fetch(url, {
     method,
     headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    body: rawBody ?? (body !== undefined ? JSON.stringify(body) : undefined),
   });
 
   let data: T;

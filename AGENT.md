@@ -84,6 +84,8 @@ Default section order:
 | Backend (Spring Boot) | 8000 | 5555 |
 | Agent-Native App | 8080 | — |
 
+The Android app has no port; it reaches the backend at a user-configured URL (LAN IP or Tailscale, prod port 5555).
+
 Frontend always runs on 3001. Backend dev runs on 8000, prod runs on 5555. Agent-Native dev server (`agent-app/`) runs on 8080 via `pnpm run dev`.
 
 When the user requests a durable behavior change, record it here or in the relevant child AGENTS.md
@@ -96,6 +98,14 @@ When the user requests a durable behavior change, record it here or in the relev
 | Frontend | `frontend-next/AGENT.md` | Next.js components, contexts, hooks, utilities |
 | Plan & Analysis | `plan/AGENT.md` | Implementation plans, flow analysis, project docs |
 | Agent-Native App | `agent-app/AGENT.md` | Agent-Native runtime, actions, chat UI, DB config, integration with backend and frontend |
+| Android App | `android/AGENT.md` | Native Kotlin/Compose client, offline Room store, sync with the backend, native reminders |
+
+## Cross-Cutting Contracts
+
+- Recurring tasks: only the backend creates next occurrences (on completion via `/todo/update` or a sync push). Web, agent and Android clients never do.
+- Sync: tasks carry `uuid`, `updatedAt` and a `deleted` tombstone; deletes are soft. Offline clients use `/todo/sync/*` (see `plan/backend-endpoints.md`).
+- Reminders: `reminderMinutesBefore` on a task with `assignedTime`; the web fires them while a tab is open, Android via native alarms.
+- Design: `frontend-next/styles/tokens.scss` + `plan/design-system.md` are the shared visual source of truth for web and Android.
 
 ## Agent-Native Shared Actions Layer
 

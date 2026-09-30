@@ -71,7 +71,8 @@ const globalMutationQueue = new RequestQueue();
  * @param {number} id - Task ID
  * @param {string} field - Field name to update
  * @param {*} value - New value for the field
- * @returns {Promise<Object>} Updated task item
+ * @returns {Promise<Object>} Operation result: { status, item, nextItem }, where nextItem is the
+ *   next occurrence the backend created when a recurring task was completed
  * @throws {Error} If the update fails
  */
 export const updateField = async (id, field, value) => {
@@ -84,7 +85,7 @@ export const updateField = async (id, field, value) => {
 					value: value.toString(),
 				},
 			});
-			return response.data.item;
+			return response.data;
 		} catch (error) {
 			console.error(`Error updating task with id ${id}:`, error);
 			throw error;
@@ -100,10 +101,13 @@ export const updateField = async (id, field, value) => {
  * @param {number} priority - Task priority (0-4)
  * @param {string} repeatType - Repeat pattern type
  * @param {number} repeatDuration - Repeat duration value
+ * @param {boolean} longTerm - Long-term flag
+ * @param {string|null} assignedTime - Time of day "HH:mm:ss", or null
+ * @param {number|null} reminderMinutesBefore - Reminder offset in minutes, or null for none
  * @returns {Promise<Object>} Created task item
  * @throws {Error} If the creation fails
  */
-export const addTask = async (task, tdate, category = "None", priority = 0, repeatType = "NONE", repeatDuration = 0, longTerm = false) => {
+export const addTask = async (task, tdate, category = "None", priority = 0, repeatType = "NONE", repeatDuration = 0, longTerm = false, assignedTime = null, reminderMinutesBefore = null) => {
 	return globalMutationQueue.enqueue(async () => {
 		try {
 			const response = await axios.post(`${API_URL}/add`, null, {
@@ -115,6 +119,9 @@ export const addTask = async (task, tdate, category = "None", priority = 0, repe
 					repeatType: repeatType,
 					repeatDuration: repeatDuration,
 					longTerm: longTerm,
+					// axios drops undefined params; the backend treats a missing param as null
+					assignedTime: assignedTime ?? undefined,
+					reminderMinutesBefore: reminderMinutesBefore ?? undefined,
 				},
 			});
 			return response.data.item;
@@ -125,6 +132,49 @@ export const addTask = async (task, tdate, category = "None", priority = 0, repe
 	});
 }
 
+
+/**
+ * Edits a task in place, keeping its id and uuid so sync clients see an edit
+ * @param {number} id - Task ID
+ * @param {string} task - Task name
+ * @param {string} tdate - Task date in YYYY-MM-DD format
+ * @param {string} category - Task category
+ * @param {number} priority - Task priority (0-4)
+ * @param {string} repeatType - Repeat pattern type
+ * @param {number} repeatDuration - Repeat duration value
+ * @param {boolean} longTerm - Long-term flag
+ * @param {string|null} assignedTime - Time of day "HH:mm:ss", or null
+ * @param {number|null} reminderMinutesBefore - Reminder offset in minutes, or null for none
+ * @returns {Promise<Object>} Edited task item
+ * @throws {Error} If the edit fails
+ */
+export const editTask = async (id, task, tdate, category = "None", priority = 0, repeatType = "NONE", repeatDuration = 0, longTerm = false, assignedTime = null, reminderMinutesBefore = null) => {
+	return globalMutationQueue.enqueue(async () => {
+		try {
+			const response = await axios.post(`${API_URL}/edit`, null, {
+				params: {
+					id: id,
+					name: task,
+					category: category,
+					taskDate: tdate,
+					priority: priority,
+					repeatType: repeatType,
+					repeatDuration: repeatDuration,
+					longTerm: longTerm,
+					assignedTime: assignedTime ?? undefined,
+					reminderMinutesBefore: reminderMinutesBefore ?? undefined,
+				},
+			});
+			if (!response.data.item) {
+				throw new Error(response.data.status);
+			}
+			return response.data.item;
+		} catch (error) {
+			console.error(`Error editing task with id ${id}:`, error);
+			throw error;
+		}
+	});
+};
 
 /**
  * Deletes a task by ID

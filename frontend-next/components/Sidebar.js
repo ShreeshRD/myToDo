@@ -16,6 +16,7 @@ import '../styles/sidebar.scss'
 import { useState, useRef, useEffect } from "react";
 import { useTasks } from "../contexts/TaskContext";
 import ProjectManagerModal from "./ProjectManagerModal";
+import { projectColor } from "../lib/projectColors";
 
 function Sidebar({
   show,
@@ -71,42 +72,51 @@ function Sidebar({
     else setTheme('light');
   };
 
+  const navItems = [
+    { page: 'Today', label: 'Today', icon: <FaRegCalendar /> },
+    { page: 'Upcoming', label: 'Upcoming', icon: <MdCalendarViewWeek /> },
+    { page: 'Calendar', label: 'Calendar', icon: <FaRegCalendarAlt /> },
+    { page: 'Search', label: 'Search', icon: <FaSearch /> },
+    { page: 'Scratchpad', label: 'Scratchpad', icon: <FaRegStickyNote /> },
+  ];
+
+  const themeLabel = theme === 'light' ? 'Light' : theme === 'dark' ? 'Dark' : 'Glass';
+
   return (
     <>
+      {!show && (
+        <button className="sidebar__reopen" onClick={() => setShowSidebar(true)} title="Show sidebar" aria-label="Show sidebar">
+          <BsLayoutSidebar />
+        </button>
+      )}
       <div className={`sidebar${show ? '' : ' hidden'} ${theme}${popupBlur ? ' popup-blur' : ''}`}>
-        <button className="darkmodeButton" onClick={toggleTheme} title="Toggle Theme">
-          {theme === 'light' && <LightModeIcon className={`darkmodeIcon ${theme}`} />}
-          {theme === 'dark' && <DarkModeIcon className={`darkmodeIcon ${theme}`} />}
-          {theme === 'glass' && <AutoAwesomeIcon className={`darkmodeIcon ${theme}`} />}
-        </button>
-        <button className={`sidebarButton${show ? '' : ' hidden'}`} onClick={() => setShowSidebar(!show)}>
-          <BsLayoutSidebar className={`sidebarIcon ${theme}`} />
-        </button>
+        <div className="sidebar__top">
+          <div className="sidebar__brand">
+            <span className="sidebar__logo" aria-hidden="true">✓</span>
+            <span>myToDo</span>
+          </div>
+          <div className="sidebar__top-actions">
+            <button className="sidebar__icon-btn darkmodeButton" onClick={toggleTheme} title={`Theme: ${themeLabel}`} aria-label={`Theme: ${themeLabel}`}>
+              {theme === 'light' && <LightModeIcon className={`darkmodeIcon ${theme}`} />}
+              {theme === 'dark' && <DarkModeIcon className={`darkmodeIcon ${theme}`} />}
+              {theme === 'glass' && <AutoAwesomeIcon className={`darkmodeIcon ${theme}`} />}
+            </button>
+            <button className="sidebar__icon-btn sidebarButton" onClick={() => setShowSidebar(!show)} title="Hide sidebar" aria-label="Hide sidebar">
+              <BsLayoutSidebar className={`sidebarIcon ${theme}`} />
+            </button>
+          </div>
+        </div>
         <ul className="sidebar__generic">
-          <li onClick={() => callPopup()}>
-            <AddIcon className="add-icon" />
-            <span> Add Task</span>
+          <li className="sidebar__add" onClick={() => callPopup()}>
+            <span className="sidebar__add-icon"><AddIcon className="add-icon" /></span>
+            <span>Add task</span>
           </li>
-          <li onClick={() => setViewPage('Today')} className={viewPage === 'Today' ? 'active' : ''}>
-            <FaRegCalendar />
-            <span> Today</span>
-          </li>
-          <li onClick={() => setViewPage('Upcoming')} className={viewPage === 'Upcoming' ? 'active' : ''}>
-            <MdCalendarViewWeek />
-            <span> Upcoming</span>
-          </li>
-          <li onClick={() => setViewPage('Calendar')} className={viewPage === 'Calendar' ? 'active' : ''}>
-            <FaRegCalendarAlt />
-            <span> Calendar</span>
-          </li>
-          <li onClick={() => setViewPage('Search')} className={viewPage === 'Search' ? 'active' : ''}>
-            <FaSearch />
-            <span> Search</span>
-          </li>
-          <li onClick={() => setViewPage('Scratchpad')} className={viewPage === 'Scratchpad' ? 'active' : ''}>
-            <FaRegStickyNote />
-            <span> Scratchpad</span>
-          </li>
+          {navItems.map(item => (
+            <li key={item.page} onClick={() => setViewPage(item.page)} className={viewPage === item.page ? 'active' : ''}>
+              {item.icon}
+              <span>{item.label}</span>
+            </li>
+          ))}
         </ul>
         <div className="sidebar__projects">
           <div className="projects__header">
@@ -163,7 +173,7 @@ function Sidebar({
                 className={`projects__item${selectedProjects.includes(project) ? ' active' : ''}`}
               >
                 <div className="projects__item-content">
-                  <CiHashtag className="projects__hash" />
+                  <CiHashtag className="projects__hash" style={{ color: projectColor(project) }} />
                   <span>{project}</span>
                 </div>
               </li>

@@ -1,8 +1,16 @@
 import React, { useRef, useEffect } from 'react';
-import { MdCheckBoxOutlineBlank, MdCheckBox, MdDragIndicator, MdDelete } from "react-icons/md";
-import { IoIosArrowForward, IoIosArrowDown } from "react-icons/io";
+import { MdDragIndicator, MdDeleteOutline, MdCheck, MdChevronRight } from "react-icons/md";
 import { MENU_ITEMS } from './SlashMenu';
 
+
+const PLACEHOLDERS = {
+    p: "Type '/' for commands",
+    h1: 'Heading 1',
+    h2: 'Heading 2',
+    h3: 'Heading 3',
+    todo: 'To-do',
+    toggle: 'Toggle',
+};
 
 // Utility to set cursor to end of contentEditable
 const setCursorToEnd = (element) => {
@@ -184,7 +192,7 @@ const Block = ({
 
     // Robust empty check
     const isEmpty = !block.content || block.content.trim() === '';
-    const placeholderText = block.type === 'p' ? "Type '/' for commands" : "List item...";
+    const placeholderText = PLACEHOLDERS[block.type] || "List item...";
 
     return (
         <div
@@ -200,7 +208,7 @@ const Block = ({
                         onClick={() => deleteBlock(block.id)}
                         title="Delete block"
                     >
-                        <MdDelete />
+                        <MdDeleteOutline />
                     </span>
                     <span
                         className="drag-handle"
@@ -215,11 +223,14 @@ const Block = ({
 
                 {block.type === 'toggle' && (
                     <span
-                        className="toggle-icon"
+                        className={`toggle-icon ${block.isOpen ? 'open' : ''}`}
                         contentEditable={false}
                         onClick={() => updateBlock(block.id, { isOpen: !block.isOpen })}
+                        role="button"
+                        aria-label={block.isOpen ? 'Collapse' : 'Expand'}
+                        aria-expanded={!!block.isOpen}
                     >
-                        {block.isOpen ? <IoIosArrowDown /> : <IoIosArrowForward />}
+                        <MdChevronRight />
                     </span>
                 )}
 
@@ -228,8 +239,12 @@ const Block = ({
                         className="todo-icon"
                         contentEditable={false}
                         onClick={() => updateBlock(block.id, { checked: !block.checked })}
+                        role="checkbox"
+                        aria-checked={!!block.checked}
                     >
-                        {block.checked ? <MdCheckBox /> : <MdCheckBoxOutlineBlank />}
+                        <span className={`todo-checkbox ${block.checked ? 'checked' : ''}`}>
+                            <MdCheck />
+                        </span>
                     </span>
                 )}
 

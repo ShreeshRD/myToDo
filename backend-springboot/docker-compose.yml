@@ -1,28 +1,16 @@
-version: '3.8'
-
 services:
-  db:
-    image: mysql:8.0
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: tododb
-      MYSQL_USER: root
-      MYSQL_PASSWORD: root
-    ports:
-      - "3306:3306"
-    volumes:
-      - db_data:/var/lib/mysql
-
   backend:
     build: .
     ports:
-      - "8080:8080"
-    depends_on:
-      - db
+      - "5555:5555"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/tododb
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:sqlite:/data/todo.db
+      # Add LAN hostnames here if you open the web UI from other machines
+      APP_CORS_ALLOWED_ORIGIN_PATTERNS: "http://localhost:*,http://127.0.0.1:*"
+    volumes:
+      - todo_data:/data
+    restart: unless-stopped
 
 volumes:
-  db_data:
+  todo_data:

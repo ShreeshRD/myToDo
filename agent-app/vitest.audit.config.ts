@@ -6,6 +6,6 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "node",
-    include: ["actions/lib/audit.spec.ts"],
+    include: ["actions/lib/audit.spec.ts", "actions/lib/backendClient.spec.ts"],
   },
 });

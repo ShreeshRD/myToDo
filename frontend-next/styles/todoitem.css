@@ -1,263 +1,244 @@
-/* ToDo Item
-============================================ */
+/* Task rows and day columns (Upcoming; row styles are reused by Today)
+   Tokens: styles/tokens.scss — no per-theme overrides needed here. */
+
 .tasks {
-    padding: 0px 7px;
-    min-height: 100%;
-    height: max-content;
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 280px;
+  width: 280px;
+  padding-top: var(--space-4);
 }
 
 .todo_items_title {
-    margin: 8px;
-    box-sizing: border-box;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  padding: 0 var(--space-1) 0 2px;
+  margin-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
 }
 
+[data-theme="glass"] .todo_items_title {
+  background: transparent;
+}
+
+.todo_items_title.overdue {
+  color: var(--danger);
+}
+
+.todo_items_count {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--text-3);
+}
+
+.task_items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 40px;
+  white-space: normal;
+}
+
+/* Row */
 .todo_item_box {
-    font-size: 14px;
-    color: rgb(32, 32, 32);
-    padding: 10px 7px;
-    width: 260px;
-    margin: 8px;
-    display: flex;
-    flex-direction: column;
-    box-sizing: border-box;
-    border: 1px solid rgba(0, 0, 0, .12);
-    box-shadow: 0 2px 4px 0 rgba(0, 0, 0, .04);
-    border-radius: 8px;
-    justify-content: space-between;
-    cursor: grab;
-    background-color: rgb(255, 255, 255);
-}
-
-.todo_item_box:not(.dark) {
-    background-color: rgb(255, 255, 255);
-    color: rgb(32, 32, 32);
-}
-
-.app-container:not(.dark) .todo_item_box {
-    background-color: rgb(255, 255, 255);
-    color: rgb(32, 32, 32);
+  position: relative;
+  padding: 10px var(--space-3) 10px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  transition: background var(--duration) var(--ease), border-color var(--duration) var(--ease),
+    box-shadow var(--duration) var(--ease);
 }
 
 .todo_item_box:hover {
-    border-color: rgba(0, 0, 0, .2);
-    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, .1);
+  background: var(--surface-2);
+  border-color: var(--border-strong);
 }
 
-.todo_item_box.dark {
-    background-color: rgb(125, 125, 125);
-    color: #eeeeee;
-}
-
-.todo_item_box.dark:hover {
-    border-color: rgba(0, 0, 0, .5);
-    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, .25);
+/* While dragging (@hello-pangea/dnd sets inline transform) */
+.todo_item_box[data-rfd-draggable-id][style*="position: fixed"] {
+  box-shadow: var(--shadow-lg);
+  border-color: var(--border-strong);
 }
 
 .todo_item_box.overdue {
-    background-color: rgb(255, 170, 170);
+  border-left: 3px solid var(--danger);
 }
 
-.app-container:not(.dark) .todo_item_box.overdue {
-    background-color: rgb(255, 170, 170);
-}
-
-.todo_item_box.dark.overdue {
-    background-color: rgb(155, 82, 82);
-}
-
-/* Glass Mode */
-.app-container.glass .todo_item_box {
-    background-color: rgba(255, 255, 255, 0.1) !important;
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    color: white !important;
-}
-
-.app-container.glass .todo_item_box.overdue {
-    background-color: rgba(255, 15, 15, 0.4) !important;
-    border: 1px solid rgba(255, 77, 77, 0.5);
-    box-shadow: 0 0 10px rgba(255, 77, 77, 0.2);
-}
-
-.app-container.glass .todo_item_box.overdue:hover {
-    background-color: rgba(255, 0, 0, 0.25) !important;
-    /* Increased opacity on hover */
-    border-color: rgba(255, 255, 255, 0.5);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
-    transform: translateY(-1px);
-    transition: all 0.2s ease;
-}
-
-/* Glass Hover Effect - Slightly more opaque */
-.app-container.glass .todo_item_box:hover {
-    background-color: rgba(255, 255, 255, 0.25) !important;
-    /* Increased opacity on hover */
-    border-color: rgba(255, 255, 255, 0.5);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
-    transform: translateY(-1px);
-    transition: all 0.2s ease;
-}
-
-.app-container.glass .checkbox_icon_unchecked {
-    color: rgba(255, 255, 255, 0.8);
-}
-
-.app-container.glass .task_infobar {
-    color: rgba(255, 255, 255, 0.7);
-}
-
-.app-container.glass .todo_delete_icon {
-    color: rgba(255, 255, 255, 0.8);
-}
-
-.app-container.glass .todo_delete:hover .todo_delete_icon {
-    color: rgb(255, 100, 100);
-}
-
-/* Glass Mode State Overrides */
-.app-container.glass .todo_item_box.in-progress {
-    background-image: linear-gradient(90deg, rgba(34, 197, 94, 0.75) 15px, transparent 50px);
-    border: 1px solid rgba(183, 225, 205, 0.5);
-    color: white !important;
-}
-
-.app-container.glass .todo_item_box.long-term {
-    background-color: rgba(64, 224, 208, 0.15) !important;
-    border: 1px solid rgba(64, 224, 208, 0.5);
-    color: white !important;
-}
-
-.app-container.glass .todo_item_box.in-progress.long-term {
-    /* Background image inherited from .in-progress */
-}
-
-/* Light Mode States */
 .todo_item_box.in-progress {
-    background-image: linear-gradient(90deg, rgba(34, 197, 94, 0.75) 15px, transparent 50px);
-    border: 1px solid #b7e1cd;
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+}
+
+.todo_item_box.in-progress::before {
+  content: "In progress";
+  position: absolute;
+  top: -8px;
+  right: 10px;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .todo_item_box.long-term {
-    background-color: #e8f0fe !important;
-    /* Blueish */
-    border: 1px solid #aecbfa;
-}
-
-/* Mixed State - Light Mode (Blue Body with Left Green Tab) */
-.todo_item_box.in-progress.long-term {
-    /* Background image inherited from .in-progress */
-    border: 1px solid #aecbfa;
-    /* Blue border primarily */
-    border-left: none;
-}
-
-/* Dark Mode States - Neon Pop */
-.todo_item_box.dark.in-progress {
-    /* Neon Green Tab on Left */
-    background-image: linear-gradient(90deg, rgba(57, 255, 20, 0.6) 15px, transparent 50px);
-    border: 1px solid #39ff14;
-    /* Neon Green */
-    box-shadow: 0 0 4px rgba(57, 255, 20, 0.4);
-}
-
-.todo_item_box.dark.long-term {
-    background-color: rgba(0, 255, 255, 0.1) !important;
-    border: 1px solid #00ffff !important;
-    /* Cyan/Neon Blue */
-    box-shadow: 0 0 4px rgba(0, 255, 255, 0.4);
-}
-
-/* Mixed State - Dark Mode (Blue Body + Neon Green Tab on Left) */
-.todo_item_box.dark.in-progress.long-term {
-    /* Backgrund image inherited from .in-progress */
-    border: 1px solid #00ffff !important;
-    /* Blue Main Border */
-    box-shadow: 0 0 4px rgba(0, 255, 255, 0.4);
+  border-style: dashed;
 }
 
 .todo_item_inner {
-    display: flex;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
 }
 
-
-/* Checkbox */
-.checkbox_icon_checked {
-    color: blue;
-}
-
-/* Delete */
-.todo_delete {
-    visibility: hidden;
-    display: contents;
-    color: rgb(78, 78, 78);
-}
-
-.todo_item_box:hover .todo_delete {
-    visibility: visible;
-}
-
-.todo_delete_icon {
-    font-size: 20px !important;
-}
-
-.todo_delete:hover .todo_delete_icon {
-    color: rgb(215, 0, 0);
-    cursor: pointer;
-}
-
-/* Text / Task title */
 .task_label {
-    white-space: normal;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    width: 100%;
-    padding-left: 4px;
+  flex: 1;
+  min-width: 0;
+  padding-top: 1px;
+  font-size: var(--text-md);
+  line-height: 1.35;
+  word-break: break-word;
 }
 
 .strikethrough {
-    text-decoration: line-through;
+  text-decoration: line-through;
+  color: var(--text-3);
 }
 
-/* Todo Item infobar
-===========================================*/
+/* Delete (appears on hover) */
+.todo_delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin: -2px -4px 0 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--duration) var(--ease), background var(--duration) var(--ease),
+    color var(--duration) var(--ease);
+}
+
+.todo_item_box:hover .todo_delete,
+.todo_delete:focus-visible {
+  opacity: 1;
+}
+
+.todo_delete:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.todo_delete_icon {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+/* Meta line */
 .task_infobar {
-    padding: 4px 15px 0px 24px;
-    font-size: 13px;
-    color: rgb(189, 189, 189);
-    display: flex;
-    /* justify-content: space-between; */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin: 4px 0 0 28px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--text-3);
 }
 
+.task_infobar:empty {
+  display: none;
+}
+
+.task_meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.task_meta--overdue {
+  color: var(--danger);
+}
+
+.task_meta_icon,
 .repeat_icon {
-    color: rgb(1, 228, 80);
-    font-size: large;
-    margin-left: 5px;
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
 }
 
-/* Tasks footer - Add Task 
-===========================================*/
+.task_project_hash {
+  font-weight: 700;
+}
+
+.task_meta--project {
+  margin-left: auto;
+}
+
+/* "Add task" */
 .footer_div {
-    padding: 10px 7px;
-    width: 260px;
-    margin: 8px;
-    display: flex;
-    box-sizing: border-box;
-    align-items: center;
+  padding-top: 2px;
 }
 
 .tasks_footer {
-    display: contents;
-    color: grey;
-    cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-3);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: background var(--duration) var(--ease), color var(--duration) var(--ease);
 }
 
-.tasks_footer.dark {
-    color: #eeeeee;
+.tasks_footer:hover {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.tasks_footer_icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full);
+  color: var(--accent);
+}
+
+.tasks_footer:hover .tasks_footer_icon {
+  background: var(--accent);
+  color: var(--accent-contrast);
 }
 
 .add-icon {
-    color: blue;
-    font-size: 22px;
+  width: 16px !important;
+  height: 16px !important;
 }

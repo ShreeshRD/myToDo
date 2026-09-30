@@ -6,6 +6,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -23,14 +26,15 @@ public class TodoService {
     private TodoItemRepository repository;
 
     public GroupedTodoItems getGroupedByDate() {
-        Iterable<TodoItem> todoList = repository.findAll();
-        Map<String, List<TodoItem>> itemsByDate = StreamSupport.stream(todoList.spliterator(), false)
+        Map<String, List<TodoItem>> itemsByDate = getAll().stream()
+                .filter(item -> item.getTaskDate() != null)
                 .collect(Collectors.groupingBy(
                         item -> item.getTaskDate().toString(),
                         Collectors.collectingAndThen(
                                 Collectors.toList(),
                                 list -> {
-                                    list.sort(Comparator.comparingInt(TodoItem::getDayOrder));
+                                    list.sort(Comparator.comparing(TodoItem::getDayOrder,
+                                            Comparator.nullsLast(Comparator.naturalOrder())));
                                     return list;
                                 })));
 
@@ -49,11 +53,32 @@ public class TodoService {
         return response;
     }
 
+    /** All tasks that have not been deleted. */
+    public List<TodoItem> getAll() {
+        return StreamSupport.stream(repository.findAll().spliterator(), false)
+                .filter(item -> !item.isDeleted())
+                .collect(Collectors.toList());
+    }
+
+    /** Stamps sync metadata before a save; every write path goes through here. */
+    private TodoItem touch(TodoItem item) {
+        if (item.getUuid() == null) {
+            item.setUuid(UUID.randomUUID().toString());
+        }
+        item.setUpdatedAt(System.currentTimeMillis());
+        return repository.save(item);
+    }
+
     public TodoOperationResult addTask(String category, String name, LocalDate taskDate,
             TodoItem.RepeatPattern repeatType, Integer repeatDuration, Integer priority, Boolean longTerm) {
+        return addTask(category, name, taskDate, repeatType, repeatDuration, priority, longTerm, null, null);
+    }
+
+    public TodoOperationResult addTask(String category, String name, LocalDate taskDate,
+            TodoItem.RepeatPattern repeatType, Integer repeatDuration, Integer priority, Boolean longTerm,
+            LocalTime assignedTime, Integer reminderMinutesBefore) {
         // Calculate next order for the task date
-        List<TodoItem> existingTasks = repository.findByTaskDate(taskDate);
-        int nextOrder = existingTasks.size() + 1;
+        int nextOrder = activeOn(taskDate).size() + 1;
 
         // Create and populate the task
         TodoItem item = new TodoItem(taskDate, nextOrder, category, name);
@@ -61,8 +86,10 @@ public class TodoService {
         item.setRepeatDuration(repeatDuration != null ? repeatDuration : 0);
         item.setPriority(priority != null ? priority : 0);
         item.setLongTerm(longTerm != null ? longTerm : false);
+        item.setAssignedTime(assignedTime);
+        item.setReminderMinutesBefore(reminderMinutesBefore);
 
-        TodoItem saved = repository.save(item);
+        TodoItem saved = touch(item);
         logger.info("Created new task with id: {}", saved.getId());
         return new TodoOperationResult("Added", saved);
     }
@@ -75,6 +102,11 @@ public class TodoService {
         }
 
         TodoItem item = optItem.get();
+        if (item.isDeleted()) {
+            return new TodoOperationResult("Error: Item not found", null);
+        }
+        boolean wasComplete = item.isComplete();
+        LocalTime scheduledTime = item.getAssignedTime();
         try {
             switch (field) {
                 case "taskName":
@@ -118,30 +150,110 @@ public class TodoService {
                 case "timeTaken":
                     item.setTimeTaken(Long.parseLong(value));
                     break;
+                case "reminderMinutesBefore":
+                    item.setReminderMinutesBefore(value.equals("null") ? null : Integer.parseInt(value));
+                    break;
                 default:
                     logger.warn("Invalid field update attempted: {}", field);
                     return new TodoOperationResult("Error: Invalid field", null);
             }
 
-            TodoItem savedItem = repository.save(item);
+            TodoItem savedItem = touch(item);
             logger.info("Updated task {} field: {}", id, field);
-            return new TodoOperationResult("Updated", savedItem);
+            TodoItem nextItem = null;
+            if (field.equals("complete") && !wasComplete && savedItem.isComplete()) {
+                nextItem = createNextOccurrence(savedItem, scheduledTime);
+            }
+            return new TodoOperationResult("Updated", savedItem, nextItem);
         } catch (IllegalArgumentException | java.time.format.DateTimeParseException e) {
             logger.error("Error updating task {}: {}", id, e.getMessage());
             return new TodoOperationResult("Error: " + e.getMessage(), null);
         }
     }
 
+    /**
+     * Replaces a task's editable fields in place, keeping its id and uuid so sync
+     * clients see an edit rather than a delete plus a create. Progress fields
+     * (complete, inProgress, timeTaken) are left alone.
+     */
+    public TodoOperationResult editTask(long id, String category, String name, LocalDate taskDate,
+            TodoItem.RepeatPattern repeatType, Integer repeatDuration, Integer priority, Boolean longTerm,
+            LocalTime assignedTime, Integer reminderMinutesBefore) {
+        Optional<TodoItem> optItem = repository.findById(id);
+        if (optItem.isEmpty() || optItem.get().isDeleted()) {
+            logger.warn("Attempted to edit non-existent task with id: {}", id);
+            return new TodoOperationResult("Error: Item not found", null);
+        }
+
+        TodoItem item = optItem.get();
+        if (!Objects.equals(item.getTaskDate(), taskDate)) {
+            // Moving to another day puts the task at the end of that day
+            item.setDayOrder(activeOn(taskDate).size() + 1);
+        }
+        item.setCategory(category);
+        item.setName(name);
+        item.setTaskDate(taskDate);
+        item.setRepeatType(repeatType != null ? repeatType : TodoItem.RepeatPattern.NONE);
+        item.setRepeatDuration(repeatDuration != null ? repeatDuration : 0);
+        item.setPriority(priority != null ? priority : 0);
+        item.setLongTerm(longTerm != null ? longTerm : false);
+        item.setAssignedTime(assignedTime);
+        item.setReminderMinutesBefore(reminderMinutesBefore);
+
+        TodoItem saved = touch(item);
+        logger.info("Edited task with id: {}", id);
+        return new TodoOperationResult("Updated", saved);
+    }
+
     public boolean deleteTask(Long id) {
         Optional<TodoItem> optItem = repository.findById(id);
         if (optItem.isPresent()) {
             TodoItem item = optItem.get();
-            repository.deleteById(id);
+            if (item.isDeleted()) {
+                return false;
+            }
+            // Soft delete: the tombstone lets sync clients remove their copy
+            item.setDeleted(true);
+            touch(item);
             logger.info("Deleted task with id: {}", id);
             return item.isComplete();
         } else {
             logger.warn("Attempted to delete non-existent task with id: {}", id);
             return false;
         }
+    }
+
+    private List<TodoItem> activeOn(LocalDate date) {
+        return repository.findByTaskDate(date).stream()
+                .filter(t -> !t.isDeleted())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Creates the next occurrence of a just-completed recurring task. Skips it when
+     * a task with the same name and category already exists on that date, so
+     * un-ticking and re-ticking does not create duplicates.
+     *
+     * @param scheduledTime the task's time before completion overwrote assignedTime
+     */
+    TodoItem createNextOccurrence(TodoItem completed, LocalTime scheduledTime) {
+        Optional<LocalDate> next = RecurrenceCalculator.nextDate(
+                completed.getTaskDate(), completed.getRepeatType(), completed.getRepeatDuration());
+        if (next.isEmpty()) {
+            return null;
+        }
+        LocalDate nextDate = next.get();
+        boolean duplicate = activeOn(nextDate).stream().anyMatch(t -> Objects.equals(t.getName(), completed.getName())
+                && Objects.equals(t.getCategory(), completed.getCategory())
+                && !Objects.equals(t.getId(), completed.getId()));
+        if (duplicate) {
+            logger.info("Recurring task {} already exists on {}", completed.getId(), nextDate);
+            return null;
+        }
+        TodoItem created = addTask(completed.getCategory(), completed.getName(), nextDate,
+                completed.getRepeatType(), completed.getRepeatDuration(), completed.getPriority(),
+                completed.isLongTerm(), scheduledTime, completed.getReminderMinutesBefore()).getItem();
+        logger.info("Created next occurrence {} of task {} on {}", created.getId(), completed.getId(), nextDate);
+        return created;
     }
 }

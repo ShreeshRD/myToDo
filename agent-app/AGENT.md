@@ -16,6 +16,8 @@ All files under `agent-app/`.
 - **Access control**: Follow user-tenant boundary rules for actions.
 - **Port Mapping**: Dev server on `http://localhost:8080` (Agent-Native default). Spring Boot backend on `http://localhost:8000` (dev) / `5555` (prod); override with `BACKEND_URL` in `.env`.
 - **TypeScript toolchain**: `tsconfig.json` extends `@agent-native/core/tsconfig.base.json` but overrides `ignoreDeprecations` to `"5.0"`. The framework base uses `"6.0"`, which the editor LSP (bundled TS 5.9.x) rejects; the project's TS 7.0.2 accepts both. Keep `"5.0"` until the LSP bundles a TS that accepts `"6.0"`.
+- **Backend encoding**: `/todo/add` and `/todo/update` bind Spring `@RequestParam`, so actions pass values via `callBackend({ query })` (URL params); `/todo/scratchpad` stores the raw request body, so `saveScratchpad` uses `rawBody`. Never send those as a JSON `body`.
+- **Framework checkout**: `@agent-native/core` and `@agent-native/toolkit` are `link:` dependencies on `../agent-native/packages/*`. The repo-root `agent-native/` is a gitlink (commit `40982a7f`) with no `.gitmodules`, so it is empty after a clone. Before `pnpm install`, clone the agent-native framework into `agent-native/` and check out that commit (`git -C agent-native checkout 40982a7f`), then install its workspace (`pnpm install` inside `agent-native/`).
 - **MCP / external-agent surface**: The framework auto-mounts `/mcp`; the curated todo surface is defined in `server/lib/mcp-config.ts` and pinned by `actions/mcp-exposure.spec.ts`. Only read-only actions (`listTasks`, `getScratchpad`) are directly callable by authenticated external callers (`publicAgent: { expose, readOnly, requiresAuth: true }` on the action + `connectorCatalog`). Mutating actions are never advertised: `externalAgents.writes: "ask_app_only"` routes writes through the agent loop's approval flow and `denyActions` blocks every mutation as defense-in-depth. Any new action must be classified there before merge; do not add mutating actions to the direct-callable surface.
 
 ## Work Guidance
@@ -28,7 +30,7 @@ All files under `agent-app/`.
 ## Verification
 
 - Typecheck: `pnpm run typecheck` (exit 0)
-- Tests: `pnpm run test` (20/20 pass)
+- Tests: `pnpm run test` (framework checkout required). The dependency-free specs (`actions/lib/audit.spec.ts`, `actions/lib/backendClient.spec.ts`, 7 tests) also run standalone with `vitest --config vitest.audit.config.ts`
 - Linter/formatting: `pnpm exec oxfmt --check .` inside `agent-app/`
 - Dev server: `pnpm run dev` — expect Vite ready on `http://localhost:8080` and `curl http://localhost:8080/` returning HTTP 200 with the app title.
 

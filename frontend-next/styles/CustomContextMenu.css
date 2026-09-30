@@ -1,35 +1,45 @@
+/* Right-click menu on task rows. Tokens: styles/tokens.scss */
 .custom-context-menu {
     position: fixed;
     z-index: 1000;
-    width: 150px;
-    background-color: white;
-    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
-    border-radius: 4px;
-    padding: 4px 0;
-    border: 1px solid #e0e0e0;
+    min-width: 180px;
+    padding: var(--space-1);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    font-family: var(--font-sans);
+    animation: context-menu-in var(--duration) var(--ease);
 }
 
-.menu-item {
-    padding: 8px 12px;
+.custom-context-menu .menu-item {
+    display: flex;
+    align-items: center;
+    height: 32px;
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-sm);
     cursor: pointer;
-    font-size: 14px;
-    color: #333;
+    font-size: var(--text-md);
+    color: var(--text);
+    white-space: nowrap;
+    transition: background var(--duration) var(--ease);
 }
 
-.menu-item:hover {
-    background-color: #f5f5f5;
+.custom-context-menu .menu-item:hover {
+    background: var(--surface-2);
 }
 
-/* Dark mode support */
-.dark .custom-context-menu {
-    background-color: #333;
-    border-color: #444;
+@keyframes context-menu-in {
+    from {
+        opacity: 0;
+        transform: translateY(-2px);
+    }
 }
 
-.dark .menu-item {
-    color: #eee;
-}
-
-.dark .menu-item:hover {
-    background-color: #444;
+/* Glass: the menu renders inside a blurred task column, where a nested
+   backdrop-filter has nothing to blur, so give it a near-opaque tint instead. */
+[data-theme="glass"] .custom-context-menu {
+    background: rgba(26, 26, 56, 0.94);
 }

@@ -5,11 +5,11 @@ import StyledComponentsRegistry from "@/lib/registry";
 import { Providers } from "./providers";
 import StopwatchPanel from "@/components/StopwatchPanel";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "MyTodoist",
-  description: "A simple todo app",
+  title: "myToDo",
+  description: "Personal task manager",
 };
 
 export default function RootLayout({
@@ -18,7 +18,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-theme="light" className={inter.variable} suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
         <StyledComponentsRegistry>
           <Providers>

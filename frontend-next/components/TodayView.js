@@ -4,9 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { useTasks } from "../contexts/TaskContext";
 import dayjs from 'dayjs';
-import { RiCheckboxBlankCircleLine, RiCheckboxCircleFill } from "react-icons/ri";
-import DeleteIcon from '@mui/icons-material/Delete';
+import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import CustomCheckbox from "./CustomCheckbox";
+import { IoNotificationsOutline, IoTimeOutline } from "react-icons/io5";
+import { projectColor } from "../lib/projectColors";
 import { useUI } from "../contexts/UIContext";
 import '../styles/todoitem.css';
 import '../styles/todayview.scss';
@@ -252,8 +253,7 @@ function TodayView() {
                                 e.stopPropagation();
                                 await updateTask(task.id, "complete", !task.complete, task.taskDate);
                             }}
-                            icon={<RiCheckboxBlankCircleLine className="checkbox_icon_unchecked" />}
-                            checkedIcon={<RiCheckboxCircleFill className="checkbox_icon_checked" />}
+                            priority={task.priority ?? 0}
                         />
                         <div className="task_label">
                             <span className={task.complete ? 'strikethrough' : ''}>
@@ -270,6 +270,24 @@ function TodayView() {
                             <DeleteIcon className="todo_delete_icon" />
                         </button>
                     </div>
+                    {(task.assignedTime || (task.category && task.category !== 'None')) && (
+                        <div className="task_infobar">
+                            {task.assignedTime && !task.complete && (
+                                <span className="task_meta">
+                                    {task.reminderMinutesBefore != null
+                                        ? <IoNotificationsOutline className="task_meta_icon" />
+                                        : <IoTimeOutline className="task_meta_icon" />}
+                                    {dayjs(`2000-01-01T${task.assignedTime}`).format('h:mm A')}
+                                </span>
+                            )}
+                            {task.category && task.category !== 'None' && (
+                                <span className="task_meta task_meta--project">
+                                    <span className="task_project_hash" style={{ color: projectColor(task.category) }}>#</span>
+                                    {task.category}
+                                </span>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
         </Draggable>
@@ -313,7 +331,7 @@ function TodayView() {
                     {/* Overdue Section */}
                     {overdueTasks.length > 0 && (
                         <div className="overdue-section">
-                            <h3>Overdue</h3>
+                            <h3>Overdue <span className="today-count">{overdueTasks.length}</span></h3>
                             <Droppable droppableId="overdue">
                                 {(provided) => (
                                     <div
@@ -331,14 +349,17 @@ function TodayView() {
 
                     {/* Unassigned Tasks */}
                     <div className="unassigned-section">
-                        <h3>Tasks</h3>
+                        <h3>Tasks {todayTasks.length > 0 && <span className="today-count">{todayTasks.length}</span>}</h3>
                         <Droppable droppableId="unassigned">
-                            {(provided) => (
+                            {(provided, snapshot) => (
                                 <div
                                     ref={provided.innerRef}
                                     {...provided.droppableProps}
-                                    className="unassigned-list"
+                                    className={`unassigned-list${snapshot.isDraggingOver ? ' dragging-over' : ''}`}
                                 >
+                                    {todayTasks.length === 0 && !snapshot.isDraggingOver && (
+                                        <div className="today-empty">Nothing unscheduled. Drag a task here to unschedule it.</div>
+                                    )}
                                     {todayTasks.map((task, index) => renderTask(task, index))}
                                     {provided.placeholder}
                                 </div>
@@ -373,18 +394,9 @@ function TodayView() {
                                                 {...provided.droppableProps}
                                                 className={`slot-droppable${snapshot.isDraggingOver ? ' dragging-over' : ''}${isPast ? ' past' : ''}`}
                                             >
-                                                {/* Dark Overlay for Past Slots or Dragging Over */}
-                                                {(isPast || snapshot.isDraggingOver) && !lineStyle && (
-                                                    <div className="dark-overlay" style={{ height: '100%' }} />
-                                                )}
-
+                                                {/* Current-time line */}
                                                 {lineStyle && (
-                                                    <>
-                                                        {/* Darken area before line */}
-                                                        <div className="dark-overlay" style={{ height: lineStyle.top }} />
-                                                        {/* The Line */}
-                                                        <div className="current-time-line" style={{ top: lineStyle.top }} />
-                                                    </>
+                                                    <div className="current-time-line" style={{ top: lineStyle.top }} />
                                                 )}
 
                                                 {/* Content */}
