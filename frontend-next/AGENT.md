@@ -13,7 +13,7 @@ All files under `frontend-next/`.
 - Next.js App Router (`app/` directory)
 - TypeScript for new files; JavaScript for existing
 - Context-based state management (`TaskContext`, `UIContext`, `StopwatchContext`)
-- Data access through `lib/agentClient.ts`: tries the agent-app actions first (`NEXT_PUBLIC_AGENT_URL`, e.g. `http://localhost:8080`), then falls back to direct REST with the Spring Boot backend (`service.js` + `lib/constants.js`)
+- Direct sync with Spring Boot backend via REST API (configured in `lib/constants.js`)
 - Tests in `__tests__/` using Jest
 
 ## Work Guidance
@@ -24,9 +24,6 @@ All files under `frontend-next/`.
 - New utilities: add to `lib/`
 - Styling: prefer CSS modules (`.module.css`) or existing CSS/SCSS files
 - Cross-day drag-and-drop and same-day reorder logic live in component + `lib/dateHelpers.js`
-- Agent chat panel: `MainView.js` renders an iframe (`src` = `NEXT_PUBLIC_AGENT_URL`) in an `agent-sidebar` aside, toggled by the floating "Ask AI" FAB (`#agent-fab`); both are only rendered when `NEXT_PUBLIC_AGENT_URL` is set
-- Page context contract: `MainView.js` sends `{ view, selectedTaskId, selectedDate, filters }` whenever route/popup changes — via `setPageContext()` in `lib/agentClient.ts` (PUT to agent-app `/_agent-native/application-state/page-context`) and a `agentNative.setChatContext` postMessage that pre-fills the iframe composer; the agent reads it back with the `view-screen` action in `agent-app/`
-- Agent confirmation flows: mutating agent actions (`deleteTask`, `updateTask`, `saveScratchpad`) now require human approval inside the agent chat panel (framework `needsApproval`); the embeddable chat UI renders an Approve affordance for these calls
 
 ## Ports
 

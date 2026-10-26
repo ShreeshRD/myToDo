@@ -41,7 +41,7 @@ All files under `backend-springboot/`.
 ## Verification
 
 - `cd backend-springboot && ./mvnw clean compile`
-- `cd backend-springboot && ./mvnw test` — 25/25 pass. Surefire loads `mockito-core` as a `-javaagent` (path resolved from `${settings.localRepository}`; version pinned by the Spring Boot parent), so Mockito never self-attaches at runtime — runtime attachment fails on JDK 21+/restricted environments. Integration tests target `127.0.0.1`, not `localhost`, because Reactor Netty resolves via DNS only.
+- `cd backend-springboot && ./mvnw test`
 
 ## Child DOX Index
 

@@ -6,7 +6,7 @@ Own project planning documents, flow analysis, and implementation plans. These a
 
 ## Ownership
 
-All files under `plan/`.
+All files under `plan/` and top-level analysis/plan docs (e.g., `fix_unsaved_changes_plan.md`, `flow_analysis.md`).
 
 ## Local Contracts
 
@@ -24,15 +24,6 @@ All files under `plan/`.
 
 None yet.
 
-## Plan Document Index
+## Child DOX Index
 
-| Document | Purpose |
-|---|---|
-| `agent-native.md` | Agent-Native conversion plan |
-| `backend-endpoints.md` | Backend REST endpoints inventory |
-| `frontend-flows.md` | Frontend page views and API integrations inventory |
-| `actions-candidates.md` | Candidate Agent-Native Actions schemas and mappings |
-| `runtime-db.md` | Database boundary decision: isolated SQLite for agent-app vs Spring Boot DB |
-| `agent-workflows.md` | Agent-native workflow descriptions and confirmation rules |
-| `open-items.md` | Remaining manual verification, known failures, and follow-up work |
-
+None

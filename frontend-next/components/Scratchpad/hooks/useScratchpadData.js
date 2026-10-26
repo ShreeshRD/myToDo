@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getScratchpad, saveScratchpad } from '../../../lib/agentClient';
+import { getScratchpad, saveScratchpad } from '../../../service';
 
 export const useScratchpadData = () => {
     const [blocks, setBlocks] = useState([

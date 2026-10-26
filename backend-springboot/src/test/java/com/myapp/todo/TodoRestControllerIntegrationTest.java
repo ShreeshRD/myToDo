@@ -44,13 +44,11 @@ class TodoRestControllerIntegrationTest {
 
         private String baseUrl;
 
-        		@BeforeEach
-        		void setUp() {
-        			// Use the loopback literal: environments without a DNS resolver cannot
-        			// resolve "localhost" (Reactor Netty queries DNS before /etc/hosts).
-        			baseUrl = "http://127.0.0.1:" + port + "/todo";
-        			repository.deleteAll();
-        		}
+        @BeforeEach
+        void setUp() {
+                baseUrl = "http://localhost:" + port + "/todo";
+                repository.deleteAll();
+        }
 
         @Test
         @Order(1)
