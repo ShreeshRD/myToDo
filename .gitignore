@@ -1,5 +1,7 @@
 .idea/
 .vscode/
+.mimocode/
+.playwright-cli/
 !**/node_modules/**
 !**/out/**
 !**/.next/**

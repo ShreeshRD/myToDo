@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState } from 'react';
 import useTaskManagement from '../hooks/useTaskManagement';
 import { addTask } from "../service";
+import { startInProgressSession } from "../lib/inProgressTimer";
 import { useUI } from './UIContext';
 import { calculatePredecessor, calculatePredecessorUnfiltered } from '../lib/dragUtils';
 
@@ -78,6 +79,7 @@ export const TaskProvider = ({ children }) => {
             if (inProgress) {
                 task.inProgress = true;
                 await taskManagement.updateBackend(task.id, "inProgress", true);
+                startInProgressSession(task.id);
             }
 
             if (timeTaken > 0) {

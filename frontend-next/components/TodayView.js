@@ -8,6 +8,8 @@ import { RiCheckboxBlankCircleLine, RiCheckboxCircleFill } from "react-icons/ri"
 import DeleteIcon from '@mui/icons-material/Delete';
 import CustomCheckbox from "./CustomCheckbox";
 import { useUI } from "../contexts/UIContext";
+import { useStopwatch } from "../contexts/StopwatchContext";
+import { formatTimeTaken } from "../lib/dateHelpers";
 import '../styles/todoitem.css';
 import '../styles/todayview.scss';
 
@@ -31,6 +33,7 @@ const TIME_SLOTS = generateTimeSlots();
 function TodayView() {
     const { taskDays, updateTask, removeTask, callPopup } = useTasks();
     const { theme } = useUI();
+    const { stopStopwatch } = useStopwatch();
     const [todayTasks, setTodayTasks] = useState([]);
     const [assignedTasks, setAssignedTasks] = useState({});
     const [overdueTasks, setOverdueTasks] = useState([]);
@@ -250,7 +253,13 @@ function TodayView() {
                             checked={task.complete}
                             onChange={async (e) => {
                                 e.stopPropagation();
-                                await updateTask(task.id, "complete", !task.complete, task.taskDate);
+                                const newComplete = !task.complete;
+                                if (newComplete) {
+                                    // Detach any running timer; the complete update
+                                    // below records timeTaken from the in-progress session
+                                    await stopStopwatch(task);
+                                }
+                                await updateTask(task.id, "complete", newComplete, task.taskDate);
                             }}
                             icon={<RiCheckboxBlankCircleLine className="checkbox_icon_unchecked" />}
                             checkedIcon={<RiCheckboxCircleFill className="checkbox_icon_checked" />}
@@ -270,6 +279,11 @@ function TodayView() {
                             <DeleteIcon className="todo_delete_icon" />
                         </button>
                     </div>
+                    {task.complete && task.timeTaken > 0 && (
+                        <div className="task_infobar">
+                            <span>{` • ${formatTimeTaken(task.timeTaken)}`}</span>
+                        </div>
+                    )}
                 </div>
             )}
         </Draggable>

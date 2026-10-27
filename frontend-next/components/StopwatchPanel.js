@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useStopwatch } from '../contexts/StopwatchContext';
+import { useUI } from '../contexts/UIContext';
 import { FaPlay, FaPause, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import '../styles/StopwatchPanel.css';
 
@@ -20,13 +21,14 @@ const formatTime = (ms) => {
 
 const StopwatchPanel = () => {
     const { stopwatches, toggleStopwatch } = useStopwatch();
+    const { theme } = useUI();
     const [isMinimized, setIsMinimized] = useState(false);
 
     const activeIds = Object.keys(stopwatches);
     if (activeIds.length === 0) return null;
 
     return (
-        <div className={`stopwatch-panel ${isMinimized ? 'minimized' : ''}`}>
+        <div className={`stopwatch-panel ${theme} ${isMinimized ? 'minimized' : ''}`}>
             <div className="stopwatch-header" onClick={() => setIsMinimized(!isMinimized)}>
                 <span>Active Timers ({activeIds.length})</span>
                 {isMinimized ? <FaChevronUp /> : <FaChevronDown />}

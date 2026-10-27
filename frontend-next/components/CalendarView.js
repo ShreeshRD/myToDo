@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { useTasks } from '../contexts/TaskContext';
+import { useStopwatch } from '../contexts/StopwatchContext';
 import dayjs from 'dayjs';
 import TaskDetailPanel from "./TaskDetailPanel";
 import CustomCheckbox from "./CustomCheckbox";
@@ -11,6 +12,7 @@ import { RiCheckboxCircleFill, RiCheckboxBlankCircleLine } from "react-icons/ri"
 
 function CalendarView() {
     const { taskDays, completedTasks, overdueTasks, darkMode, updateTask, completedDate, setCompletedDate } = useTasks();
+    const { stopStopwatch } = useStopwatch();
 
     const initializedRef = useRef(false);
     const [selectedDate, setSelectedDate] = useState(new Date());
@@ -69,11 +71,18 @@ function CalendarView() {
     };
 
     const handleToggleTask = async (task) => {
+        if (!task.complete) {
+            // Detach any running timer; the complete update records timeTaken
+            await stopStopwatch(task);
+        }
         await updateTask(task.id, "complete", !task.complete, task.taskDate);
     };
 
     const handleUncheckOverdueTask = async (task) => {
         // For overdue tasks, we just toggle the complete status
+        if (!task.complete) {
+            await stopStopwatch(task);
+        }
         await updateTask(task.id, "complete", !task.complete, task.taskDate);
     };
 

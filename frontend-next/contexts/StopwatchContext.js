@@ -15,14 +15,17 @@ export const StopwatchProvider = ({ children }) => {
     useEffect(() => {
         intervalRef.current = setInterval(() => {
             setStopwatches(prev => {
+                const now = Date.now();
                 const next = { ...prev };
                 let changed = false;
                 for (const taskId in next) {
                     if (next[taskId].isRunning) {
                         next[taskId] = {
                             ...next[taskId],
-                            // visual elapsed time = persisted (or accumulated) + current run
-                            elapsedTime: (next[taskId].elapsedTime || 0) + (Date.now() - next[taskId].startTime)
+                            // visual elapsed time = accumulated + current run
+                            elapsedTime: (next[taskId].elapsedTime || 0) + (now - next[taskId].startTime),
+                            // restart the run window so the delta isn't counted again next tick
+                            startTime: now
                         };
                         changed = true;
                     }
@@ -90,13 +93,8 @@ export const StopwatchProvider = ({ children }) => {
         setStopwatches(current => {
             const sw = current[task.id];
             if (sw && sw.isRunning) {
-                // Pause - Persist Time
+                // Pause - closing inProgress records the elapsed segment into timeTaken
                 setTimeout(() => {
-                    const elapsedTime = Date.now() - sw.startTime;
-                    const totalTime = (task.timeTaken || 0) + elapsedTime;
-                    // Update persistence
-                    updateTask(task.id, "timeTaken", totalTime, task.taskDate);
-                    // Update in progress status
                     updateTask(task.id, "inProgress", false, task.taskDate);
                 }, 0);
 
@@ -136,34 +134,22 @@ export const StopwatchProvider = ({ children }) => {
     };
 
     const stopStopwatch = async (task) => {
-        // Get the stopwatch state synchronously before setting state
+        // Detach the timer without touching timeTaken/inProgress: the caller's
+        // subsequent complete update closes the in-progress session and records
+        // the final timeTaken in one consistent state update.
         let totalTime = 0;
 
         setStopwatches(current => {
             const sw = current[task.id];
             if (sw) {
-                // Convert any running time to persisted time
-                if (sw.isRunning) {
-                    const runTime = Date.now() - sw.startTime;
-                    // sw.elapsedTime tracks the accumulated time from previous runs + initial task.timeTaken
-                    // For a fresh start: sw.elapsedTime = task.timeTaken || 0
-                    // After pause/resume: sw.elapsedTime has accumulated time
-                    totalTime = sw.elapsedTime + runTime;
-                } else {
-                    // Timer was paused - elapsedTime already has the total accumulated time
-                    totalTime = sw.elapsedTime;
-                }
+                totalTime = sw.isRunning
+                    ? sw.elapsedTime + (Date.now() - sw.startTime)
+                    : sw.elapsedTime;
             }
             const next = { ...current };
             delete next[task.id];
             return next;
         });
-
-        // Update backend with the calculated totalTime
-        if (totalTime > 0) {
-            await updateTask(task.id, "timeTaken", totalTime, task.taskDate);
-        }
-        await updateTask(task.id, "inProgress", false, task.taskDate);
 
         return totalTime;
     }

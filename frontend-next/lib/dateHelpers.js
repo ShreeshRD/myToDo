@@ -41,3 +41,13 @@ export const formatTaskDate = (date) => {
   return formattedDate + suffix;
 };
 
+/**
+ * Formats a tracked duration for the task infobar (e.g. "1m", "45s")
+ * @param {number} ms - Duration in milliseconds
+ * @returns {string} Formatted duration
+ */
+export const formatTimeTaken = (ms) => {
+  if (ms >= 60000) return `${Math.floor(ms / 60000)}m`;
+  return `${Math.max(1, Math.floor(ms / 1000))}s`;
+};
+

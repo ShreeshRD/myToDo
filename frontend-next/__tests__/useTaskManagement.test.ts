@@ -446,4 +446,118 @@ describe('useTaskManagement Hook', () => {
             expect(result.current.overdueTasks.overdue).toHaveLength(0);
         });
     });
+
+    describe('in-progress time tracking', () => {
+        const baseNow = new Date('2026-10-27T12:00:00').getTime();
+        let nowSpy: jest.SpyInstance<number, []>;
+
+        beforeEach(() => {
+            nowSpy = jest.spyOn(Date, 'now').mockReturnValue(baseNow);
+        });
+
+        afterEach(() => {
+            nowSpy.mockRestore();
+        });
+
+        it('records timeTaken from the in-progress mark to completion', async () => {
+            mockGetTasks.mockResolvedValue({
+                itemsByDate: {
+                    [today]: [
+                        { id: 1, name: 'Timed Task', complete: false, taskDate: today, repeatType: 'NONE' },
+                    ]
+                }
+            });
+            mockUpdateField.mockResolvedValue({ id: 1 });
+
+            const { result } = renderHook(() => useTaskManagement()) as unknown as { result: { current: TaskManagementHook } };
+
+            await waitFor(() => {
+                expect(result.current.taskDays[today]).toBeDefined();
+            });
+
+            await act(async () => {
+                result.current.updateTask(1, 'inProgress', true, today);
+            });
+            expect(mockUpdateField).toHaveBeenCalledWith(1, 'inProgress', true);
+
+            // Two minutes pass before the task is completed
+            nowSpy.mockReturnValue(baseNow + 120000);
+
+            await act(async () => {
+                result.current.updateTask(1, 'complete', true, today);
+            });
+
+            expect(mockUpdateField).toHaveBeenCalledWith(1, 'timeTaken', 120000);
+            expect(result.current.taskDays[today][0].timeTaken).toBe(120000);
+            expect(result.current.completedTasks[today][0].timeTaken).toBe(120000);
+        });
+
+        it('accumulates paused segments without double counting', async () => {
+            mockGetTasks.mockResolvedValue({
+                itemsByDate: {
+                    [today]: [
+                        { id: 2, name: 'Segmented Task', complete: false, taskDate: today, repeatType: 'NONE' },
+                    ]
+                }
+            });
+            mockUpdateField.mockResolvedValue({ id: 2 });
+
+            const { result } = renderHook(() => useTaskManagement()) as unknown as { result: { current: TaskManagementHook } };
+
+            await waitFor(() => {
+                expect(result.current.taskDays[today]).toBeDefined();
+            });
+
+            // Run for 60s, then unmark in progress (pause)
+            await act(async () => {
+                result.current.updateTask(2, 'inProgress', true, today);
+            });
+            nowSpy.mockReturnValue(baseNow + 60000);
+            await act(async () => {
+                result.current.updateTask(2, 'inProgress', false, today);
+            });
+
+            expect(mockUpdateField).toHaveBeenCalledWith(2, 'timeTaken', 60000);
+            expect(result.current.taskDays[today][0].timeTaken).toBe(60000);
+
+            // Resume immediately, run 30s more, then complete — total must be
+            // 90s (60 + 30), not the 150s a naive re-add would produce
+            await act(async () => {
+                result.current.updateTask(2, 'inProgress', true, today);
+            });
+            nowSpy.mockReturnValue(baseNow + 90000);
+            await act(async () => {
+                result.current.updateTask(2, 'complete', true, today);
+            });
+
+            expect(mockUpdateField).toHaveBeenCalledWith(2, 'timeTaken', 90000);
+            expect(result.current.taskDays[today][0].timeTaken).toBe(90000);
+            expect(result.current.completedTasks[today][0].timeTaken).toBe(90000);
+        });
+
+        it('does not add time when completing a task that was never marked in progress', async () => {
+            mockGetTasks.mockResolvedValue({
+                itemsByDate: {
+                    [today]: [
+                        { id: 3, name: 'Untimed Task', complete: false, taskDate: today, repeatType: 'NONE' },
+                    ]
+                }
+            });
+            mockUpdateField.mockResolvedValue({ id: 3 });
+
+            const { result } = renderHook(() => useTaskManagement()) as unknown as { result: { current: TaskManagementHook } };
+
+            await waitFor(() => {
+                expect(result.current.taskDays[today]).toBeDefined();
+            });
+
+            nowSpy.mockReturnValue(baseNow + 300000);
+            await act(async () => {
+                result.current.updateTask(3, 'complete', true, today);
+            });
+
+            expect(mockUpdateField).not.toHaveBeenCalledWith(3, 'timeTaken', expect.anything());
+            expect(result.current.taskDays[today][0].timeTaken).toBeUndefined();
+        });
+    });
 });

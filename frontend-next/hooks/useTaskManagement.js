@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import dayjs from 'dayjs';
 import { getTasks, updateField, deleteTask, addTask } from '../service';
+import { startInProgressSession, endInProgressSession, clearInProgressSession } from '../lib/inProgressTimer';
 
 const useTaskManagement = () => {
     const [taskDays, setTaskDays] = useState([]);
@@ -121,9 +122,36 @@ const useTaskManagement = () => {
         }
     }
 
+    // Look up a task's current state by id across overdue and taskDays
+    const findTask = (id) => {
+        const targetId = id ? id.toString() : '';
+        for (const date in taskDays) {
+            const task = taskDays[date].find(t => t.id.toString() === targetId);
+            if (task) return task;
+        }
+        return (overdueTasks.overdue || []).find(t => t.id.toString() === targetId) || null;
+    };
+
     const updateTask = (id, field, value, date) => {
         const today = dayjs().format("YYYY-MM-DD");
         const isOverdue = date < today;
+
+        // Session timing: marking in progress starts a session; closing it
+        // (unmarking or completing) folds the elapsed wall time into timeTaken.
+        let closedTimeTaken = null;
+        if (field === "inProgress" && value === true) {
+            startInProgressSession(id);
+        } else if ((field === "inProgress" && value === false) || (field === "complete" && value === true)) {
+            const elapsed = endInProgressSession(id);
+            if (elapsed !== null) {
+                const target = findTask(id);
+                if (target) {
+                    closedTimeTaken = (target.timeTaken || 0) + elapsed;
+                }
+            }
+        }
+        const timeTakenUpdate = closedTimeTaken !== null ? { timeTaken: closedTimeTaken } : {};
+
         const targetId = id ? id.toString() : '';
 
         // 1. Update UI immediately (optimistic update)
@@ -133,7 +161,7 @@ const useTaskManagement = () => {
                 // updateTask call would read stale state and re-apply it.
                 const markComplete = (task) =>
                     task.id.toString() === targetId
-                        ? { ...task, complete: true, inProgress: false }
+                        ? { ...task, complete: true, inProgress: false, ...timeTakenUpdate }
                         : task;
 
                 // Task is being marked as complete
@@ -164,7 +192,7 @@ const useTaskManagement = () => {
                         updatedCompletedTasks[date] = [];
                     }
                     if (!updatedCompletedTasks[date].some(t => t.id.toString() === targetId)) {
-                        updatedCompletedTasks[date].push({ ...taskToComplete, complete: true, inProgress: false });
+                        updatedCompletedTasks[date].push({ ...taskToComplete, complete: true, inProgress: false, ...timeTakenUpdate });
                     }
                     setCompletedTasks(updatedCompletedTasks);
                 }
@@ -199,7 +227,7 @@ const useTaskManagement = () => {
             if (isOverdue) {
                 const updatedOverdue = { ...overdueTasks };
                 updatedOverdue.overdue = (updatedOverdue.overdue || []).map(task =>
-                    task.id.toString() === targetId ? { ...task, [field]: value } : task
+                    task.id.toString() === targetId ? { ...task, [field]: value, ...timeTakenUpdate } : task
                 );
                 updatedOverdue.overdue = sortTasks(updatedOverdue.overdue);
                 setOverdueTasks(updatedOverdue);
@@ -208,13 +236,19 @@ const useTaskManagement = () => {
             const updatedTaskDays = { ...taskDays };
             for (const d in updatedTaskDays) {
                 updatedTaskDays[d] = updatedTaskDays[d].map((task) =>
-                    task.id.toString() === targetId ? { ...task, [field]: value } : task
+                    task.id.toString() === targetId ? { ...task, [field]: value, ...timeTakenUpdate } : task
                 );
             }
             setTaskDays(updatedTaskDays);
         }
 
         // 2. Send to backend async
+        if (closedTimeTaken !== null) {
+            updateField(id, "timeTaken", closedTimeTaken)
+                .catch((error) => {
+                    console.error(`Error updating timeTaken for task ${id}:`, error);
+                });
+        }
         updateField(id, field, value)
             .then((taskItem) => {
                 // Persist inProgress clear alongside complete so refetch matches UI
@@ -297,6 +331,7 @@ const useTaskManagement = () => {
 
     const removeTask = async (taskId, date, update = false) => {
         const targetId = taskId ? taskId.toString() : '';
+        clearInProgressSession(taskId);
         try {
             const task_completed = await deleteTask(taskId);
 

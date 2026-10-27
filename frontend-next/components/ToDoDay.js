@@ -12,7 +12,7 @@ import '../styles/todoitem.css';
 import { useTasks } from "../contexts/TaskContext";
 import { useStopwatch } from "../contexts/StopwatchContext";
 import { useUI } from "../contexts/UIContext";
-import { formatTaskDate, formatDateShort } from "../lib/dateHelpers";
+import { formatTaskDate, formatDateShort, formatTimeTaken } from "../lib/dateHelpers";
 
 function ToDoDay({ tasks, date, id }) {
     const { updateTask, removeTask, callPopup } = useTasks();
@@ -99,7 +99,8 @@ function ToDoDay({ tasks, date, id }) {
                                                     e.stopPropagation();
                                                     const newComplete = !task.complete;
                                                     if (newComplete) {
-                                                        // Wait for stopwatch to save timeTaken before marking complete
+                                                        // Detach any running timer; the complete update
+                                                        // below records timeTaken from the in-progress session
                                                         await stopStopwatch(task);
                                                     }
                                                     await updateTask(task.id, "complete", newComplete, task.taskDate);
@@ -127,7 +128,7 @@ function ToDoDay({ tasks, date, id }) {
                                                 {date === "Overdue" && formatDateShort(task.taskDate)}
                                                 {task.repeatType !== "NONE" && <BsArrowRepeat className="repeat_icon" />}
                                                 {task.category !== 'None' && ` #${task.category}`}
-                                                {task.complete && task.timeTaken > 0 && ` • ${Math.floor(task.timeTaken / 60000)}m`}
+                                                {task.complete && task.timeTaken > 0 && ` • ${formatTimeTaken(task.timeTaken)}`}
                                             </span>
                                         </div>
                                     </div>
