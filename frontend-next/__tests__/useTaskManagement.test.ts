@@ -146,8 +146,46 @@ describe('useTaskManagement Hook', () => {
             // Task should be updated in taskDays
             expect(result.current.taskDays[today][0].complete).toBe(true);
 
+            // Completing must clear inProgress so in-progress CSS does not stick
+            expect(result.current.taskDays[today][0].inProgress).toBe(false);
+
             // Task should also appear in completedTasks
             expect(result.current.completedTasks[today]).toHaveLength(1);
+            expect(result.current.completedTasks[today][0].inProgress).toBe(false);
+        });
+
+        it('should clear inProgress when marking an in-progress task complete', async () => {
+            const mockTasks = {
+                itemsByDate: {
+                    [today]: [
+                        { id: 1, name: 'In Progress Task', complete: false, inProgress: true, taskDate: today, repeatType: 'NONE' },
+                    ]
+                }
+            };
+            mockGetTasks.mockResolvedValue(mockTasks);
+            mockUpdateField.mockResolvedValue({
+                id: 1,
+                name: 'In Progress Task',
+                complete: true,
+                inProgress: false,
+                taskDate: today,
+                repeatType: 'NONE'
+            });
+
+            const { result } = renderHook(() => useTaskManagement()) as unknown as { result: { current: TaskManagementHook } };
+
+            await waitFor(() => {
+                expect(result.current.taskDays[today]?.[0]?.inProgress).toBe(true);
+            });
+
+            await act(async () => {
+                await result.current.updateTask(1, 'complete', true, today);
+            });
+
+            expect(result.current.taskDays[today][0].complete).toBe(true);
+            expect(result.current.taskDays[today][0].inProgress).toBe(false);
+            expect(result.current.completedTasks[today][0].inProgress).toBe(false);
+            expect(mockUpdateField).toHaveBeenCalledWith(1, 'inProgress', false);
         });
 
         it('should update category without creating duplicate (Bug 417)', async () => {

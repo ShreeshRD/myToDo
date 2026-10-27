@@ -35,6 +35,8 @@ describe('TaskContext', () => {
             updateBackend: mockUpdateBackend,
             removeTask: mockRemoveTask,
             addToFrontend: mockAddToFrontend,
+            fetchTasks: jest.fn(),
+            updateTask: jest.fn(),
             startDate: { add: jest.fn() }, // minimal mock for moment/dayjs
         });
 

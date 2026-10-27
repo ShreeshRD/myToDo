@@ -66,7 +66,7 @@ function ToDoDay({ tasks, date, id }) {
     const getTaskClassName = (task) => {
         let className = `todo_item_box ${theme}`;
         if (id === 100) className += ' overdue';
-        if (task.inProgress) className += ' in-progress';
+        if (task.inProgress && !task.complete) className += ' in-progress';
         if (task.longTerm) className += ' long-term';
         return className;
     };

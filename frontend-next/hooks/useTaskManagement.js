@@ -129,20 +129,23 @@ const useTaskManagement = () => {
         // 1. Update UI immediately (optimistic update)
         if (field === "complete") {
             if (value === true) {
+                // Clear inProgress in the same update — a separate sequential
+                // updateTask call would read stale state and re-apply it.
+                const markComplete = (task) =>
+                    task.id.toString() === targetId
+                        ? { ...task, complete: true, inProgress: false }
+                        : task;
+
                 // Task is being marked as complete
                 if (isOverdue) {
                     const updatedOverdue = { ...overdueTasks };
-                    updatedOverdue.overdue = (updatedOverdue.overdue || []).map(task =>
-                        task.id.toString() === targetId ? { ...task, complete: true } : task
-                    );
+                    updatedOverdue.overdue = (updatedOverdue.overdue || []).map(markComplete);
                     updatedOverdue.overdue = sortTasks(updatedOverdue.overdue);
                     setOverdueTasks(updatedOverdue);
                 } else {
                     const updatedTaskDays = { ...taskDays };
                     if (updatedTaskDays[date]) {
-                        updatedTaskDays[date] = updatedTaskDays[date].map(task =>
-                            task.id.toString() === targetId ? { ...task, complete: true } : task
-                        );
+                        updatedTaskDays[date] = updatedTaskDays[date].map(markComplete);
                         setTaskDays(updatedTaskDays);
                     }
                 }
@@ -161,7 +164,7 @@ const useTaskManagement = () => {
                         updatedCompletedTasks[date] = [];
                     }
                     if (!updatedCompletedTasks[date].some(t => t.id.toString() === targetId)) {
-                        updatedCompletedTasks[date].push({ ...taskToComplete, complete: true });
+                        updatedCompletedTasks[date].push({ ...taskToComplete, complete: true, inProgress: false });
                     }
                     setCompletedTasks(updatedCompletedTasks);
                 }
@@ -214,6 +217,12 @@ const useTaskManagement = () => {
         // 2. Send to backend async
         updateField(id, field, value)
             .then((taskItem) => {
+                // Persist inProgress clear alongside complete so refetch matches UI
+                if (field === "complete" && value === true) {
+                    updateField(id, "inProgress", false).catch((error) => {
+                        console.error(`Error clearing inProgress for task ${id}:`, error);
+                    });
+                }
                 // Handle repeat tasks after backend confirms (for complete field)
                 if (field === "complete" && value === true && taskItem && taskItem.repeatType !== "NONE") {
                     addNextRepeat(taskItem);

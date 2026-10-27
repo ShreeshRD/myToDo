@@ -149,11 +149,7 @@ export const TaskProvider = ({ children }) => {
     };
 
     const updateTaskWithDeletedProjectCheck = async (id, field, value, date) => {
-        if (field === "complete" && value === true) {
-            await taskManagement.updateTask(id, "inProgress", false, date);
-        }
-
-        // Normal update
+        // Normal update (complete=true also clears inProgress inside updateTask)
         await taskManagement.updateTask(id, field, value, date);
     };
 
