@@ -13,7 +13,7 @@ All files under `backend-springboot/`.
 - Java 21 required
 - Package root: `com.myapp.todo`
 - Controller → Service → Repository pattern
-- JPA entities map to the SQLite database configured in `application.properties` (`todo.db`)
+- JPA entities map to the SQLite database configured in `application.properties` (`todo-dev.db` for dev, `todo.db` for prod)
 - REST endpoints serve the frontend via JSON
 - Cross-origin requests from frontend are configured in `WebConfig`
 
@@ -33,7 +33,7 @@ All files under `backend-springboot/`.
 ## Commands
 
 - **Dev (hot-reload):** `cd backend-springboot && ./mvnw spring-boot:run`
-- **Dev (explicit profile):** `cd backend-springboot && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev`
+
 - **Build (JAR):** `cd backend-springboot && ./mvnw clean package`
 - **Build (Uber JAR):** `cd backend-springboot && ./mvnw clean spring-boot:build-image`
 - **Prod run:** `cd backend-springboot && SPRING_PROFILES_ACTIVE=prod java -jar target/todo-0.0.1-SNAPSHOT.jar`
