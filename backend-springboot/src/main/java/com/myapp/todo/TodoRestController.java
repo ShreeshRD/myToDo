@@ -1,8 +1,13 @@
 package com.myapp.todo;
 
+import com.myapp.todo.dto.ProjectCount;
+import com.myapp.todo.dto.TaskCounts;
+import com.myapp.todo.dto.TaskQuery;
 import com.myapp.todo.dto.TodoOperationResult;
 import java.time.LocalDate;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 
 import org.springframework.web.bind.annotation.*;
 
@@ -50,5 +55,27 @@ public class TodoRestController {
     @DeleteMapping("/delete/{id}")
     public boolean delete(@PathVariable Long id) {
         return todoService.deleteTask(id);
+    }
+
+    @GetMapping("/query")
+    public @ResponseBody List<TodoItem> query(@ModelAttribute TaskQuery query) {
+        return todoService.queryTasks(query);
+    }
+
+    @GetMapping("/count")
+    public @ResponseBody TaskCounts count(@ModelAttribute TaskQuery query) {
+        return todoService.countTasks(query);
+    }
+
+    @GetMapping("/item/{id}")
+    public ResponseEntity<TodoItem> getItem(@PathVariable Long id) {
+        return todoService.getTask(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/projects")
+    public @ResponseBody List<ProjectCount> projects() {
+        return todoService.getProjectCounts();
     }
 }

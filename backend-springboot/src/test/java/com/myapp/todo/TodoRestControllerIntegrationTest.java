@@ -46,7 +46,7 @@ class TodoRestControllerIntegrationTest {
 
         @BeforeEach
         void setUp() {
-                baseUrl = "http://localhost:" + port + "/todo";
+                baseUrl = "http://127.0.0.1:" + port + "/todo";
                 repository.deleteAll();
         }
 

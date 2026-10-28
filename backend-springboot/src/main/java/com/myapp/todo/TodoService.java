@@ -1,15 +1,22 @@
 package com.myapp.todo;
 
+import com.myapp.todo.dto.ProjectCount;
+import com.myapp.todo.dto.TaskCounts;
+import com.myapp.todo.dto.TaskQuery;
 import com.myapp.todo.dto.TodoOperationResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -143,5 +150,154 @@ public class TodoService {
             logger.warn("Attempted to delete non-existent task with id: {}", id);
             return false;
         }
+    }
+
+    // Query filtering is intentionally in-memory (findAll + filter). Acceptable until
+    // the dataset grows beyond roughly 10k tasks; current prod is ~519 rows.
+    public List<TodoItem> queryTasks(TaskQuery query) {
+        validateQuery(query);
+        Comparator<TodoItem> byDateThenId = Comparator
+                .comparing(TodoItem::getTaskDate)
+                .thenComparing(TodoItem::getId);
+        if ("desc".equals(normalizeOrder(query.getOrder()))) {
+            byDateThenId = byDateThenId.reversed();
+        }
+        return filterTasks(query)
+                .sorted(byDateThenId)
+                .limit(normalizeLimit(query.getLimit()))
+                .collect(Collectors.toList());
+    }
+
+    public TaskCounts countTasks(TaskQuery query) {
+        validateQuery(query);
+        List<TodoItem> filtered = filterTasks(query).collect(Collectors.toList());
+        long completed = filtered.stream().filter(TodoItem::isComplete).count();
+        long count = filtered.size();
+        return new TaskCounts(count, count - completed, completed);
+    }
+
+    public Optional<TodoItem> getTask(long id) {
+        return repository.findById(id);
+    }
+
+    public List<ProjectCount> getProjectCounts() {
+        Map<String, Long> counts = StreamSupport.stream(repository.findAll().spliterator(), false)
+                .collect(Collectors.groupingBy(this::projectName, Collectors.counting()));
+        List<ProjectCount> result = new ArrayList<>();
+        counts.forEach((name, count) -> result.add(new ProjectCount(name, count)));
+        result.sort(Comparator.comparingLong(ProjectCount::getCount).reversed()
+                .thenComparing(ProjectCount::getName));
+        return result;
+    }
+
+    private Stream<TodoItem> filterTasks(TaskQuery query) {
+        String q = blankToNull(query.getQ());
+        String exactName = blankToNull(query.getExactName());
+        String project = blankToNull(query.getProject());
+        String status = normalizeStatus(query.getStatus());
+        Boolean recurring = query.getRecurring();
+        LocalDate start = query.getStart();
+        LocalDate end = query.getEnd();
+
+        return StreamSupport.stream(repository.findAll().spliterator(), false)
+                .filter(item -> q == null || containsIgnoreCase(item.getName(), q))
+                .filter(item -> exactName == null || equalsIgnoreCase(item.getName(), exactName))
+                .filter(item -> project == null || equalsIgnoreCase(projectName(item), project))
+                .filter(item -> start == null || !item.getTaskDate().isBefore(start))
+                .filter(item -> end == null || !item.getTaskDate().isAfter(end))
+                .filter(item -> {
+                    if ("open".equals(status)) {
+                        return !item.isComplete();
+                    }
+                    if ("completed".equals(status)) {
+                        return item.isComplete();
+                    }
+                    return true;
+                })
+                .filter(item -> {
+                    if (recurring == null) {
+                        return true;
+                    }
+                    return recurring == isRecurring(item);
+                });
+    }
+
+    private void validateQuery(TaskQuery query) {
+        String status = normalizeStatus(query.getStatus());
+        if (!status.equals("all") && !status.equals("open") && !status.equals("completed")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "status must be all, open, or completed");
+        }
+        String order = normalizeOrder(query.getOrder());
+        if (!order.equals("asc") && !order.equals("desc")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "order must be asc or desc");
+        }
+        if (query.getStart() != null && query.getEnd() != null && query.getStart().isAfter(query.getEnd())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "start must be on or before end");
+        }
+        query.setQ(blankToNull(query.getQ()));
+        query.setExactName(blankToNull(query.getExactName()));
+        query.setProject(blankToNull(query.getProject()));
+        query.setStatus(status);
+        query.setOrder(order);
+        query.setLimit(normalizeLimit(query.getLimit()));
+    }
+
+    private String normalizeStatus(String status) {
+        if (status == null || status.isBlank()) {
+            return "all";
+        }
+        return status.trim().toLowerCase();
+    }
+
+    private String normalizeOrder(String order) {
+        if (order == null || order.isBlank()) {
+            return "asc";
+        }
+        return order.trim().toLowerCase();
+    }
+
+    private int normalizeLimit(Integer limit) {
+        if (limit == null) {
+            return 100;
+        }
+        if (limit < 1) {
+            return 1;
+        }
+        if (limit > 500) {
+            return 500;
+        }
+        return limit;
+    }
+
+    private String projectName(TodoItem item) {
+        if (item.getCategory() == null || item.getCategory().isBlank()) {
+            return "None";
+        }
+        return item.getCategory().trim();
+    }
+
+    private boolean isRecurring(TodoItem item) {
+        return item.getRepeatType() != null && item.getRepeatType() != TodoItem.RepeatPattern.NONE;
+    }
+
+    private boolean containsIgnoreCase(String value, String needle) {
+        if (value == null) {
+            return false;
+        }
+        return value.toLowerCase().contains(needle.toLowerCase());
+    }
+
+    private boolean equalsIgnoreCase(String left, String right) {
+        if (left == null || right == null) {
+            return false;
+        }
+        return left.trim().equalsIgnoreCase(right.trim());
+    }
+
+    private String blankToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 }

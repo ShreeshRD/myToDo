@@ -16,6 +16,8 @@ All files under `backend-springboot/`.
 - JPA entities map to the SQLite database configured in `application.properties` (`todo-dev.db` for dev, `todo.db` for prod)
 - REST endpoints serve the frontend via JSON
 - Cross-origin requests from frontend are configured in `WebConfig`
+- Query endpoints: `/todo/query`, `/todo/count`, `/todo/item/{id}`, `/todo/projects`
+- Query filtering is in-memory in `TodoService`; acceptable for the current dataset size
 
 ## Work Guidance
 

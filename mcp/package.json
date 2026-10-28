@@ -1,0 +1,21 @@
+{
+  "name": "todo-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test",
+    "test:watch": "node --test --watch"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "cors": "2.8.5",
+    "dayjs": "1.11.23",
+    "express": "5.3.0",
+    "zod": "4.6.7"
+  }
+}
