@@ -7,6 +7,7 @@ import dayjs from 'dayjs';
 import { RiCheckboxBlankCircleLine, RiCheckboxCircleFill } from "react-icons/ri";
 import DeleteIcon from '@mui/icons-material/Delete';
 import CustomCheckbox from "./CustomCheckbox";
+import CustomContextMenu from "./CustomContextMenu";
 import { useUI } from "../contexts/UIContext";
 import { useStopwatch } from "../contexts/StopwatchContext";
 import { formatTimeTaken } from "../lib/dateHelpers";
@@ -33,11 +34,12 @@ const TIME_SLOTS = generateTimeSlots();
 function TodayView() {
     const { taskDays, updateTask, removeTask, callPopup } = useTasks();
     const { theme } = useUI();
-    const { stopStopwatch } = useStopwatch();
+    const { toggleStopwatch, stopStopwatch } = useStopwatch();
     const [todayTasks, setTodayTasks] = useState([]);
     const [assignedTasks, setAssignedTasks] = useState({});
     const [overdueTasks, setOverdueTasks] = useState([]);
     const [currentTime, setCurrentTime] = useState(dayjs());
+    const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, task: null });
 
     // Update current time every minute
     useEffect(() => {
@@ -237,15 +239,65 @@ function TodayView() {
         });
     };
 
+    const handleContextMenu = (e, task) => {
+        e.preventDefault();
+        setContextMenu({
+            visible: true,
+            x: e.clientX,
+            y: e.clientY,
+            task: task
+        });
+    };
+
+    const handleCloseContextMenu = () => {
+        setContextMenu({ ...contextMenu, visible: false });
+    };
+
+    const handleMarkInProgress = () => {
+        if (contextMenu.task) {
+            updateTask(contextMenu.task.id, "inProgress", !contextMenu.task.inProgress, contextMenu.task.taskDate);
+        }
+        handleCloseContextMenu();
+    };
+
+    const handleToggleLongTerm = () => {
+        if (contextMenu.task) {
+            updateTask(contextMenu.task.id, "longTerm", !contextMenu.task.longTerm, contextMenu.task.taskDate);
+        }
+        handleCloseContextMenu();
+    };
+
+    const handleEdit = () => {
+        if (contextMenu.task) {
+            callPopup(dayjs().format('YYYY-MM-DD'), contextMenu.task);
+        }
+        handleCloseContextMenu();
+    };
+
+    const handleTimeMe = () => {
+        if (contextMenu.task) {
+            toggleStopwatch(contextMenu.task);
+        }
+        handleCloseContextMenu();
+    };
+
+    const getTaskClassName = (task) => {
+        let className = `todo_item_box ${theme}`;
+        if (task.inProgress && !task.complete) className += ' in-progress';
+        if (task.longTerm) className += ' long-term';
+        return className;
+    };
+
     const renderTask = (task, index) => (
         <Draggable key={task.id} draggableId={task.id.toString()} index={index}>
             {(provided) => (
                 <div
-                    className={`todo_item_box ${theme}`}
+                    className={getTaskClassName(task)}
                     {...provided.draggableProps}
                     {...provided.dragHandleProps}
                     ref={provided.innerRef}
                     onClick={() => !task.complete && callPopup(dayjs().format('YYYY-MM-DD'), task)}
+                    onContextMenu={(e) => !task.complete && handleContextMenu(e, task)}
                     style={{ ...provided.draggableProps.style, marginBottom: '8px' }}
                 >
                     <div className="todo_item_inner">
@@ -415,6 +467,17 @@ function TodayView() {
                     </div>
                 </div>
             </DragDropContext>
+            <CustomContextMenu
+                visible={contextMenu.visible}
+                x={contextMenu.x}
+                y={contextMenu.y}
+                task={contextMenu.task}
+                onClose={handleCloseContextMenu}
+                onMarkInProgress={handleMarkInProgress}
+                onToggleLongTerm={handleToggleLongTerm}
+                onEdit={handleEdit}
+                onTimeMe={handleTimeMe}
+            />
         </div>
     );
 }

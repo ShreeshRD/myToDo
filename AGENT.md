@@ -85,6 +85,10 @@ Default section order:
 
 Frontend always runs on 3001. Backend dev runs on 8000, prod runs on 5555.
 
+### Deploy
+
+`./update-prod.sh` is the only prod deploy path. It rebuilds the Next.js static export (its postbuild copies `out/` into `backend-springboot/src/main/resources/static`), rebuilds the backend jar, backs up the current prod jar into `todo-prod/backups`, installs the new jar, and restarts the `todo-backend.service` user unit.
+
 When the user requests a durable behavior change, record it here or in the relevant child AGENTS.md
 
 ## Child DOX Index
