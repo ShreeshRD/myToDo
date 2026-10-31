@@ -17,6 +17,9 @@ All files under `backend-springboot/`.
 - REST endpoints serve the frontend via JSON
 - Cross-origin requests from frontend are configured in `WebConfig`
 - Query endpoints: `/todo/query`, `/todo/count`, `/todo/item/{id}`, `/todo/projects`
+- Multi-field task edits use `POST /todo/patch/{id}` (JSON map) so a task keeps its ID; the single-field `/todo/update` remains for simple mutations
+- Completion sets `completedAt` and must never overwrite `assignedTime` (scheduled time)
+- `LegacyDataBackfill` fills `createdAt`/`completedAt` for pre-existing rows on startup
 - Query filtering is in-memory in `TodoService`; acceptable for the current dataset size
 
 ## Work Guidance

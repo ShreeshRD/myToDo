@@ -8,6 +8,7 @@ import useTaskManagement from '../hooks/useTaskManagement';
 // Mock dependencies
 jest.mock('../service', () => ({
     addTask: jest.fn(),
+    updateTaskFields: jest.fn(),
 }));
 
 jest.mock('../hooks/useTaskManagement', () => jest.fn());
@@ -22,11 +23,13 @@ describe('TaskContext', () => {
     let mockUpdateBackend;
     let mockRemoveTask;
     let mockAddToFrontend;
+    let mockFetchTasks;
 
     beforeEach(() => {
         mockUpdateBackend = jest.fn();
         mockRemoveTask = jest.fn();
         mockAddToFrontend = jest.fn();
+        mockFetchTasks = jest.fn();
 
         useTaskManagement.mockReturnValue({
             taskDays: {},
@@ -35,7 +38,7 @@ describe('TaskContext', () => {
             updateBackend: mockUpdateBackend,
             removeTask: mockRemoveTask,
             addToFrontend: mockAddToFrontend,
-            fetchTasks: jest.fn(),
+            fetchTasks: mockFetchTasks,
             updateTask: jest.fn(),
             startDate: { add: jest.fn() }, // minimal mock for moment/dayjs
         });
@@ -44,18 +47,21 @@ describe('TaskContext', () => {
             id: 123,
             name: 'Test Task',
         });
+        service.updateTaskFields.mockResolvedValue({
+            id: 1,
+            name: 'Updated Task',
+        });
     });
 
     afterEach(() => {
         jest.clearAllMocks();
     });
 
-    it('should persist inProgress, timeTaken, and longTerm when updating a task', async () => {
+    it('should update an existing task in place instead of recreating it', async () => {
         const wrapper = ({ children }) => <TaskProvider>{children}</TaskProvider>;
         const { result } = renderHook(() => useTasks(), { wrapper });
 
         const taskID = 1;
-        const taskDate = '2025-12-20';
         const taskName = 'Updated Task';
         const dateChoice = '2025-12-21';
         const projectChoice = 'Work';
@@ -64,14 +70,10 @@ describe('TaskContext', () => {
         const repeatDuration = 0;
         const taskOrder = 5;
         const assignedTime = null;
-        const inProgress = true;
-        const timeTaken = 3600;
-        const longTerm = true;
 
         await act(async () => {
             await result.current.onPopupClose(
                 taskID,
-                taskDate,
                 taskName,
                 dateChoice,
                 projectChoice,
@@ -80,27 +82,23 @@ describe('TaskContext', () => {
                 repeatDuration,
                 taskOrder,
                 assignedTime,
-                inProgress,
-                timeTaken,
-                longTerm
+                true,
+                3600,
+                true
             );
         });
 
-        // Verify addTask was called with longTerm
-        expect(service.addTask).toHaveBeenCalledWith(
+        expect(service.addTask).not.toHaveBeenCalled();
+        expect(service.updateTaskFields).toHaveBeenCalledWith(taskID, {
             taskName,
-            dateChoice,
-            projectChoice,
-            priority,
+            taskDate: dateChoice,
+            category: projectChoice,
+            priority: String(priority),
             repeatType,
-            repeatDuration,
-            longTerm
-        );
-
-        // Verify updateBackend was called for inProgress
-        expect(mockUpdateBackend).toHaveBeenCalledWith(123, 'inProgress', true);
-
-        // Verify updateBackend was called for timeTaken
-        expect(mockUpdateBackend).toHaveBeenCalledWith(123, 'timeTaken', timeTaken);
+            repeatDuration: String(repeatDuration),
+            dayOrder: String(taskOrder),
+            assignedTime: 'null',
+        });
+        expect(mockFetchTasks).toHaveBeenCalled();
     });
 });

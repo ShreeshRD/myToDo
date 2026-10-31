@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +27,7 @@ import java.util.LinkedHashMap;
 public class TodoService {
 
     private static final Logger logger = LoggerFactory.getLogger(TodoService.class);
+    private static final ZoneId COMPLETION_ZONE = ZoneId.of("Asia/Kolkata");
 
     @Autowired
     private TodoItemRepository repository;
@@ -83,59 +86,92 @@ public class TodoService {
 
         TodoItem item = optItem.get();
         try {
-            switch (field) {
-                case "taskName":
-                    item.setName(value);
-                    break;
-                case "category":
-                    item.setCategory(value);
-                    break;
-                case "taskDate":
-                    item.setTaskDate(LocalDate.parse(value));
-                    break;
-                case "dayOrder":
-                    item.setDayOrder(Integer.parseInt(value));
-                    break;
-                case "complete":
-                    item.setComplete(Boolean.parseBoolean(value));
-                    // Set assignedTime to current time when marking as complete
-                    if (Boolean.parseBoolean(value)) {
-                        item.setAssignedTime(
-                                java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Kolkata")).toLocalTime());
-                    }
-                    break;
-                case "priority":
-                    item.setPriority(Integer.parseInt(value));
-                    break;
-                case "repeatType":
-                    item.setRepeatType(TodoItem.RepeatPattern.valueOf(value));
-                    break;
-                case "repeatDuration":
-                    item.setRepeatDuration(Integer.parseInt(value));
-                    break;
-                case "assignedTime":
-                    item.setAssignedTime(value.equals("null") ? null : java.time.LocalTime.parse(value));
-                    break;
-                case "inProgress":
-                    item.setInProgress(Boolean.parseBoolean(value));
-                    break;
-                case "longTerm":
-                    item.setLongTerm(Boolean.parseBoolean(value));
-                    break;
-                case "timeTaken":
-                    item.setTimeTaken(Long.parseLong(value));
-                    break;
-                default:
-                    logger.warn("Invalid field update attempted: {}", field);
-                    return new TodoOperationResult("Error: Invalid field", null);
-            }
-
+            applyField(item, field, value);
             TodoItem savedItem = repository.save(item);
             logger.info("Updated task {} field: {}", id, field);
             return new TodoOperationResult("Updated", savedItem);
         } catch (IllegalArgumentException | java.time.format.DateTimeParseException e) {
             logger.error("Error updating task {}: {}", id, e.getMessage());
             return new TodoOperationResult("Error: " + e.getMessage(), null);
+        }
+    }
+
+    /**
+     * Applies several field updates in one transaction. Used by the edit popup so a
+     * task keeps its identity instead of being recreated.
+     */
+    public TodoOperationResult patchTask(Long id, Map<String, String> fields) {
+        Optional<TodoItem> optItem = repository.findById(id);
+        if (optItem.isEmpty()) {
+            logger.warn("Attempted to patch non-existent task with id: {}", id);
+            return new TodoOperationResult("Error: Item not found", null);
+        }
+
+        TodoItem item = optItem.get();
+        try {
+            if (fields != null) {
+                for (Map.Entry<String, String> entry : fields.entrySet()) {
+                    applyField(item, entry.getKey(), entry.getValue());
+                }
+            }
+            TodoItem savedItem = repository.save(item);
+            logger.info("Patched task {} with {} field(s)", id, fields == null ? 0 : fields.size());
+            return new TodoOperationResult("Updated", savedItem);
+        } catch (IllegalArgumentException | java.time.format.DateTimeParseException e) {
+            logger.error("Error patching task {}: {}", id, e.getMessage());
+            return new TodoOperationResult("Error: " + e.getMessage(), null);
+        }
+    }
+
+    private void applyField(TodoItem item, String field, String rawValue) {
+        String value = rawValue == null ? "null" : rawValue;
+        switch (field) {
+            case "taskName":
+                item.setName(value);
+                break;
+            case "category":
+                item.setCategory(value);
+                break;
+            case "taskDate":
+                item.setTaskDate(LocalDate.parse(value));
+                break;
+            case "dayOrder":
+                item.setDayOrder(Integer.parseInt(value));
+                break;
+            case "complete":
+                boolean completed = Boolean.parseBoolean(value);
+                item.setComplete(completed);
+                // Completion is an event: record when it happened without destroying
+                // the scheduled time.
+                item.setCompletedAt(completed ? LocalDateTime.now(COMPLETION_ZONE) : null);
+                break;
+            case "priority":
+                item.setPriority(Integer.parseInt(value));
+                break;
+            case "repeatType":
+                item.setRepeatType(TodoItem.RepeatPattern.valueOf(value));
+                break;
+            case "repeatDuration":
+                item.setRepeatDuration(Integer.parseInt(value));
+                break;
+            case "assignedTime":
+                item.setAssignedTime(value.equals("null") ? null : java.time.LocalTime.parse(value));
+                break;
+            case "inProgress":
+                item.setInProgress(Boolean.parseBoolean(value));
+                break;
+            case "longTerm":
+                item.setLongTerm(Boolean.parseBoolean(value));
+                break;
+            case "timeTaken":
+                item.setTimeTaken(Long.parseLong(value));
+                break;
+            case "description":
+                item.setDescription(value.equals("null") ? null : value);
+                break;
+            default:
+                logger.warn("Invalid field update attempted: {}", field);
+                throw new IllegalArgumentException("Invalid field");
         }
     }
 

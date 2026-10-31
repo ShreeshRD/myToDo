@@ -477,6 +477,73 @@ class TodoRestControllerIntegrationTest {
                 assertThat(response.getBody().getItem()).isNull();
         }
 
+        @Test
+        @Order(17)
+        @DisplayName("POST /todo/patch/{id} - should update multiple fields and keep the task id")
+        void testPatchTask() {
+                // Arrange
+                TodoItem createdTask = createTask("Original", "Work");
+                Long taskId = createdTask.getId();
+
+                java.util.Map<String, String> fields = new java.util.LinkedHashMap<>();
+                fields.put("taskName", "Patched");
+                fields.put("category", "Personal");
+                fields.put("priority", "3");
+                fields.put("description", "Details");
+
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                HttpEntity<java.util.Map<String, String>> request = new HttpEntity<>(fields, headers);
+
+                // Act
+                ResponseEntity<TodoOperationResult> response = restTemplate.postForEntity(
+                                baseUrl + "/patch/" + taskId, request, TodoOperationResult.class);
+
+                // Assert
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody()).isNotNull();
+                TodoItem patched = response.getBody().getItem();
+                assertThat(patched.getId()).isEqualTo(taskId);
+                assertThat(patched.getName()).isEqualTo("Patched");
+                assertThat(patched.getCategory()).isEqualTo("Personal");
+                assertThat(patched.getPriority()).isEqualTo(3);
+                assertThat(patched.getDescription()).isEqualTo("Details");
+        }
+
+        @Test
+        @Order(18)
+        @DisplayName("POST /todo/update - completion sets completedAt and preserves assignedTime")
+        void testCompletionTimestamps() {
+                // Arrange
+                TodoItem createdTask = createTask("Timed completion", "Work");
+                Long taskId = createdTask.getId();
+
+                java.net.URI timeUrl = UriComponentsBuilder.fromUriString(baseUrl + "/update")
+                                .queryParam("id", taskId)
+                                .queryParam("field", "assignedTime")
+                                .queryParam("value", "09:00:00")
+                                .build()
+                                .toUri();
+                restTemplate.postForEntity(timeUrl, null, TodoOperationResult.class);
+
+                java.net.URI completeUrl = UriComponentsBuilder.fromUriString(baseUrl + "/update")
+                                .queryParam("id", taskId)
+                                .queryParam("field", "complete")
+                                .queryParam("value", "true")
+                                .build()
+                                .toUri();
+
+                // Act
+                ResponseEntity<TodoOperationResult> response = restTemplate.postForEntity(
+                                completeUrl, null, TodoOperationResult.class);
+
+                // Assert
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody()).isNotNull();
+                assertThat(response.getBody().getItem().getCompletedAt()).isNotNull();
+                assertThat(response.getBody().getItem().getAssignedTime()).isEqualTo(java.time.LocalTime.of(9, 0));
+        }
+
         /**
          * Helper method to create a task for testing
          */

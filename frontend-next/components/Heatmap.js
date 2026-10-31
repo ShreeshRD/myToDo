@@ -5,8 +5,11 @@ import { useTasks } from '../contexts/TaskContext';
 import dayjs from 'dayjs';
 import '../styles/Heatmap.scss';
 
-function Heatmap({ currentDate }) {
+function Heatmap({ currentDate, tasksByDate }) {
     const { completedTasks } = useTasks();
+    // Global heatmap: only long-term (growth) completions count.
+    // A caller may pass its own pre-filtered data (e.g. per-skill occurrences).
+    const source = tasksByDate || completedTasks;
     const today = currentDate ? dayjs(currentDate) : dayjs();
     const startOfMonth = today.startOf('month');
     const daysInMonth = today.daysInMonth();
@@ -40,14 +43,16 @@ function Heatmap({ currentDate }) {
                 ))}
                 {days.map((day) => {
                     const dateString = day.format('YYYY-MM-DD');
-                    const tasks = completedTasks[dateString] || [];
+                    const tasks = tasksByDate
+                        ? (source[dateString] || [])
+                        : (source[dateString] || []).filter(task => task.longTerm);
                     const count = tasks.length;
-                    
+
                     return (
                         <div 
                             key={dateString} 
                             className={`heatmap-cell ${getIntensityClass(count)}`}
-                            title={`${dateString}: ${count} tasks`}
+                            title={`${dateString}: ${count} long-term task${count === 1 ? '' : 's'}`}
                         >
                         </div>
                     );

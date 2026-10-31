@@ -6,6 +6,7 @@ import com.myapp.todo.dto.TaskQuery;
 import com.myapp.todo.dto.TodoOperationResult;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 
@@ -50,6 +51,13 @@ public class TodoRestController {
             @RequestParam String field,
             @RequestParam String value) {
         return todoService.updateTaskField(id, field, value);
+    }
+
+    @PostMapping("/patch/{id}")
+    public @ResponseBody TodoOperationResult patchItem(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> fields) {
+        return todoService.patchTask(id, fields);
     }
 
     @DeleteMapping("/delete/{id}")

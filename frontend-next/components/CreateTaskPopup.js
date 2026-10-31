@@ -46,7 +46,6 @@ function CreateTaskPopup({ projects, theme, date, task }) {
   const [poptype, setPoptype] = useState("Add Task");
   const [taskName, setTaskName] = useState('');
   const [taskID, setTaskID] = useState(-1);
-  const [taskDate, setTaskDate] = useState(initialDate);
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [selectedProject, setSelectedProject] = useState('Project');
   const [selectedPriority, setSelectedPriority] = useState('P0');
@@ -64,7 +63,6 @@ function CreateTaskPopup({ projects, theme, date, task }) {
       setPoptype("Update");
       setTaskName(task.name);
       setTaskID(task.id);
-      setTaskDate(task.taskDate);
       setSelectedProject(task.category === "None" ? 'Project' : task.category);
       setSelectedPriority(`P${task.priority}`);
       setRepeatType(task.repeatType !== "NONE" ? formatRepeatType(task.repeatType) : 'Repeat Type');
@@ -87,7 +85,7 @@ function CreateTaskPopup({ projects, theme, date, task }) {
     const timeTaken = task?.timeTaken || 0;
     const longTerm = task?.longTerm || false;
 
-    onPopupClose(taskID, taskDate, taskName, formattedDate, projectToPass, priorityValue, repeatTypeValue, repeatDurationInt, order, timeToPass, inProgress, timeTaken, longTerm);
+    onPopupClose(taskID, taskName, formattedDate, projectToPass, priorityValue, repeatTypeValue, repeatDurationInt, order, timeToPass, inProgress, timeTaken, longTerm);
     setTaskName('');
     setSelectedDate(dayjs());
   };

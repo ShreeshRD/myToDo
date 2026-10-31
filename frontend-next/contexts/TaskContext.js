@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState } from 'react';
 import useTaskManagement from '../hooks/useTaskManagement';
-import { addTask } from "../service";
+import { addTask, updateTaskFields } from "../service";
 import { startInProgressSession } from "../lib/inProgressTimer";
 import { useUI } from './UIContext';
 import { calculatePredecessor, calculatePredecessorUnfiltered } from '../lib/dragUtils';
@@ -61,39 +61,54 @@ export const TaskProvider = ({ children }) => {
         setShowPopup(true);
     };
 
-    const onPopupClose = async (deleteid = -1, taskDate, taskName = '', dateChoice, projectChoice = "None", priority = 0, repeatType = "NONE", repeatDuration = 0, taskOrder = 0, assignedTime = null, inProgress = false, timeTaken = 0, longTerm = false) => {
+    const onPopupClose = async (taskID = -1, taskName = '', dateChoice, projectChoice = "None", priority = 0, repeatType = "NONE", repeatDuration = 0, taskOrder = 0, assignedTime = null, inProgress = false, timeTaken = 0, longTerm = false) => {
+        const isEditing = taskID !== -1 && taskID !== "-1" && taskID !== null && taskID !== undefined;
+
         if (taskName.trim() !== '') {
-            let task;
-            try {
-                task = await addTask(taskName, dateChoice, projectChoice, priority, repeatType, repeatDuration, longTerm);
-            } catch (err) {
-                console.error('addTask backend failed:', err);
-                return;
-            }
-
-            if (assignedTime) {
-                task.assignedTime = assignedTime;
-                await taskManagement.updateBackend(task.id, "assignedTime", assignedTime);
-            }
-
-            if (inProgress) {
-                task.inProgress = true;
-                await taskManagement.updateBackend(task.id, "inProgress", true);
-                startInProgressSession(task.id);
-            }
-
-            if (timeTaken > 0) {
-                task.timeTaken = timeTaken;
-                await taskManagement.updateBackend(task.id, "timeTaken", timeTaken);
-            }
-
-            if (deleteid !== -1 && deleteid !== "-1" && deleteid !== null && deleteid !== undefined) {
-                await taskManagement.removeTask(deleteid, taskDate, true);
-                task.dayOrder = taskOrder;
-                taskManagement.updateBackend(task.id, "dayOrder", taskOrder);
-                // Refresh from backend so old task is gone before new one appears
-                await taskManagement.fetchTasks();
+            if (isEditing) {
+                // Update in place so the task keeps its ID. History, subtasks and
+                // push chains all depend on a stable identity.
+                try {
+                    await updateTaskFields(taskID, {
+                        taskName,
+                        taskDate: dateChoice,
+                        category: projectChoice,
+                        priority: String(priority),
+                        repeatType,
+                        repeatDuration: String(repeatDuration),
+                        dayOrder: String(taskOrder),
+                        assignedTime: assignedTime || "null",
+                    });
+                    await taskManagement.fetchTasks();
+                } catch (err) {
+                    console.error('updateTaskFields backend failed:', err);
+                    return;
+                }
             } else {
+                let task;
+                try {
+                    task = await addTask(taskName, dateChoice, projectChoice, priority, repeatType, repeatDuration, longTerm);
+                } catch (err) {
+                    console.error('addTask backend failed:', err);
+                    return;
+                }
+
+                if (assignedTime) {
+                    task.assignedTime = assignedTime;
+                    await taskManagement.updateBackend(task.id, "assignedTime", assignedTime);
+                }
+
+                if (inProgress) {
+                    task.inProgress = true;
+                    await taskManagement.updateBackend(task.id, "inProgress", true);
+                    startInProgressSession(task.id);
+                }
+
+                if (timeTaken > 0) {
+                    task.timeTaken = timeTaken;
+                    await taskManagement.updateBackend(task.id, "timeTaken", timeTaken);
+                }
+
                 taskManagement.addToFrontend(task);
             }
         }

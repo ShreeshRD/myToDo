@@ -274,11 +274,8 @@ export async function uncompleteTask(args = {}, ctx) {
     throw new ToolError("backend_error", result.status);
   }
 
-  try {
-    await api.update(id, "assignedTime", "null");
-  } catch {
-    warnings.push("assigned_time_clear_failed");
-  }
+  // The backend clears completedAt. assignedTime is the scheduled time and must
+  // survive un-completion.
 
   task = await api.getItem(id);
   return ok({

@@ -99,6 +99,7 @@ class TodoServiceTest {
     @Test
     void testUpdateTaskField_Complete() {
         // Arrange
+        sampleItem.setAssignedTime(java.time.LocalTime.of(9, 0));
         when(repository.findById(1L)).thenReturn(Optional.of(sampleItem));
         when(repository.save(any(TodoItem.class))).thenReturn(sampleItem);
 
@@ -108,7 +109,64 @@ class TodoServiceTest {
         // Assert
         assertEquals("Updated", result.getStatus());
         assertTrue(sampleItem.isComplete());
-        assertNotNull(sampleItem.getAssignedTime()); // Check if correct time is assigned
+        assertNotNull(sampleItem.getCompletedAt());
+        // Completion must not overwrite the scheduled time.
+        assertEquals(java.time.LocalTime.of(9, 0), sampleItem.getAssignedTime());
+    }
+
+    @Test
+    void testUpdateTaskField_UncompleteClearsCompletedAt() {
+        // Arrange
+        sampleItem.setComplete(true);
+        sampleItem.setCompletedAt(java.time.LocalDateTime.now());
+        when(repository.findById(1L)).thenReturn(Optional.of(sampleItem));
+        when(repository.save(any(TodoItem.class))).thenReturn(sampleItem);
+
+        // Act
+        TodoOperationResult result = todoService.updateTaskField(1L, "complete", "false");
+
+        // Assert
+        assertEquals("Updated", result.getStatus());
+        assertFalse(sampleItem.isComplete());
+        assertNull(sampleItem.getCompletedAt());
+    }
+
+    @Test
+    void testPatchTaskUpdatesMultipleFields() {
+        // Arrange
+        when(repository.findById(1L)).thenReturn(Optional.of(sampleItem));
+        when(repository.save(any(TodoItem.class))).thenReturn(sampleItem);
+
+        java.util.Map<String, String> fields = new java.util.LinkedHashMap<>();
+        fields.put("taskName", "Patched Task");
+        fields.put("category", "Personal");
+        fields.put("priority", "3");
+        fields.put("description", "Some detail");
+
+        // Act
+        TodoOperationResult result = todoService.patchTask(1L, fields);
+
+        // Assert
+        assertEquals("Updated", result.getStatus());
+        assertEquals("Patched Task", sampleItem.getName());
+        assertEquals("Personal", sampleItem.getCategory());
+        assertEquals(3, sampleItem.getPriority());
+        assertEquals("Some detail", sampleItem.getDescription());
+        verify(repository).save(sampleItem);
+    }
+
+    @Test
+    void testUpdateTaskField_Description() {
+        // Arrange
+        when(repository.findById(1L)).thenReturn(Optional.of(sampleItem));
+        when(repository.save(any(TodoItem.class))).thenReturn(sampleItem);
+
+        // Act
+        TodoOperationResult result = todoService.updateTaskField(1L, "description", "  some notes  ");
+
+        // Assert
+        assertEquals("Updated", result.getStatus());
+        assertEquals("  some notes  ", sampleItem.getDescription());
     }
 
     @Test
