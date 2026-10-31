@@ -81,6 +81,27 @@ console.log(JSON.parse(result.content[0].text));
 | `delete_task` | Delete by id; requires exact current name as a safety check. |
 | `list_projects` | Project names (backend `category`) with task counts. |
 
+## Classify tasks with a local model
+
+`scripts/classify.mjs` labels unclassified tasks (project `None`) using a local
+`llama-server`. It talks only to the MCP bridge, so the dev/prod target is the
+MCP server's `TODO_API_URL` (dev on `8000` by default).
+
+```bash
+npm start                                   # terminal 1: MCP on 8765
+node scripts/classify.mjs                   # terminal 2: dry run, current week
+node scripts/classify.mjs --scope day       # today + overdue
+node scripts/classify.mjs --apply           # write labels
+node scripts/classify.mjs --apply --confidence 0.8 --limit 25
+```
+
+- Defaults: `LLAMA_URL=http://127.0.0.1:9742`, `LLAMA_MODEL=My-Qwen`, `MCP_URL=http://127.0.0.1:8765/mcp`.
+- Only open tasks with project `None` are candidates; labels are limited to existing projects plus `None`.
+- Output is constrained with `json_schema` and falls back to `json_object` on older llama.cpp builds.
+- Dry run is the default. `--apply` is required to call `update_task`; predictions below `--confidence` (default `0.6`) or labeled `None` are skipped.
+- `--scope week` covers the current week; `--scope day` covers today plus all overdue open tasks (both capped by the MCP at 50 per list).
+- `--help` lists all flags.
+
 ## Testing
 
 ```bash

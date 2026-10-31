@@ -26,6 +26,8 @@ All files under `mcp/`.
 - Keep pure date logic in `src/dates.js` and recurrence logic in `src/recurrence.js`.
 - Keep tool descriptions short; the target model has a 40k context.
 - Do not add a full search-list tool; use `count_tasks`, `find_task`, `get_day`, and `get_week`.
+- `scripts/classify.mjs` is a client of the MCP bridge, not a tool: it uses `list_projects`, `get_day`/`get_week`, and `update_task` only. It is dry-run by default and writes only with explicit `--apply`.
+- Classification targets open tasks with project `None`, and labels are constrained to existing projects plus `None`. Never invent project names.
 
 ## Verification
 
