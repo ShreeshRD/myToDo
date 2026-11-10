@@ -14,6 +14,7 @@ All files under `frontend-next/`.
 - TypeScript for new files; JavaScript for existing
 - Context-based state management (`TaskContext`, `UIContext`, `StopwatchContext`)
 - Direct sync with Spring Boot backend via REST API (configured in `lib/constants.js`)
+- Task rows open `TaskDetailDrawer` (notes, checklist, metadata, activity); checklist counts live in `TaskContext` (`subtaskCounts`) and refresh after checklist mutations
 - Tests in `__tests__/` using Jest
 
 ## Work Guidance

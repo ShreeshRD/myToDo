@@ -240,6 +240,13 @@
     margin-left: 5px;
 }
 
+/* Inline notice under a row completed with open checklist items */
+.subtask-warning {
+    padding: 2px 15px 0 24px;
+    font-size: 12px;
+    color: #b45309;
+}
+
 /* Tasks footer - Add Task 
 ===========================================*/
 .footer_div {

@@ -37,6 +37,9 @@ public class TodoService {
     @Autowired
     private TaskEventService taskEventService;
 
+    @Autowired
+    private SubtaskService subtaskService;
+
     private static final Set<String> TIMELINE_FIELDS = Set.of(
             "taskName", "category", "taskDate", "priority", "repeatType", "repeatDuration", "description", "longTerm");
 
@@ -247,6 +250,7 @@ public class TodoService {
             TodoItem item = optItem.get();
             repository.deleteById(id);
             taskEventService.deleteForTask(id);
+            subtaskService.deleteForTask(id);
             logger.info("Deleted task with id: {}", id);
             return item.isComplete();
         } else {

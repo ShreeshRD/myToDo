@@ -9,6 +9,7 @@ import useTaskManagement from '../hooks/useTaskManagement';
 jest.mock('../service', () => ({
     addTask: jest.fn(),
     updateTaskFields: jest.fn(),
+    getSubtaskCounts: jest.fn(),
 }));
 
 jest.mock('../hooks/useTaskManagement', () => jest.fn());
@@ -51,6 +52,7 @@ describe('TaskContext', () => {
             id: 1,
             name: 'Updated Task',
         });
+        service.getSubtaskCounts.mockResolvedValue([]);
     });
 
     afterEach(() => {

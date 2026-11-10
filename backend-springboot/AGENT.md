@@ -18,9 +18,12 @@ All files under `backend-springboot/`.
 - Cross-origin requests from frontend are configured in `WebConfig`
 - Query endpoints: `/todo/query`, `/todo/count`, `/todo/item/{id}`, `/todo/projects`
 - Multi-field task edits use `POST /todo/patch/{id}` (JSON map) so a task keeps its ID; the single-field `/todo/update` remains for simple mutations
+- Embedded checklists use `Subtask` (`taskId`, `title`, `done`, `sortOrder`): `GET/POST /todo/subtasks/{taskId}`, `PATCH/DELETE /todo/subtasks/item/{id}`, `POST /todo/subtasks/{taskId}/reorder`, `GET /todo/subtasks/counts/all` for task-row badges
+- Deleting a task also deletes its subtasks and timeline events
 - Completion sets `completedAt` and must never overwrite `assignedTime` (scheduled time)
 - `LegacyDataBackfill` fills `createdAt`/`completedAt` for pre-existing rows on startup
 - Query filtering is in-memory in `TodoService`; acceptable for the current dataset size
+- Do not wrap `save(...)` of a new entity in an outer `@Transactional` when the method also reads first: SQLite then holds a read lock while Hibernate's table-sequence generator commits on a second connection, which fails with `SQLITE_BUSY`. Keep `@Transactional` for delete-only methods (`SubtaskService`, `TaskEventService`)
 
 ## Work Guidance
 

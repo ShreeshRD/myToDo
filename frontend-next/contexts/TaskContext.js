@@ -1,8 +1,8 @@
 'use client'
 
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import useTaskManagement from '../hooks/useTaskManagement';
-import { addTask, updateTaskFields } from "../service";
+import { addTask, updateTaskFields, getSubtaskCounts } from "../service";
 import { startInProgressSession } from "../lib/inProgressTimer";
 import { useUI } from './UIContext';
 import { calculatePredecessor, calculatePredecessorUnfiltered } from '../lib/dragUtils';
@@ -19,6 +19,29 @@ export const TaskProvider = ({ children }) => {
     const [popupDate, setPopupDate] = useState("");
     const [popupTaskItem, setPopupTaskItem] = useState(null);
     const [detailTaskId, setDetailTaskId] = useState(null);
+    const [subtaskCounts, setSubtaskCounts] = useState({});
+
+    // Checklist badges for every task row, refreshed whenever the task lists
+    // reload so totals stay correct without a per-row request.
+    const refreshSubtaskCounts = useCallback(async () => {
+        try {
+            const rows = await getSubtaskCounts();
+            const next = {};
+            (Array.isArray(rows) ? rows : []).forEach(({ taskId, total, done }) => {
+                next[taskId] = { total, done };
+            });
+            setSubtaskCounts(next);
+        } catch (err) {
+            console.error('getSubtaskCounts backend failed:', err);
+        }
+    }, []);
+
+    useEffect(() => {
+        // Defer one tick: the fetch resolves later and must not set state during
+        // the effect body (cascading-render guard).
+        const timer = setTimeout(refreshSubtaskCounts, 0);
+        return () => clearTimeout(timer);
+    }, [refreshSubtaskCounts, taskManagement.taskDays, taskManagement.completedTasks, taskManagement.overdueTasks]);
 
     const toggleProject = (project) => {
         setSelectedProjects(prev => {
@@ -259,6 +282,8 @@ export const TaskProvider = ({ children }) => {
             detailTask,
             openDetail,
             closeDetail,
+            subtaskCounts,
+            refreshSubtaskCounts,
             darkMode,
             selectedProjects,
             toggleProject,

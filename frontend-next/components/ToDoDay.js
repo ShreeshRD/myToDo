@@ -15,11 +15,22 @@ import { useUI } from "../contexts/UIContext";
 import { formatTaskDate, formatDateShort, formatTimeTaken } from "../lib/dateHelpers";
 
 function ToDoDay({ tasks, date, id }) {
-    const { updateTask, removeTask, callPopup, openDetail } = useTasks();
+    const { updateTask, removeTask, callPopup, openDetail, subtaskCounts } = useTasks();
     const { theme } = useUI();
     const { toggleStopwatch, stopStopwatch } = useStopwatch();
     const title = formatTaskDate(date);
     const [contextMenu, setContextMenu] = React.useState({ visible: false, x: 0, y: 0, task: null });
+    const [warnTaskId, setWarnTaskId] = React.useState(null);
+    const warnTimer = React.useRef(null);
+
+    React.useEffect(() => () => clearTimeout(warnTimer.current), []);
+
+    // Completing with unchecked checklist rows is allowed, but the row calls it out.
+    const warnOpenSubtasks = (taskId) => {
+        setWarnTaskId(taskId);
+        clearTimeout(warnTimer.current);
+        warnTimer.current = setTimeout(() => setWarnTaskId(null), 4000);
+    };
 
     const handleContextMenu = (e, task) => {
         e.preventDefault();
@@ -102,6 +113,10 @@ function ToDoDay({ tasks, date, id }) {
                                                         // Detach any running timer; the complete update
                                                         // below records timeTaken from the in-progress session
                                                         await stopStopwatch(task);
+                                                        const counts = subtaskCounts[task.id];
+                                                        if (counts && counts.total > counts.done) {
+                                                            warnOpenSubtasks(task.id);
+                                                        }
                                                     }
                                                     await updateTask(task.id, "complete", newComplete, task.taskDate);
                                                 }}
@@ -128,9 +143,16 @@ function ToDoDay({ tasks, date, id }) {
                                                 {date === "Overdue" && formatDateShort(task.taskDate)}
                                                 {task.repeatType !== "NONE" && <BsArrowRepeat className="repeat_icon" />}
                                                 {task.category !== 'None' && ` #${task.category}`}
+                                                {subtaskCounts[task.id] && subtaskCounts[task.id].total > 0 &&
+                                                    ` • ${subtaskCounts[task.id].done}/${subtaskCounts[task.id].total}`}
                                                 {task.complete && task.timeTaken > 0 && ` • ${formatTimeTaken(task.timeTaken)}`}
                                             </span>
                                         </div>
+                                        {warnTaskId === task.id && (
+                                            <div className="subtask-warning">
+                                                Completed with open checklist items
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </Draggable>

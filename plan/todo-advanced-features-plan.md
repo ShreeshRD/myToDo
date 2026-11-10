@@ -92,14 +92,14 @@ Files: `TodoItem.java`, `TodoService.java`, `TodoRestController.java`, `LegacyDa
 - `LegacyDataBackfill` backfills legacy rows.
 Verify: edit a task → ID unchanged; complete a task → scheduled time preserved, completion timestamp set; tests pass.
 
-### [ ] Step 3 — Task detail drawer + activity timeline
+### [x] Step 3 — Task detail drawer + activity timeline
 Files: new `TaskEvent` entity/service/controller (backend), new `frontend-next/components/TaskDetailDrawer.*`, `MainView.js`, `TaskContext.js`, `ToDoDay.js`, `TodayView.js`, `service.js`.
 - Right-side drawer opens from the task title.
 - Shows description (editable, saves on blur), project, dates, time spent, timeline.
 - Records created/completed/uncompleted/edited events. Push events arrive in Step 5.
 Verify: notes persist across reload; timeline is ordered; drawer can stay open while editing the list.
 
-### [ ] Step 4 — Embedded subtasks
+### [x] Step 4 — Embedded subtasks
 Files: new `Subtask` entity/service/controller; `TaskDetailDrawer`, `TodayView.js`, `ToDoDay.js`.
 - Checklist CRUD + reorder; `n/m` badge on the task row.
 - Completing a parent with open subtasks shows an inline warning but proceeds.

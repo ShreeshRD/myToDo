@@ -293,3 +293,174 @@
     opacity: 0.8;
     line-height: 1.4;
 }
+
+/* Embedded checklist */
+.subtask-checklist {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.subtask-summary {
+    font-size: 0.75rem;
+    opacity: 0.65;
+    margin-bottom: 2px;
+}
+
+.subtask-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.subtask-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    background-color: rgba(0, 0, 0, 0.035);
+}
+
+.task-detail-drawer.dark .subtask-row {
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.task-detail-drawer.glass .subtask-row {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.subtask-check {
+    flex-shrink: 0;
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    accent-color: #2e9e44;
+}
+
+.subtask-title {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 0.875rem;
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+
+.subtask-title:focus {
+    outline: none;
+    background-color: rgba(0, 0, 0, 0.06);
+}
+
+.task-detail-drawer.dark .subtask-title:focus {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.task-detail-drawer.glass .subtask-title:focus {
+    background-color: rgba(255, 255, 255, 0.14);
+}
+
+.subtask-row.done .subtask-title {
+    text-decoration: line-through;
+    opacity: 0.55;
+}
+
+.subtask-actions {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    flex-shrink: 0;
+}
+
+.subtask-action {
+    border: none;
+    background: transparent;
+    color: inherit;
+    opacity: 0.55;
+    cursor: pointer;
+    font-size: 0.8125rem;
+    line-height: 1;
+    padding: 2px 3px;
+    border-radius: 4px;
+}
+
+.subtask-action:hover:not(:disabled) {
+    opacity: 1;
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
+.task-detail-drawer.dark .subtask-action:hover:not(:disabled),
+.task-detail-drawer.glass .subtask-action:hover:not(:disabled) {
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.subtask-action:disabled {
+    opacity: 0.2;
+    cursor: default;
+}
+
+.subtask-delete:hover {
+    color: #d9534f;
+}
+
+.subtask-add {
+    display: flex;
+    gap: 6px;
+    margin-top: 2px;
+}
+
+.subtask-add .subtask-title {
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    background-color: #ffffff;
+    color: #202020;
+}
+
+.task-detail-drawer.dark .subtask-add .subtask-title {
+    background-color: #1f1f1f;
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #eeeeee;
+}
+
+.task-detail-drawer.glass .subtask-add .subtask-title {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.22);
+    color: #e8ecff;
+}
+
+.subtask-add .subtask-title::placeholder {
+    color: rgba(0, 0, 0, 0.4);
+}
+
+.task-detail-drawer.dark .subtask-add .subtask-title::placeholder,
+.task-detail-drawer.glass .subtask-add .subtask-title::placeholder {
+    color: rgba(232, 236, 255, 0.5);
+}
+
+.subtask-add-button {
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 0.8125rem;
+    padding: 4px 10px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.subtask-add-button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.task-detail-drawer.dark .subtask-add-button,
+.task-detail-drawer.glass .subtask-add-button {
+    border-color: rgba(255, 255, 255, 0.25);
+}
+

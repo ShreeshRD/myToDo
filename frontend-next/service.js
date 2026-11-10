@@ -180,6 +180,111 @@ export const getTaskEvents = async (taskId) => {
 };
 
 /**
+ * Fetches the embedded checklist for a task
+ * @param {number} taskId - Task ID
+ * @returns {Promise<Array>} Ordered list of Subtask objects
+ * @throws {Error} If the request fails
+ */
+export const getSubtasks = async (taskId) => {
+	try {
+		const response = await axios.get(`${API_URL}/subtasks/${taskId}`);
+		return response.data;
+	} catch (error) {
+		console.error(`Error fetching subtasks for task ${taskId}:`, error);
+		throw error;
+	}
+};
+
+/**
+ * Fetches checklist counts for every task that has subtasks
+ * @returns {Promise<Array>} List of {taskId, total, done}
+ * @throws {Error} If the request fails
+ */
+export const getSubtaskCounts = async () => {
+	try {
+		const response = await axios.get(`${API_URL}/subtasks/counts/all`);
+		return response.data;
+	} catch (error) {
+		console.error('Error fetching subtask counts:', error);
+		throw error;
+	}
+};
+
+/**
+ * Adds a checklist row to a task
+ * @param {number} taskId - Parent task ID
+ * @param {string} title - Subtask text
+ * @returns {Promise<Object>} Created Subtask
+ * @throws {Error} If the request fails
+ */
+export const addSubtask = async (taskId, title) => {
+	return globalMutationQueue.enqueue(async () => {
+		try {
+			const response = await axios.post(`${API_URL}/subtasks/${taskId}`, { title });
+			return response.data;
+		} catch (error) {
+			console.error(`Error adding subtask to task ${taskId}:`, error);
+			throw error;
+		}
+	});
+};
+
+/**
+ * Updates a checklist row (title and/or done)
+ * @param {number} id - Subtask ID
+ * @param {Object} fields - Field name to value map
+ * @returns {Promise<Object>} Updated Subtask
+ * @throws {Error} If the request fails
+ */
+export const updateSubtask = async (id, fields) => {
+	return globalMutationQueue.enqueue(async () => {
+		try {
+			const response = await axios.patch(`${API_URL}/subtasks/item/${id}`, fields);
+			return response.data;
+		} catch (error) {
+			console.error(`Error updating subtask ${id}:`, error);
+			throw error;
+		}
+	});
+};
+
+/**
+ * Persists a new checklist order
+ * @param {number} taskId - Parent task ID
+ * @param {number[]} ids - Subtask IDs in display order
+ * @returns {Promise<Array>} Reordered Subtask list
+ * @throws {Error} If the request fails
+ */
+export const reorderSubtasks = async (taskId, ids) => {
+	return globalMutationQueue.enqueue(async () => {
+		try {
+			const response = await axios.post(`${API_URL}/subtasks/${taskId}/reorder`, ids);
+			return response.data;
+		} catch (error) {
+			console.error(`Error reordering subtasks for task ${taskId}:`, error);
+			throw error;
+		}
+	});
+};
+
+/**
+ * Deletes a checklist row
+ * @param {number} id - Subtask ID
+ * @returns {Promise<void>}
+ * @throws {Error} If the request fails
+ */
+export const deleteSubtask = async (id) => {
+	return globalMutationQueue.enqueue(async () => {
+		try {
+			await axios.delete(`${API_URL}/subtasks/item/${id}`);
+		} catch (error) {
+			console.error(`Error deleting subtask ${id}:`, error);
+			throw error;
+		}
+	});
+};
+
+/**
  * Fetches the scratchpad content
  * @returns {Promise<Object>} Scratchpad object with content string
  */

@@ -32,7 +32,7 @@ const generateTimeSlots = () => {
 const TIME_SLOTS = generateTimeSlots();
 
 function TodayView() {
-    const { taskDays, updateTask, removeTask, callPopup, openDetail } = useTasks();
+    const { taskDays, updateTask, removeTask, callPopup, openDetail, subtaskCounts } = useTasks();
     const { theme } = useUI();
     const { toggleStopwatch, stopStopwatch } = useStopwatch();
     const [todayTasks, setTodayTasks] = useState([]);
@@ -40,6 +40,17 @@ function TodayView() {
     const [overdueTasks, setOverdueTasks] = useState([]);
     const [currentTime, setCurrentTime] = useState(dayjs());
     const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, task: null });
+    const [warnTaskId, setWarnTaskId] = useState(null);
+    const warnTimer = React.useRef(null);
+
+    useEffect(() => () => clearTimeout(warnTimer.current), []);
+
+    // Completing with unchecked checklist rows is allowed, but the row calls it out.
+    const warnOpenSubtasks = (taskId) => {
+        setWarnTaskId(taskId);
+        clearTimeout(warnTimer.current);
+        warnTimer.current = setTimeout(() => setWarnTaskId(null), 4000);
+    };
 
     // Update current time every minute
     useEffect(() => {
@@ -310,6 +321,10 @@ function TodayView() {
                                     // Detach any running timer; the complete update
                                     // below records timeTaken from the in-progress session
                                     await stopStopwatch(task);
+                                    const counts = subtaskCounts[task.id];
+                                    if (counts && counts.total > counts.done) {
+                                        warnOpenSubtasks(task.id);
+                                    }
                                 }
                                 await updateTask(task.id, "complete", newComplete, task.taskDate);
                             }}
@@ -331,9 +346,18 @@ function TodayView() {
                             <DeleteIcon className="todo_delete_icon" />
                         </button>
                     </div>
-                    {task.complete && task.timeTaken > 0 && (
+                    {(task.complete && task.timeTaken > 0) || (subtaskCounts[task.id] && subtaskCounts[task.id].total > 0) ? (
                         <div className="task_infobar">
-                            <span>{` • ${formatTimeTaken(task.timeTaken)}`}</span>
+                            <span>
+                                {subtaskCounts[task.id] && subtaskCounts[task.id].total > 0 &&
+                                    `${subtaskCounts[task.id].done}/${subtaskCounts[task.id].total} subtasks`}
+                                {task.complete && task.timeTaken > 0 && ` • ${formatTimeTaken(task.timeTaken)}`}
+                            </span>
+                        </div>
+                    ) : null}
+                    {warnTaskId === task.id && (
+                        <div className="subtask-warning">
+                            Completed with open checklist items
                         </div>
                     )}
                 </div>

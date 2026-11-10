@@ -12,6 +12,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -45,6 +46,9 @@ class TodoRestControllerIntegrationTest {
         @Autowired
         private TaskEventRepository taskEventRepository;
 
+        @Autowired
+        private SubtaskRepository subtaskRepository;
+
         private String baseUrl;
 
         @BeforeEach
@@ -52,6 +56,7 @@ class TodoRestControllerIntegrationTest {
                 baseUrl = "http://127.0.0.1:" + port + "/todo";
                 repository.deleteAll();
                 taskEventRepository.deleteAll();
+                subtaskRepository.deleteAll();
         }
 
         @Test
@@ -584,6 +589,74 @@ class TodoRestControllerIntegrationTest {
                 assertThat(response.getBody()).extracting(TaskEvent::getType)
                                 .containsExactly("CREATED", "EDITED", "COMPLETED");
                 assertThat(response.getBody().get(1).getDetail()).contains("name");
+        }
+
+        @Test
+        @Order(20)
+        @DisplayName("Subtask checklist - CRUD, order, counts and delete cascade")
+        void testSubtaskChecklist() {
+                // Arrange
+                TodoItem task = createTask("Checklist parent", "Work");
+                Long taskId = task.getId();
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+
+                // Act - add two rows
+                ResponseEntity<Subtask> firstResponse = restTemplate.postForEntity(
+                                baseUrl + "/subtasks/" + taskId,
+                                new HttpEntity<>(java.util.Map.of("title", "First"), headers),
+                                Subtask.class);
+                ResponseEntity<Subtask> secondResponse = restTemplate.postForEntity(
+                                baseUrl + "/subtasks/" + taskId,
+                                new HttpEntity<>(java.util.Map.of("title", "Second"), headers),
+                                Subtask.class);
+
+                // Assert - appended in order
+                assertThat(firstResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(secondResponse.getBody()).isNotNull();
+                Subtask first = Objects.requireNonNull(firstResponse.getBody());
+                Subtask second = Objects.requireNonNull(secondResponse.getBody());
+                assertThat(second.getSortOrder()).isEqualTo(1);
+
+                ResponseEntity<List<Subtask>> listResponse = restTemplate.exchange(
+                                baseUrl + "/subtasks/" + taskId, HttpMethod.GET, null,
+                                new ParameterizedTypeReference<List<Subtask>>() {
+                                });
+                assertThat(listResponse.getBody()).extracting(Subtask::getTitle)
+                                .containsExactly("First", "Second");
+
+                // Act - check a row
+                ResponseEntity<Subtask> toggled = restTemplate.exchange(
+                                baseUrl + "/subtasks/item/" + first.getId(), HttpMethod.PATCH,
+                                new HttpEntity<>(java.util.Map.of("done", "true"), headers),
+                                Subtask.class);
+
+                // Assert
+                assertThat(toggled.getBody()).isNotNull();
+                assertThat(toggled.getBody().isDone()).isTrue();
+
+                // Act - reorder
+                restTemplate.postForEntity(
+                                baseUrl + "/subtasks/" + taskId + "/reorder",
+                                new HttpEntity<>(Arrays.asList(second.getId(), first.getId()), headers),
+                                List.class);
+
+                // Assert - counts endpoint reflects totals
+                ResponseEntity<List<com.myapp.todo.dto.SubtaskCount>> countsResponse = restTemplate.exchange(
+                                baseUrl + "/subtasks/counts/all", HttpMethod.GET, null,
+                                new ParameterizedTypeReference<List<com.myapp.todo.dto.SubtaskCount>>() {
+                                });
+                assertThat(countsResponse.getBody()).anySatisfy(count -> {
+                        assertThat(count.getTaskId()).isEqualTo(taskId);
+                        assertThat(count.getTotal()).isEqualTo(2);
+                        assertThat(count.getDone()).isEqualTo(1);
+                });
+
+                // Act - deleting the parent removes its checklist rows
+                restTemplate.delete(baseUrl + "/delete/" + taskId);
+
+                // Assert
+                assertThat(subtaskRepository.countByTaskId(taskId)).isZero();
         }
 
         /**

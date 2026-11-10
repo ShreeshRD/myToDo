@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import dayjs from 'dayjs';
 import { useTasks } from '../contexts/TaskContext';
 import { useUI } from '../contexts/UIContext';
-import { getTaskEvents } from '../service';
+import { getTaskEvents, getSubtasks, addSubtask, updateSubtask, reorderSubtasks, deleteSubtask } from '../service';
 import { formatTimeTaken } from '../lib/dateHelpers';
 import '../styles/TaskDetailDrawer.css';
 
@@ -106,8 +106,202 @@ function TaskEventTimeline({ task }) {
     );
 }
 
+function SubtaskRow({ item, index, count, onToggle, onRename, onDelete, onMove }) {
+    // Keep the draft local; persist only on blur so typing does not spam the API.
+    // Server responses match the draft after a successful save, so no prop sync is needed.
+    const [draft, setDraft] = useState(item.title);
+
+    const commitTitle = () => {
+        const next = draft.trim();
+        if (!next || next === item.title) {
+            setDraft(item.title);
+            return;
+        }
+        onRename(item.id, next);
+    };
+
+    return (
+        <li className={`subtask-row${item.done ? ' done' : ''}`}>
+            <input
+                type="checkbox"
+                className="subtask-check"
+                checked={!!item.done}
+                onChange={() => onToggle(item)}
+                aria-label={`Mark "${item.title}" ${item.done ? 'not done' : 'done'}`}
+            />
+            <input
+                type="text"
+                className="subtask-title"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onBlur={commitTitle}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter') e.target.blur();
+                }}
+            />
+            <div className="subtask-actions">
+                <button
+                    type="button"
+                    className="subtask-action"
+                    onClick={() => onMove(index, -1)}
+                    disabled={index === 0}
+                    aria-label="Move subtask up"
+                >
+                    ↑
+                </button>
+                <button
+                    type="button"
+                    className="subtask-action"
+                    onClick={() => onMove(index, 1)}
+                    disabled={index === count - 1}
+                    aria-label="Move subtask down"
+                >
+                    ↓
+                </button>
+                <button
+                    type="button"
+                    className="subtask-action subtask-delete"
+                    onClick={() => onDelete(item.id)}
+                    aria-label="Delete subtask"
+                >
+                    ×
+                </button>
+            </div>
+        </li>
+    );
+}
+
+function TaskChecklist({ task, refreshSubtaskCounts }) {
+    const [state, setState] = useState({ taskId: null, items: [], error: null });
+    const [draft, setDraft] = useState('');
+    const taskId = task?.id;
+
+    useEffect(() => {
+        if (!taskId) return undefined;
+        let cancelled = false;
+        getSubtasks(taskId)
+            .then((items) => {
+                if (!cancelled) {
+                    setState({ taskId, items: Array.isArray(items) ? items : [], error: null });
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setState({ taskId, items: [], error: 'Could not load checklist' });
+                }
+            });
+        return () => { cancelled = true; };
+    }, [taskId]);
+
+    if (!task || state.taskId !== task.id) {
+        return <p className="drawer-empty">Loading checklist…</p>;
+    }
+
+    const items = state.items;
+    const done = items.filter((item) => item.done).length;
+
+    const replaceItems = (next) => setState((prev) => ({ ...prev, items: next, error: null }));
+
+    const handleAdd = async () => {
+        const title = draft.trim();
+        if (!title) return;
+        try {
+            const created = await addSubtask(task.id, title);
+            replaceItems([...items, created]);
+            setDraft('');
+            refreshSubtaskCounts();
+        } catch {
+            setState((prev) => ({ ...prev, error: 'Could not add item' }));
+        }
+    };
+
+    const handleToggle = async (item) => {
+        try {
+            const updated = await updateSubtask(item.id, { done: String(!item.done) });
+            replaceItems(items.map((row) => (row.id === item.id ? updated : row)));
+            refreshSubtaskCounts();
+        } catch {
+            setState((prev) => ({ ...prev, error: 'Could not update item' }));
+        }
+    };
+
+    const handleRename = async (id, title) => {
+        try {
+            const updated = await updateSubtask(id, { title });
+            replaceItems(items.map((row) => (row.id === id ? updated : row)));
+        } catch {
+            setState((prev) => ({ ...prev, error: 'Could not rename item' }));
+        }
+    };
+
+    const handleDelete = async (id) => {
+        try {
+            await deleteSubtask(id);
+            replaceItems(items.filter((row) => row.id !== id));
+            refreshSubtaskCounts();
+        } catch {
+            setState((prev) => ({ ...prev, error: 'Could not delete item' }));
+        }
+    };
+
+    const handleMove = async (index, delta) => {
+        const target = index + delta;
+        if (target < 0 || target >= items.length) return;
+        const next = [...items];
+        [next[index], next[target]] = [next[target], next[index]];
+        replaceItems(next);
+        try {
+            const saved = await reorderSubtasks(task.id, next.map((row) => row.id));
+            replaceItems(Array.isArray(saved) ? saved : next);
+        } catch {
+            setState((prev) => ({ ...prev, error: 'Could not reorder checklist' }));
+        }
+    };
+
+    return (
+        <div className="subtask-checklist">
+            {items.length > 0 && (
+                <div className="subtask-summary">{done}/{items.length} done</div>
+            )}
+            <ul className="subtask-list">
+                {items.map((item, index) => (
+                    <SubtaskRow
+                        key={item.id}
+                        item={item}
+                        index={index}
+                        count={items.length}
+                        onToggle={handleToggle}
+                        onRename={handleRename}
+                        onDelete={handleDelete}
+                        onMove={handleMove}
+                    />
+                ))}
+            </ul>
+            {state.error && <p className="drawer-empty">{state.error}</p>}
+            <div className="subtask-add">
+                <input
+                    type="text"
+                    className="subtask-title"
+                    placeholder="Add checklist item…"
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAdd();
+                        }
+                    }}
+                />
+                <button type="button" className="subtask-add-button" onClick={handleAdd} disabled={!draft.trim()}>
+                    Add
+                </button>
+            </div>
+        </div>
+    );
+}
+
 function TaskDetailDrawer() {
-    const { detailTask, closeDetail, updateTask, showPopup } = useTasks();
+    const { detailTask, closeDetail, updateTask, showPopup, refreshSubtaskCounts } = useTasks();
     const { theme } = useUI();
     const drawerRef = useRef(null);
     const task = detailTask;
@@ -181,6 +375,11 @@ function TaskDetailDrawer() {
                     <section className="drawer-section">
                         <h3>Notes</h3>
                         <DescriptionEditor key={task.id} task={task} updateTask={updateTask} />
+                    </section>
+
+                    <section className="drawer-section">
+                        <h3>Checklist</h3>
+                        <TaskChecklist task={task} refreshSubtaskCounts={refreshSubtaskCounts} />
                     </section>
 
                     <section className="drawer-section">

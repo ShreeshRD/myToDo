@@ -27,6 +27,9 @@ class TodoServiceTest {
     @Mock
     private TaskEventService taskEventService;
 
+    @Mock
+    private SubtaskService subtaskService;
+
     @InjectMocks
     private TodoService todoService;
 
@@ -210,6 +213,7 @@ class TodoServiceTest {
         // Assert
         assertFalse(result); // returns item.isComplete() which is false initially
         verify(repository).deleteById(1L);
+        verify(subtaskService).deleteForTask(1L);
     }
 
     @Test
