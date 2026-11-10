@@ -32,7 +32,7 @@ const generateTimeSlots = () => {
 const TIME_SLOTS = generateTimeSlots();
 
 function TodayView() {
-    const { taskDays, updateTask, removeTask, callPopup } = useTasks();
+    const { taskDays, updateTask, removeTask, callPopup, openDetail } = useTasks();
     const { theme } = useUI();
     const { toggleStopwatch, stopStopwatch } = useStopwatch();
     const [todayTasks, setTodayTasks] = useState([]);
@@ -296,7 +296,7 @@ function TodayView() {
                     {...provided.draggableProps}
                     {...provided.dragHandleProps}
                     ref={provided.innerRef}
-                    onClick={() => !task.complete && callPopup(dayjs().format('YYYY-MM-DD'), task)}
+                    onClick={() => openDetail(task)}
                     onContextMenu={(e) => !task.complete && handleContextMenu(e, task)}
                     style={{ ...provided.draggableProps.style, marginBottom: '8px' }}
                 >

@@ -42,12 +42,16 @@ class TodoRestControllerIntegrationTest {
         @Autowired
         private TodoItemRepository repository;
 
+        @Autowired
+        private TaskEventRepository taskEventRepository;
+
         private String baseUrl;
 
         @BeforeEach
         void setUp() {
                 baseUrl = "http://127.0.0.1:" + port + "/todo";
                 repository.deleteAll();
+                taskEventRepository.deleteAll();
         }
 
         @Test
@@ -542,6 +546,44 @@ class TodoRestControllerIntegrationTest {
                 assertThat(response.getBody()).isNotNull();
                 assertThat(response.getBody().getItem().getCompletedAt()).isNotNull();
                 assertThat(response.getBody().getItem().getAssignedTime()).isEqualTo(java.time.LocalTime.of(9, 0));
+        }
+
+        @Test
+        @Order(19)
+        @DisplayName("GET /todo/events/{taskId} - records created, edited and completed events")
+        void testTaskEventsTimeline() {
+                // Arrange
+                TodoItem createdTask = createTask("Timeline task", "Work");
+                Long taskId = createdTask.getId();
+
+                java.net.URI renameUrl = UriComponentsBuilder.fromUriString(baseUrl + "/update")
+                                .queryParam("id", taskId)
+                                .queryParam("field", "taskName")
+                                .queryParam("value", "Renamed task")
+                                .build()
+                                .toUri();
+                restTemplate.postForEntity(renameUrl, null, TodoOperationResult.class);
+
+                java.net.URI completeUrl = UriComponentsBuilder.fromUriString(baseUrl + "/update")
+                                .queryParam("id", taskId)
+                                .queryParam("field", "complete")
+                                .queryParam("value", "true")
+                                .build()
+                                .toUri();
+                restTemplate.postForEntity(completeUrl, null, TodoOperationResult.class);
+
+                // Act
+                ResponseEntity<List<TaskEvent>> response = restTemplate.exchange(
+                                baseUrl + "/events/" + taskId, HttpMethod.GET, null,
+                                new ParameterizedTypeReference<List<TaskEvent>>() {
+                                });
+
+                // Assert
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody()).isNotNull();
+                assertThat(response.getBody()).extracting(TaskEvent::getType)
+                                .containsExactly("CREATED", "EDITED", "COMPLETED");
+                assertThat(response.getBody().get(1).getDetail()).contains("name");
         }
 
         /**

@@ -15,7 +15,7 @@ import { useUI } from "../contexts/UIContext";
 import { formatTaskDate, formatDateShort, formatTimeTaken } from "../lib/dateHelpers";
 
 function ToDoDay({ tasks, date, id }) {
-    const { updateTask, removeTask, callPopup } = useTasks();
+    const { updateTask, removeTask, callPopup, openDetail } = useTasks();
     const { theme } = useUI();
     const { toggleStopwatch, stopStopwatch } = useStopwatch();
     const title = formatTaskDate(date);
@@ -89,7 +89,7 @@ function ToDoDay({ tasks, date, id }) {
                                         {...provided.draggableProps}
                                         {...provided.dragHandleProps}
                                         ref={provided.innerRef}
-                                        onClick={() => !task.complete && callPopup(date, task)}
+                                        onClick={() => openDetail(task)}
                                         onContextMenu={(e) => !task.complete && handleContextMenu(e, task)}
                                     >
                                         <div className="todo_item_inner">

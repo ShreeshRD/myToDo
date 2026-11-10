@@ -164,6 +164,22 @@ export const deleteTask = async (taskId) => {
 };
 
 /**
+ * Fetches the activity timeline for a task
+ * @param {number} taskId - Task ID
+ * @returns {Promise<Array>} Ordered list of TaskEvent objects
+ * @throws {Error} If the request fails
+ */
+export const getTaskEvents = async (taskId) => {
+	try {
+		const response = await axios.get(`${API_URL}/events/${taskId}`);
+		return response.data;
+	} catch (error) {
+		console.error(`Error fetching events for task ${taskId}:`, error);
+		throw error;
+	}
+};
+
+/**
  * Fetches the scratchpad content
  * @returns {Promise<Object>} Scratchpad object with content string
  */

@@ -14,9 +14,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -31,6 +33,12 @@ public class TodoService {
 
     @Autowired
     private TodoItemRepository repository;
+
+    @Autowired
+    private TaskEventService taskEventService;
+
+    private static final Set<String> TIMELINE_FIELDS = Set.of(
+            "taskName", "category", "taskDate", "priority", "repeatType", "repeatDuration", "description", "longTerm");
 
     public GroupedTodoItems getGroupedByDate() {
         Iterable<TodoItem> todoList = repository.findAll();
@@ -73,6 +81,7 @@ public class TodoService {
         item.setLongTerm(longTerm != null ? longTerm : false);
 
         TodoItem saved = repository.save(item);
+        taskEventService.record(saved.getId(), "CREATED", "Task created");
         logger.info("Created new task with id: {}", saved.getId());
         return new TodoOperationResult("Added", saved);
     }
@@ -88,6 +97,7 @@ public class TodoService {
         try {
             applyField(item, field, value);
             TodoItem savedItem = repository.save(item);
+            recordFieldEvent(id, field, savedItem);
             logger.info("Updated task {} field: {}", id, field);
             return new TodoOperationResult("Updated", savedItem);
         } catch (IllegalArgumentException | java.time.format.DateTimeParseException e) {
@@ -109,12 +119,25 @@ public class TodoService {
 
         TodoItem item = optItem.get();
         try {
+            Set<String> editedFields = new LinkedHashSet<>();
+            boolean completeChanged = false;
             if (fields != null) {
                 for (Map.Entry<String, String> entry : fields.entrySet()) {
                     applyField(item, entry.getKey(), entry.getValue());
+                    if ("complete".equals(entry.getKey())) {
+                        completeChanged = true;
+                    } else if (TIMELINE_FIELDS.contains(entry.getKey())) {
+                        editedFields.add(timelineLabel(entry.getKey()));
+                    }
                 }
             }
             TodoItem savedItem = repository.save(item);
+            if (completeChanged) {
+                recordCompletionEvent(id, savedItem.isComplete());
+            }
+            if (!editedFields.isEmpty()) {
+                recordEditEvent(id, String.join(", ", editedFields));
+            }
             logger.info("Patched task {} with {} field(s)", id, fields == null ? 0 : fields.size());
             return new TodoOperationResult("Updated", savedItem);
         } catch (IllegalArgumentException | java.time.format.DateTimeParseException e) {
@@ -175,11 +198,55 @@ public class TodoService {
         }
     }
 
+    private void recordFieldEvent(Long taskId, String field, TodoItem item) {
+        try {
+            if ("complete".equals(field)) {
+                recordCompletionEvent(taskId, item.isComplete());
+            } else if (TIMELINE_FIELDS.contains(field)) {
+                recordEditEvent(taskId, timelineLabel(field));
+            }
+        } catch (RuntimeException e) {
+            // Timeline writes must never break the actual task mutation.
+            logger.warn("Failed to record event for task {}: {}", taskId, e.getMessage());
+        }
+    }
+
+    private void recordCompletionEvent(Long taskId, boolean complete) {
+        if (complete) {
+            taskEventService.record(taskId, "COMPLETED", "Marked complete");
+        } else {
+            taskEventService.record(taskId, "UNCOMPLETED", "Reopened");
+        }
+    }
+
+    private void recordEditEvent(Long taskId, String fields) {
+        taskEventService.record(taskId, "EDITED", "Updated " + fields);
+    }
+
+    private String timelineLabel(String field) {
+        switch (field) {
+            case "taskName":
+                return "name";
+            case "category":
+                return "project";
+            case "taskDate":
+                return "date";
+            case "repeatType":
+            case "repeatDuration":
+                return "repeat";
+            case "longTerm":
+                return "long-term flag";
+            default:
+                return field;
+        }
+    }
+
     public boolean deleteTask(Long id) {
         Optional<TodoItem> optItem = repository.findById(id);
         if (optItem.isPresent()) {
             TodoItem item = optItem.get();
             repository.deleteById(id);
+            taskEventService.deleteForTask(id);
             logger.info("Deleted task with id: {}", id);
             return item.isComplete();
         } else {

@@ -21,9 +21,11 @@ public class LegacyDataBackfill implements CommandLineRunner {
     private static final Logger logger = LoggerFactory.getLogger(LegacyDataBackfill.class);
 
     private final TodoItemRepository repository;
+    private final TaskEventService taskEventService;
 
-    public LegacyDataBackfill(TodoItemRepository repository) {
+    public LegacyDataBackfill(TodoItemRepository repository, TaskEventService taskEventService) {
         this.repository = repository;
+        this.taskEventService = taskEventService;
     }
 
     @Override
@@ -53,6 +55,16 @@ public class LegacyDataBackfill implements CommandLineRunner {
             if (changed) {
                 repository.save(item);
                 updated++;
+            }
+
+            if (item.getId() != null && !taskEventService.hasEvents(item.getId())) {
+                taskEventService.recordAt(item.getId(), "CREATED", "Task created", item.getCreatedAt());
+                if (item.isComplete()) {
+                    LocalDateTime completedAt = item.getCompletedAt() != null
+                            ? item.getCompletedAt()
+                            : item.getCreatedAt();
+                    taskEventService.recordAt(item.getId(), "COMPLETED", "Marked complete", completedAt);
+                }
             }
         }
 

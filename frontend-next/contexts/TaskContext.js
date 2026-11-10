@@ -18,6 +18,7 @@ export const TaskProvider = ({ children }) => {
     const [showPopup, setShowPopup] = useState(false);
     const [popupDate, setPopupDate] = useState("");
     const [popupTaskItem, setPopupTaskItem] = useState(null);
+    const [detailTaskId, setDetailTaskId] = useState(null);
 
     const toggleProject = (project) => {
         setSelectedProjects(prev => {
@@ -60,6 +61,34 @@ export const TaskProvider = ({ children }) => {
         setPopupTaskItem(task);
         setShowPopup(true);
     };
+
+    // Resolve the live task so the drawer reflects list edits and completion.
+    const findTaskById = (id) => {
+        if (id === null || id === undefined) return null;
+        const targetId = id.toString();
+        for (const date in taskManagement.taskDays) {
+            const match = taskManagement.taskDays[date].find(t => t.id.toString() === targetId);
+            if (match) return match;
+        }
+        for (const date in taskManagement.completedTasks) {
+            const match = taskManagement.completedTasks[date].find(t => t.id.toString() === targetId);
+            if (match) return match;
+        }
+        return (taskManagement.overdueTasks.overdue || []).find(t => t.id.toString() === targetId) || null;
+    };
+
+    const detailTask = findTaskById(detailTaskId);
+
+    const openDetail = (task) => {
+        if (task && task.id !== undefined && task.id !== null) {
+            setDetailTaskId(task.id);
+        }
+    };
+
+    const closeDetail = () => setDetailTaskId(null);
+
+    // If the open detail task is deleted, findTaskById returns null and the
+    // drawer hides itself; detailTaskId is cleared the next time a task is opened.
 
     const onPopupClose = async (taskID = -1, taskName = '', dateChoice, projectChoice = "None", priority = 0, repeatType = "NONE", repeatDuration = 0, taskOrder = 0, assignedTime = null, inProgress = false, timeTaken = 0, longTerm = false) => {
         const isEditing = taskID !== -1 && taskID !== "-1" && taskID !== null && taskID !== undefined;
@@ -227,6 +256,9 @@ export const TaskProvider = ({ children }) => {
             setPopupTaskItem,
             callPopup,
             onPopupClose,
+            detailTask,
+            openDetail,
+            closeDetail,
             darkMode,
             selectedProjects,
             toggleProject,

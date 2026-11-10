@@ -5,6 +5,7 @@ import Sidebar from "./Sidebar";
 import Header from "./Header";
 import CalendarView from "./CalendarView";
 import CreateTaskPopup from "./CreateTaskPopup";
+import TaskDetailDrawer from "./TaskDetailDrawer";
 import Upcoming from "./Upcoming";
 import Search from "./Search";
 import TodayView from "./TodayView";
@@ -97,6 +98,7 @@ function MainView() {
 			<div className={`app-container ${theme}`}>
 				<Sidebar setShowPopup={callPopup} show={showSidebar} setShowSidebar={setShowSidebar} setTheme={setTheme} theme={theme} viewPage={viewPage} setViewPage={setViewPage} projects={projects} addProject={addProject} removeProject={removeProject} reorderProjects={reorderProjects} deleteProjectWithTasks={deleteProjectWithTasks} popupBlur={showPopup && theme === 'glass'} />
 				{showPopup && (<CreateTaskPopup setTrigger={onPopupClose} onPopupClose={onPopupClose} date={popupDate} projects={projects} theme={theme} task={popupTaskItem} />)}
+				<TaskDetailDrawer />
 				<div className={`content${showSidebar ? '' : ' hidden'} ${theme}${showPopup && theme === 'glass' ? ' popup-blur' : ''}`}>
 					{viewPage === 'Upcoming' ? (
 						<>

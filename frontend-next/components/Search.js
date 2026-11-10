@@ -9,7 +9,7 @@ import dayjs from 'dayjs';
 import styles from './Search.module.css';
 
 function Search() {
-    const { taskDays, completedTasks, overdueTasks, darkMode, callPopup } = useTasks();
+    const { taskDays, completedTasks, overdueTasks, darkMode, openDetail } = useTasks();
     const { theme } = useUI();
     const [query, setQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState('All');
@@ -102,7 +102,7 @@ function Search() {
     const isOverdue = (task) => !task.complete && dayjs(task.taskDate).isBefore(dayjs(), 'day');
 
     const handleTaskClick = (task) => {
-        callPopup(task.taskDate, task);
+        openDetail(task);
     };
 
     const themeClass = theme === 'glass' ? 'glass' : (darkMode ? 'dark' : 'light');

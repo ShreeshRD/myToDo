@@ -1,0 +1,295 @@
+/* Task detail right-side drawer */
+
+/* Blur strip under the glass panel: portals to body so backdrop-filter
+   samples page content (not an isolated stacking context inside .app). */
+.task-drawer-veil {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: min(380px, 92vw);
+    height: 100vh;
+    z-index: 949;
+    pointer-events: none;
+    display: none;
+}
+
+.task-drawer-veil.glass {
+    display: block;
+    background-color: rgba(22, 32, 72, 0.35);
+    backdrop-filter: blur(24px) saturate(1.15);
+    -webkit-backdrop-filter: blur(24px) saturate(1.15);
+}
+
+.task-detail-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: min(380px, 92vw);
+    height: 100vh;
+    background-color: #fcfaf8;
+    border-left: 1px solid #e0e0e0;
+    box-shadow: -4px 0 16px rgba(0, 0, 0, 0.12);
+    z-index: 950;
+    display: flex;
+    flex-direction: column;
+    color: #202020;
+    opacity: 1;
+}
+
+.task-detail-drawer.dark {
+    background-color: #2c2c2c;
+    border-left-color: #444;
+    color: #eeeeee;
+}
+
+/* Semi-transparent navy over the veil: content under the panel is already
+   blurred by .task-drawer-veil.glass; this tints it without going opaque. */
+.task-detail-drawer.glass {
+    background-color: rgba(22, 32, 72, 0.72);
+    border-left: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.3);
+    color: #e8ecff;
+}
+
+.drawer-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    flex-shrink: 0;
+}
+
+.task-detail-drawer.dark .drawer-header {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.task-detail-drawer.glass .drawer-header {
+    border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+.drawer-header h2 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+.drawer-close {
+    border: none;
+    background: transparent;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+    color: inherit;
+    opacity: 0.7;
+    flex-shrink: 0;
+}
+
+.drawer-close:hover {
+    opacity: 1;
+}
+
+.drawer-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 16px 24px;
+}
+
+.drawer-section {
+    margin-bottom: 20px;
+}
+
+.drawer-section h3 {
+    margin: 0 0 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.6;
+}
+
+.drawer-description {
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+    min-height: 88px;
+    padding: 8px 10px;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 6px;
+    background-color: #ffffff;
+    color: #202020;
+    font: inherit;
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+.drawer-description:focus {
+    outline: none;
+    border-color: rgba(0, 0, 0, 0.4);
+}
+
+.task-detail-drawer.dark .drawer-description {
+    background-color: #1f1f1f;
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #eeeeee;
+}
+
+.task-detail-drawer.dark .drawer-description:focus {
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.task-detail-drawer.glass .drawer-description {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.22);
+    color: #e8ecff;
+}
+
+.task-detail-drawer.glass .drawer-description:focus {
+    border-color: rgba(255, 255, 255, 0.45);
+}
+
+.task-detail-drawer.glass .drawer-description::placeholder {
+    color: rgba(232, 236, 255, 0.45);
+}
+
+.drawer-meta {
+    margin: 0;
+}
+
+.drawer-meta-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    font-size: 0.875rem;
+}
+
+.task-detail-drawer.dark .drawer-meta-row {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.task-detail-drawer.glass .drawer-meta-row {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.drawer-meta-row:last-child {
+    border-bottom: none;
+}
+
+.drawer-meta-row dt {
+    margin: 0;
+    opacity: 0.65;
+}
+
+.drawer-meta-row dd {
+    margin: 0;
+    text-align: right;
+    font-weight: 500;
+}
+
+.drawer-empty {
+    margin: 0;
+    font-size: 0.875rem;
+    opacity: 0.6;
+}
+
+.drawer-timeline {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.timeline-event {
+    position: relative;
+    padding: 0 0 14px 14px;
+    border-left: 2px solid rgba(0, 0, 0, 0.12);
+}
+
+.task-detail-drawer.dark .timeline-event {
+    border-left-color: rgba(255, 255, 255, 0.15);
+}
+
+.task-detail-drawer.glass .timeline-event {
+    border-left-color: rgba(255, 255, 255, 0.18);
+}
+
+.timeline-event:last-child {
+    padding-bottom: 0;
+}
+
+.timeline-event::before {
+    content: '';
+    position: absolute;
+    left: -5px;
+    top: 4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #888;
+}
+
+.task-detail-drawer.glass .timeline-event::before {
+    background: rgba(255, 255, 255, 0.55);
+}
+
+.timeline-event.type-completed::before {
+    background: #2e9e44;
+}
+
+.task-detail-drawer.glass .timeline-event.type-completed::before {
+    background: #3ecf64;
+}
+
+.timeline-event.type-uncompleted::before {
+    background: #d97706;
+}
+
+.task-detail-drawer.glass .timeline-event.type-uncompleted::before {
+    background: #f0a020;
+}
+
+.timeline-event.type-pushed::before {
+    background: #2563eb;
+}
+
+.task-detail-drawer.glass .timeline-event.type-pushed::before {
+    background: #5b8def;
+}
+
+.timeline-event.type-created::before {
+    background: #6b7280;
+}
+
+.task-detail-drawer.glass .timeline-event.type-created::before {
+    background: rgba(255, 255, 255, 0.45);
+}
+
+.timeline-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    align-items: baseline;
+}
+
+.timeline-type {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.timeline-time {
+    font-size: 0.75rem;
+    opacity: 0.6;
+    white-space: nowrap;
+}
+
+.timeline-detail {
+    margin: 2px 0 0;
+    font-size: 0.8125rem;
+    opacity: 0.8;
+    line-height: 1.4;
+}

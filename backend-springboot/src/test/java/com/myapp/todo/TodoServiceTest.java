@@ -24,6 +24,9 @@ class TodoServiceTest {
     @Mock
     private TodoItemRepository repository;
 
+    @Mock
+    private TaskEventService taskEventService;
+
     @InjectMocks
     private TodoService todoService;
 
@@ -80,6 +83,7 @@ class TodoServiceTest {
         assertEquals("New Task", result.getItem().getName());
         assertEquals(1, result.getItem().getDayOrder()); // Should be 1 as list was empty
         verify(repository).save(any(TodoItem.class));
+        verify(taskEventService).record(1L, "CREATED", "Task created");
     }
 
     @Test
