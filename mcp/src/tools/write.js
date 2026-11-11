@@ -286,6 +286,38 @@ export async function uncompleteTask(args = {}, ctx) {
   });
 }
 
+export async function pushTask(args = {}, ctx) {
+  const { api, today, week } = ctx;
+  const id = args.id;
+  const reason = String(args.reason ?? "").trim();
+  if (!reason) {
+    throw new ToolError("invalid_reason", "reason must not be empty");
+  }
+  if (args.date !== undefined) {
+    assertValidDate(args.date);
+    assertDateNotPast(args.date, today);
+  }
+
+  const task = await fetchTask(api, id);
+  if (task.complete === true) {
+    throw new ToolError("already_complete", `Task ${id} is already complete`);
+  }
+
+  const result = await api.push(id, reason, args.date);
+  if (result?.status && String(result.status).startsWith("Error")) {
+    throw new ToolError("backend_error", result.status);
+  }
+
+  const original = result?.original ?? (await api.getItem(id));
+  return ok({
+    today,
+    week,
+    task: compactTask(original, today),
+    clone: result?.clone ? compactTask(result.clone, today) : null,
+    warnings: [],
+  });
+}
+
 export async function deleteTask(args = {}, ctx) {
   const { api, today, week } = ctx;
   const id = args.id;

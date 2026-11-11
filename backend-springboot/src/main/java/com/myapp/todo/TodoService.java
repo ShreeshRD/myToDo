@@ -1,6 +1,7 @@
 package com.myapp.todo;
 
 import com.myapp.todo.dto.ProjectCount;
+import com.myapp.todo.dto.PushResult;
 import com.myapp.todo.dto.TaskCounts;
 import com.myapp.todo.dto.TaskQuery;
 import com.myapp.todo.dto.TodoOperationResult;
@@ -89,6 +90,110 @@ public class TodoService {
         return new TodoOperationResult("Added", saved);
     }
 
+    /**
+     * "Not in my hands": complete the task now, record why and where it moved,
+     * then create a deferred clone for the chosen date. Only unchecked checklist
+     * rows move to the clone; checked ones stay with the completed original.
+     * Recursion is deliberately suppressed for this occurrence — the clone is
+     * the next occurrence, and it keeps the repeat settings for later.
+     */
+    public PushResult pushTask(Long id, String reason, LocalDate destination) {
+        Optional<TodoItem> optItem = repository.findById(id);
+        if (optItem.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found");
+        }
+        TodoItem original = optItem.get();
+        if (original.isComplete()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Task is already complete");
+        }
+        String trimmedReason = reason == null ? "" : reason.trim();
+        if (trimmedReason.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A reason is required");
+        }
+        LocalDate today = LocalDate.now(COMPLETION_ZONE);
+        LocalDate target = destination != null ? destination : today.plusDays(1);
+        if (target.isBefore(today)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Destination date must be today or later");
+        }
+
+        int nextPushCount = (original.getPushCount() == null ? 0 : original.getPushCount()) + 1;
+        if (original.getChainRootId() == null) {
+            original.setChainRootId(original.getId());
+        }
+        original.setPushCount(nextPushCount);
+        original.setComplete(true);
+        original.setCompletedAt(LocalDateTime.now(COMPLETION_ZONE));
+        original.setInProgress(false);
+        TodoItem savedOriginal = repository.save(original);
+        taskEventService.record(id, "PUSHED", "Pushed: " + trimmedReason,
+                original.getTaskDate(), target);
+
+        TodoItem clone = new TodoItem(target, nextOrderFor(target), original.getCategory(), original.getName());
+        clone.setPriority(original.getPriority());
+        clone.setLongTerm(original.isLongTerm());
+        clone.setDescription(original.getDescription());
+        clone.setRepeatType(original.getRepeatType());
+        clone.setRepeatDuration(original.getRepeatDuration());
+        clone.setChainRootId(original.getChainRootId());
+        clone.setPushedFromId(original.getId());
+        clone.setPushCount(nextPushCount);
+        TodoItem savedClone = repository.save(clone);
+        taskEventService.record(savedClone.getId(), "CREATED", "Deferred copy of pushed task " + id);
+
+        for (Subtask subtask : subtaskService.listForTask(id)) {
+            if (!subtask.isDone()) {
+                subtaskService.create(savedClone.getId(), subtask.getTitle());
+            }
+        }
+
+        logger.info("Pushed task {} to {} (deferred copy {})", id, target, savedClone.getId());
+        return new PushResult("Pushed", savedOriginal, savedClone);
+    }
+
+    private int nextOrderFor(LocalDate date) {
+        return repository.findByTaskDate(date).size() + 1;
+    }
+
+    /**
+     * Re-opening a pushed task removes its deferred copy when that copy is still
+     * untouched. A copy with activity (timeline events, tracked time, completed
+     * checklist rows, or completion) is left alone and reported to the caller.
+     */
+    private String releaseDeferredClones(Long taskId) {
+        List<TodoItem> clones;
+        try {
+            clones = repository.findByPushedFromId(taskId);
+        } catch (RuntimeException e) {
+            logger.warn("Could not look up deferred copies of task {}: {}", taskId, e.getMessage());
+            return null;
+        }
+        boolean kept = false;
+        for (TodoItem clone : clones) {
+            if (isUntouchedClone(clone)) {
+                repository.deleteById(clone.getId());
+                taskEventService.deleteForTask(clone.getId());
+                subtaskService.deleteForTask(clone.getId());
+                logger.info("Removed deferred copy {} of reopened task {}", clone.getId(), taskId);
+            } else {
+                kept = true;
+            }
+        }
+        return kept ? "The deferred copy has activity, so it was kept" : null;
+    }
+
+    private boolean isUntouchedClone(TodoItem clone) {
+        if (clone.isComplete()) {
+            return false;
+        }
+        if (clone.getTimeTaken() != null && clone.getTimeTaken() > 0) {
+            return false;
+        }
+        if (taskEventService.countActivity(clone.getId()) > 0) {
+            return false;
+        }
+        return subtaskService.listForTask(clone.getId()).stream().noneMatch(Subtask::isDone);
+    }
+
     public TodoOperationResult updateTaskField(long id, String field, String value) {
         Optional<TodoItem> optItem = repository.findById(id);
         if (optItem.isEmpty()) {
@@ -98,11 +203,18 @@ public class TodoService {
 
         TodoItem item = optItem.get();
         try {
+            boolean wasComplete = item.isComplete();
             applyField(item, field, value);
             TodoItem savedItem = repository.save(item);
             recordFieldEvent(id, field, savedItem);
+            String warning = null;
+            if ("complete".equals(field) && wasComplete && !savedItem.isComplete()) {
+                warning = releaseDeferredClones(id);
+            }
             logger.info("Updated task {} field: {}", id, field);
-            return new TodoOperationResult("Updated", savedItem);
+            TodoOperationResult result = new TodoOperationResult("Updated", savedItem);
+            result.setWarning(warning);
+            return result;
         } catch (IllegalArgumentException | java.time.format.DateTimeParseException e) {
             logger.error("Error updating task {}: {}", id, e.getMessage());
             return new TodoOperationResult("Error: " + e.getMessage(), null);
@@ -122,6 +234,7 @@ public class TodoService {
 
         TodoItem item = optItem.get();
         try {
+            boolean wasComplete = item.isComplete();
             Set<String> editedFields = new LinkedHashSet<>();
             boolean completeChanged = false;
             if (fields != null) {
@@ -141,8 +254,14 @@ public class TodoService {
             if (!editedFields.isEmpty()) {
                 recordEditEvent(id, String.join(", ", editedFields));
             }
+            String warning = null;
+            if (completeChanged && wasComplete && !savedItem.isComplete()) {
+                warning = releaseDeferredClones(id);
+            }
             logger.info("Patched task {} with {} field(s)", id, fields == null ? 0 : fields.size());
-            return new TodoOperationResult("Updated", savedItem);
+            TodoOperationResult result = new TodoOperationResult("Updated", savedItem);
+            result.setWarning(warning);
+            return result;
         } catch (IllegalArgumentException | java.time.format.DateTimeParseException e) {
             logger.error("Error patching task {}: {}", id, e.getMessage());
             return new TodoOperationResult("Error: " + e.getMessage(), null);

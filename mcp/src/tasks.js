@@ -46,6 +46,13 @@ export function compactTask(raw, today) {
     compact.completed_at = raw.assignedTime;
   }
 
+  if (raw.pushCount > 0) {
+    compact.push_count = raw.pushCount;
+  }
+  if (raw.pushedFromId != null) {
+    compact.pushed_from = raw.pushedFromId;
+  }
+
   return compact;
 }
 

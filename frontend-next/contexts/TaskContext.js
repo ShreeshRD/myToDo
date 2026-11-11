@@ -20,6 +20,7 @@ export const TaskProvider = ({ children }) => {
     const [popupTaskItem, setPopupTaskItem] = useState(null);
     const [detailTaskId, setDetailTaskId] = useState(null);
     const [subtaskCounts, setSubtaskCounts] = useState({});
+    const [pushTaskItem, setPushTaskItem] = useState(null);
 
     // Checklist badges for every task row, refreshed whenever the task lists
     // reload so totals stay correct without a per-row request.
@@ -109,6 +110,21 @@ export const TaskProvider = ({ children }) => {
     };
 
     const closeDetail = () => setDetailTaskId(null);
+
+    // Push dialog: only open tasks can be pushed ("not in my hands").
+    const openPush = (task) => {
+        if (task && task.id !== undefined && task.id !== null && !task.complete) {
+            setPushTaskItem(task);
+        }
+    };
+
+    const closePush = () => setPushTaskItem(null);
+
+    const handlePushed = async () => {
+        setPushTaskItem(null);
+        await taskManagement.fetchTasks();
+        refreshSubtaskCounts();
+    };
 
     // If the open detail task is deleted, findTaskById returns null and the
     // drawer hides itself; detailTaskId is cleared the next time a task is opened.
@@ -282,6 +298,10 @@ export const TaskProvider = ({ children }) => {
             detailTask,
             openDetail,
             closeDetail,
+            pushTaskItem,
+            openPush,
+            closePush,
+            handlePushed,
             subtaskCounts,
             refreshSubtaskCounts,
             darkMode,

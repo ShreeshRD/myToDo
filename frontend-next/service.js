@@ -71,7 +71,7 @@ const globalMutationQueue = new RequestQueue();
  * @param {number} id - Task ID
  * @param {string} field - Field name to update
  * @param {*} value - New value for the field
- * @returns {Promise<Object>} Updated task item
+ * @returns {Promise<Object>} TodoOperationResult ({ status, item, warning })
  * @throws {Error} If the update fails
  */
 export const updateField = async (id, field, value) => {
@@ -84,7 +84,7 @@ export const updateField = async (id, field, value) => {
 					value: value.toString(),
 				},
 			});
-			return response.data.item;
+			return response.data;
 		} catch (error) {
 			console.error(`Error updating task with id ${id}:`, error);
 			throw error;
@@ -96,16 +96,38 @@ export const updateField = async (id, field, value) => {
  * Updates several fields of an existing task in one request, preserving its ID.
  * @param {number} id - Task ID
  * @param {Object} fields - Field name to value map
- * @returns {Promise<Object>} Updated task item
+ * @returns {Promise<Object>} TodoOperationResult ({ status, item, warning })
  * @throws {Error} If the update fails
  */
 export const updateTaskFields = async (id, fields) => {
 	return globalMutationQueue.enqueue(async () => {
 		try {
 			const response = await axios.post(`${API_URL}/patch/${id}`, fields);
-			return response.data.item;
+			return response.data;
 		} catch (error) {
 			console.error(`Error patching task with id ${id}:`, error);
+			throw error;
+		}
+	});
+};
+
+/**
+ * Pushes a task: marks it complete and creates a deferred copy on `date`.
+ * @param {number} id - Task ID
+ * @param {string} reason - Required reason
+ * @param {string} date - Destination date (YYYY-MM-DD)
+ * @returns {Promise<Object>} PushResult ({ status, original, clone })
+ * @throws {Error} If the push fails
+ */
+export const pushTask = async (id, reason, date) => {
+	return globalMutationQueue.enqueue(async () => {
+		try {
+			const response = await axios.post(`${API_URL}/push`, null, {
+				params: { id, reason, date },
+			});
+			return response.data;
+		} catch (error) {
+			console.error(`Error pushing task ${id}:`, error);
 			throw error;
 		}
 	});

@@ -15,21 +15,21 @@ import { useUI } from "../contexts/UIContext";
 import { formatTaskDate, formatDateShort, formatTimeTaken } from "../lib/dateHelpers";
 
 function ToDoDay({ tasks, date, id }) {
-    const { updateTask, removeTask, callPopup, openDetail, subtaskCounts } = useTasks();
+    const { updateTask, removeTask, callPopup, openDetail, openPush, subtaskCounts } = useTasks();
     const { theme } = useUI();
     const { toggleStopwatch, stopStopwatch } = useStopwatch();
     const title = formatTaskDate(date);
     const [contextMenu, setContextMenu] = React.useState({ visible: false, x: 0, y: 0, task: null });
-    const [warnTaskId, setWarnTaskId] = React.useState(null);
+    const [warnTask, setWarnTask] = React.useState(null);
     const warnTimer = React.useRef(null);
 
     React.useEffect(() => () => clearTimeout(warnTimer.current), []);
 
-    // Completing with unchecked checklist rows is allowed, but the row calls it out.
-    const warnOpenSubtasks = (taskId) => {
-        setWarnTaskId(taskId);
+    // Inline row notice (open checklist items, kept deferred copy, …).
+    const showRowWarning = (taskId, message) => {
+        setWarnTask({ id: taskId, message });
         clearTimeout(warnTimer.current);
-        warnTimer.current = setTimeout(() => setWarnTaskId(null), 4000);
+        warnTimer.current = setTimeout(() => setWarnTask(null), 4000);
     };
 
     const handleContextMenu = (e, task) => {
@@ -65,6 +65,20 @@ function ToDoDay({ tasks, date, id }) {
             callPopup(date, contextMenu.task);
         }
         handleCloseContextMenu();
+    };
+
+    const handlePush = () => {
+        if (contextMenu.task) {
+            openPush(contextMenu.task);
+        }
+        handleCloseContextMenu();
+    };
+
+    // Right-clicking the checkbox pushes directly, without the context menu.
+    const handlePushFromCheckbox = (e, task) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openPush(task);
     };
 
     const handleTimeMe = () => {
@@ -106,6 +120,7 @@ function ToDoDay({ tasks, date, id }) {
                                         <div className="todo_item_inner">
                                             <CustomCheckbox
                                                 checked={task.complete}
+                                                onContextMenu={(e) => !task.complete && handlePushFromCheckbox(e, task)}
                                                 onChange={async (e) => {
                                                     e.stopPropagation();
                                                     const newComplete = !task.complete;
@@ -115,10 +130,13 @@ function ToDoDay({ tasks, date, id }) {
                                                         await stopStopwatch(task);
                                                         const counts = subtaskCounts[task.id];
                                                         if (counts && counts.total > counts.done) {
-                                                            warnOpenSubtasks(task.id);
+                                                            showRowWarning(task.id, 'Completed with open checklist items');
                                                         }
                                                     }
-                                                    await updateTask(task.id, "complete", newComplete, task.taskDate);
+                                                    const result = await updateTask(task.id, "complete", newComplete, task.taskDate);
+                                                    if (result?.warning) {
+                                                        showRowWarning(task.id, result.warning);
+                                                    }
                                                 }}
                                                 icon={<RiCheckboxBlankCircleLine className="checkbox_icon_unchecked" />}
                                                 checkedIcon={<RiCheckboxCircleFill className="checkbox_icon_checked" />}
@@ -147,10 +165,13 @@ function ToDoDay({ tasks, date, id }) {
                                                     ` • ${subtaskCounts[task.id].done}/${subtaskCounts[task.id].total}`}
                                                 {task.complete && task.timeTaken > 0 && ` • ${formatTimeTaken(task.timeTaken)}`}
                                             </span>
+                                            {task.pushCount > 0 && (
+                                                <span className="push-badge">Pushed {task.pushCount}×</span>
+                                            )}
                                         </div>
-                                        {warnTaskId === task.id && (
+                                        {warnTask && warnTask.id === task.id && (
                                             <div className="subtask-warning">
-                                                Completed with open checklist items
+                                                {warnTask.message}
                                             </div>
                                         )}
                                     </div>
@@ -179,6 +200,7 @@ function ToDoDay({ tasks, date, id }) {
                 onToggleLongTerm={handleToggleLongTerm}
                 onEdit={handleEdit}
                 onTimeMe={handleTimeMe}
+                onPush={handlePush}
             />
         </div >
     );

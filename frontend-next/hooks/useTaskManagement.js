@@ -249,8 +249,9 @@ const useTaskManagement = () => {
                     console.error(`Error updating timeTaken for task ${id}:`, error);
                 });
         }
-        updateField(id, field, value)
-            .then((taskItem) => {
+        return updateField(id, field, value)
+            .then((result) => {
+                const taskItem = result?.item ?? result;
                 // Persist inProgress clear alongside complete so refetch matches UI
                 if (field === "complete" && value === true) {
                     updateField(id, "inProgress", false).catch((error) => {
@@ -261,9 +262,11 @@ const useTaskManagement = () => {
                 if (field === "complete" && value === true && taskItem && taskItem.repeatType !== "NONE") {
                     addNextRepeat(taskItem);
                 }
+                return { warning: result?.warning || null };
             })
             .catch((error) => {
                 console.error(`Error updating task with id ${id}:`, error);
+                return { warning: null };
             });
     };
 

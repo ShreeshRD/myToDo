@@ -224,6 +224,40 @@ export class FakeApi {
     return { status: "Updated", item: { ...task } };
   }
 
+  async push(id, reason, date) {
+    this._record("push", { id, reason, date });
+    const original = this.tasks.find((t) => t.id === id);
+    if (!original) {
+      return { status: "Error: Item not found", original: null, clone: null };
+    }
+    const target = date ?? "2026-10-29";
+    const nextPushCount = (original.pushCount ?? 0) + 1;
+    original.complete = true;
+    original.assignedTime = "09:15:00";
+    original.pushCount = nextPushCount;
+    original.chainRootId = original.chainRootId ?? original.id;
+    const clone = {
+      id: this._nextId++,
+      taskDate: target,
+      dayOrder: 1,
+      category: original.category,
+      name: original.name,
+      complete: false,
+      repeatType: original.repeatType ?? "NONE",
+      repeatDuration: original.repeatDuration ?? 0,
+      priority: original.priority ?? 0,
+      inProgress: false,
+      longTerm: original.longTerm ?? false,
+      assignedTime: null,
+      timeTaken: null,
+      pushedFromId: original.id,
+      chainRootId: original.chainRootId,
+      pushCount: nextPushCount,
+    };
+    this.tasks.push(clone);
+    return { status: "Pushed", original: { ...original }, clone: { ...clone } };
+  }
+
   async delete(id) {
     this._record("delete", id);
     if (this.deleteReturnsFalse) {

@@ -174,4 +174,12 @@ public class TodoItem {
     public void setTimeTaken(Long timeTaken) {
         this.timeTaken = timeTaken;
     }
+
+    /**
+     * Push chain bookkeeping. A pushed task is completed and a deferred clone is
+     * created for the chosen date; both rows share the chain root.
+     */
+    private Long chainRootId;
+    private Long pushedFromId;
+    private Integer pushCount;
 }

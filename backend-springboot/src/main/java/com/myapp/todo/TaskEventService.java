@@ -47,6 +47,14 @@ public class TaskEventService {
         return repository.countByTaskId(taskId) > 0;
     }
 
+    /**
+     * Counts timeline activity beyond the initial CREATED row. Used to decide
+     * whether a deferred clone is still untouched when its parent is reopened.
+     */
+    public long countActivity(Long taskId) {
+        return repository.countByTaskIdAndTypeNot(taskId, "CREATED");
+    }
+
     @Transactional
     public void deleteForTask(Long taskId) {
         repository.deleteByTaskId(taskId);

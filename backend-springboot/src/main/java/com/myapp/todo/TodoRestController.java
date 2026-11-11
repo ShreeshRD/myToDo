@@ -1,6 +1,7 @@
 package com.myapp.todo;
 
 import com.myapp.todo.dto.ProjectCount;
+import com.myapp.todo.dto.PushResult;
 import com.myapp.todo.dto.TaskCounts;
 import com.myapp.todo.dto.TaskQuery;
 import com.myapp.todo.dto.TodoOperationResult;
@@ -58,6 +59,14 @@ public class TodoRestController {
             @PathVariable Long id,
             @RequestBody Map<String, String> fields) {
         return todoService.patchTask(id, fields);
+    }
+
+    @PostMapping("/push")
+    public @ResponseBody PushResult pushItem(
+            @RequestParam long id,
+            @RequestParam String reason,
+            @RequestParam(required = false) LocalDate date) {
+        return todoService.pushTask(id, reason, date);
     }
 
     @DeleteMapping("/delete/{id}")

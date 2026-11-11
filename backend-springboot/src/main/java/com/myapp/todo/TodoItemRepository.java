@@ -6,4 +6,6 @@ import java.util.List;
 
 public interface TodoItemRepository extends CrudRepository<TodoItem, Long> {
     List<TodoItem> findByTaskDate(LocalDate taskDate);
+
+    List<TodoItem> findByPushedFromId(Long pushedFromId);
 }

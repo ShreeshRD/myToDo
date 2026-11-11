@@ -13,7 +13,7 @@ Execution rule: implement **one step at a time**, stop for user verification, th
 ## 1. Settled decisions
 
 ### Push / "not in my hands"
-- A task can be **pushed**: you record a **required reason** and a **next date** (default `+3 days`, quick chips `+1d / +3d / +1w`).
+- A task can be **pushed**: you record a **required reason** and a **next date** (default `+1 day` from the task's own date, quick chips `+1d / +3d / +1w` relative to that date).
 - The current task is marked complete; a **clone** is created on the chosen date.
 - Clone inherits: name, project, priority, `longTerm`, goal link, description, repeat settings, and **only unchecked subtasks**. Checked subtasks stay with the completed original.
 - Both tasks share a chain. Clone carries `pushedFromId`, `chainRootId`, `pushCount + 1`.
@@ -105,7 +105,7 @@ Files: new `Subtask` entity/service/controller; `TaskDetailDrawer`, `TodayView.j
 - Completing a parent with open subtasks shows an inline warning but proceeds.
 Verify: checks persist; badge is correct; subtasks never appear in day lists.
 
-### [ ] Step 5 — Push + clone
+### [x] Step 5 — Push + clone
 Files: `TodoItem.java`, new `POST /todo/push`, `TodoService`, `TaskEvent`, frontend task row/menu/drawer, `mcp/src/tools/write.js`.
 - Atomic endpoint: complete original, record reason/date, create clone, copy fields + unchecked subtasks, inherit chain.
 - Popup with required reason, date picker default `+3`, quick chips.

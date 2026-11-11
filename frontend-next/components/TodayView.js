@@ -32,7 +32,7 @@ const generateTimeSlots = () => {
 const TIME_SLOTS = generateTimeSlots();
 
 function TodayView() {
-    const { taskDays, updateTask, removeTask, callPopup, openDetail, subtaskCounts } = useTasks();
+    const { taskDays, updateTask, removeTask, callPopup, openDetail, openPush, subtaskCounts } = useTasks();
     const { theme } = useUI();
     const { toggleStopwatch, stopStopwatch } = useStopwatch();
     const [todayTasks, setTodayTasks] = useState([]);
@@ -40,16 +40,16 @@ function TodayView() {
     const [overdueTasks, setOverdueTasks] = useState([]);
     const [currentTime, setCurrentTime] = useState(dayjs());
     const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, task: null });
-    const [warnTaskId, setWarnTaskId] = useState(null);
+    const [warnTask, setWarnTask] = useState(null);
     const warnTimer = React.useRef(null);
 
     useEffect(() => () => clearTimeout(warnTimer.current), []);
 
-    // Completing with unchecked checklist rows is allowed, but the row calls it out.
-    const warnOpenSubtasks = (taskId) => {
-        setWarnTaskId(taskId);
+    // Inline row notice (open checklist items, kept deferred copy, …).
+    const showRowWarning = (taskId, message) => {
+        setWarnTask({ id: taskId, message });
         clearTimeout(warnTimer.current);
-        warnTimer.current = setTimeout(() => setWarnTaskId(null), 4000);
+        warnTimer.current = setTimeout(() => setWarnTask(null), 4000);
     };
 
     // Update current time every minute
@@ -285,6 +285,20 @@ function TodayView() {
         handleCloseContextMenu();
     };
 
+    const handlePush = () => {
+        if (contextMenu.task) {
+            openPush(contextMenu.task);
+        }
+        handleCloseContextMenu();
+    };
+
+    // Right-clicking the checkbox pushes directly, without the context menu.
+    const handlePushFromCheckbox = (e, task) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openPush(task);
+    };
+
     const handleTimeMe = () => {
         if (contextMenu.task) {
             toggleStopwatch(contextMenu.task);
@@ -314,6 +328,7 @@ function TodayView() {
                     <div className="todo_item_inner">
                         <CustomCheckbox
                             checked={task.complete}
+                            onContextMenu={(e) => !task.complete && handlePushFromCheckbox(e, task)}
                             onChange={async (e) => {
                                 e.stopPropagation();
                                 const newComplete = !task.complete;
@@ -323,10 +338,13 @@ function TodayView() {
                                     await stopStopwatch(task);
                                     const counts = subtaskCounts[task.id];
                                     if (counts && counts.total > counts.done) {
-                                        warnOpenSubtasks(task.id);
+                                        showRowWarning(task.id, 'Completed with open checklist items');
                                     }
                                 }
-                                await updateTask(task.id, "complete", newComplete, task.taskDate);
+                                const result = await updateTask(task.id, "complete", newComplete, task.taskDate);
+                                if (result?.warning) {
+                                    showRowWarning(task.id, result.warning);
+                                }
                             }}
                             icon={<RiCheckboxBlankCircleLine className="checkbox_icon_unchecked" />}
                             checkedIcon={<RiCheckboxCircleFill className="checkbox_icon_checked" />}
@@ -346,18 +364,21 @@ function TodayView() {
                             <DeleteIcon className="todo_delete_icon" />
                         </button>
                     </div>
-                    {(task.complete && task.timeTaken > 0) || (subtaskCounts[task.id] && subtaskCounts[task.id].total > 0) ? (
+                    {(task.complete && task.timeTaken > 0) || (subtaskCounts[task.id] && subtaskCounts[task.id].total > 0) || task.pushCount > 0 ? (
                         <div className="task_infobar">
                             <span>
                                 {subtaskCounts[task.id] && subtaskCounts[task.id].total > 0 &&
                                     `${subtaskCounts[task.id].done}/${subtaskCounts[task.id].total} subtasks`}
                                 {task.complete && task.timeTaken > 0 && ` • ${formatTimeTaken(task.timeTaken)}`}
                             </span>
+                            {task.pushCount > 0 && (
+                                <span className="push-badge">Pushed {task.pushCount}×</span>
+                            )}
                         </div>
                     ) : null}
-                    {warnTaskId === task.id && (
+                    {warnTask && warnTask.id === task.id && (
                         <div className="subtask-warning">
-                            Completed with open checklist items
+                            {warnTask.message}
                         </div>
                     )}
                 </div>
@@ -501,6 +522,7 @@ function TodayView() {
                 onToggleLongTerm={handleToggleLongTerm}
                 onEdit={handleEdit}
                 onTimeMe={handleTimeMe}
+                onPush={handlePush}
             />
         </div>
     );

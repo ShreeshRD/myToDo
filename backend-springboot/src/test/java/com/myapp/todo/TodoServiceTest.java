@@ -1,6 +1,7 @@
 package com.myapp.todo;
 
 import com.myapp.todo.dto.TodoOperationResult;
+import com.myapp.todo.dto.PushResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -227,5 +228,144 @@ class TodoServiceTest {
         // Assert
         assertFalse(result);
         verify(repository, never()).deleteById(anyLong());
+    }
+
+    @Test
+    void testPushTask_CompletesOriginalAndClonesUncheckedSubtasks() {
+        // Arrange
+        LocalDate destination = LocalDate.now().plusDays(3);
+        Subtask done = new Subtask(1L, "Already done", 0);
+        done.setDone(true);
+        Subtask open = new Subtask(1L, "Still open", 1);
+        when(repository.findById(1L)).thenReturn(Optional.of(sampleItem));
+        when(repository.findByTaskDate(destination)).thenReturn(new ArrayList<>());
+        when(repository.save(any(TodoItem.class))).thenAnswer(invocation -> {
+            TodoItem item = invocation.getArgument(0);
+            if (item.getId() == null) {
+                item.setId(2L);
+            }
+            return item;
+        });
+        when(subtaskService.listForTask(1L)).thenReturn(Arrays.asList(done, open));
+
+        // Act
+        PushResult result = todoService.pushTask(1L, "  Waiting on client  ", destination);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("Pushed", result.getStatus());
+        assertTrue(result.getOriginal().isComplete());
+        assertNotNull(result.getOriginal().getCompletedAt());
+        assertEquals(1, result.getOriginal().getPushCount());
+        assertEquals(1L, result.getOriginal().getChainRootId());
+
+        TodoItem clone = result.getClone();
+        assertEquals(destination, clone.getTaskDate());
+        assertEquals(sampleItem.getName(), clone.getName());
+        assertEquals(sampleItem.getCategory(), clone.getCategory());
+        assertFalse(clone.isComplete());
+        assertEquals(1L, clone.getPushedFromId());
+        assertEquals(1L, clone.getChainRootId());
+        assertEquals(1, clone.getPushCount());
+
+        // Only the unchecked checklist row moves to the clone.
+        verify(subtaskService).create(2L, "Still open");
+        verify(subtaskService, never()).create(2L, "Already done");
+        verify(taskEventService).record(1L, "PUSHED", "Pushed: Waiting on client",
+                sampleItem.getTaskDate(), destination);
+    }
+
+    @Test
+    void testPushTask_DefaultsToOneDay() {
+        // Arrange
+        when(repository.findById(1L)).thenReturn(Optional.of(sampleItem));
+        when(repository.findByTaskDate(any(LocalDate.class))).thenReturn(new ArrayList<>());
+        when(repository.save(any(TodoItem.class))).thenAnswer(invocation -> {
+            TodoItem item = invocation.getArgument(0);
+            if (item.getId() == null) {
+                item.setId(2L);
+            }
+            return item;
+        });
+        when(subtaskService.listForTask(1L)).thenReturn(new ArrayList<>());
+
+        // Act
+        PushResult result = todoService.pushTask(1L, "Later", null);
+
+        // Assert
+        LocalDate expected = LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")).plusDays(1);
+        assertEquals(expected, result.getClone().getTaskDate());
+    }
+
+    @Test
+    void testPushTask_RequiresReason() {
+        // Arrange
+        when(repository.findById(1L)).thenReturn(Optional.of(sampleItem));
+
+        // Act + Assert
+        org.springframework.web.server.ResponseStatusException error = assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
+                () -> todoService.pushTask(1L, "   ", LocalDate.now().plusDays(3)));
+        assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, error.getStatusCode());
+        verify(repository, never()).save(any(TodoItem.class));
+    }
+
+    @Test
+    void testPushTask_RejectsCompletedTask() {
+        // Arrange
+        sampleItem.setComplete(true);
+        when(repository.findById(1L)).thenReturn(Optional.of(sampleItem));
+
+        // Act + Assert
+        org.springframework.web.server.ResponseStatusException error = assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
+                () -> todoService.pushTask(1L, "Again", LocalDate.now().plusDays(3)));
+        assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, error.getStatusCode());
+        verify(repository, never()).save(any(TodoItem.class));
+    }
+
+    @Test
+    void testUpdateTaskField_UncompleteDeletesUntouchedClone() {
+        // Arrange
+        sampleItem.setComplete(true);
+        TodoItem clone = new TodoItem(LocalDate.now().plusDays(3), 1, "Work", "Test Task");
+        clone.setId(2L);
+        clone.setPushedFromId(1L);
+        when(repository.findById(1L)).thenReturn(Optional.of(sampleItem));
+        when(repository.findByPushedFromId(1L)).thenReturn(List.of(clone));
+        when(repository.save(any(TodoItem.class))).thenReturn(sampleItem);
+        when(taskEventService.countActivity(2L)).thenReturn(0L);
+        when(subtaskService.listForTask(2L)).thenReturn(new ArrayList<>());
+
+        // Act
+        TodoOperationResult result = todoService.updateTaskField(1L, "complete", "false");
+
+        // Assert
+        assertEquals("Updated", result.getStatus());
+        assertNull(result.getWarning());
+        verify(repository).deleteById(2L);
+        verify(taskEventService).deleteForTask(2L);
+        verify(subtaskService).deleteForTask(2L);
+    }
+
+    @Test
+    void testUpdateTaskField_UncompleteKeepsActiveCloneAndWarns() {
+        // Arrange
+        sampleItem.setComplete(true);
+        TodoItem clone = new TodoItem(LocalDate.now().plusDays(3), 1, "Work", "Test Task");
+        clone.setId(2L);
+        clone.setPushedFromId(1L);
+        when(repository.findById(1L)).thenReturn(Optional.of(sampleItem));
+        when(repository.findByPushedFromId(1L)).thenReturn(List.of(clone));
+        when(repository.save(any(TodoItem.class))).thenReturn(sampleItem);
+        when(taskEventService.countActivity(2L)).thenReturn(1L);
+
+        // Act
+        TodoOperationResult result = todoService.updateTaskField(1L, "complete", "false");
+
+        // Assert
+        assertEquals("Updated", result.getStatus());
+        assertNotNull(result.getWarning());
+        verify(repository, never()).deleteById(2L);
     }
 }

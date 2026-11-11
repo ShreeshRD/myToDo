@@ -13,6 +13,7 @@ import {
   updateTask,
   completeTask,
   uncompleteTask,
+  pushTask,
   deleteTask,
 } from "../src/tools/write.js";
 import { FakeApi, FIXED_CLOCK, makeConfig, makeRawTask, parseResult } from "./fixtures.js";
@@ -507,7 +508,7 @@ test("completeTaskInProgressClearFails", async () => {
 
 // ---------- uncomplete_task ----------
 
-test("uncompleteTaskClearsAssignedTime", async () => {
+test("uncompleteTaskKeepsAssignedTime", async () => {
   const api = new FakeApi({
     tasks: [makeRawTask({ id: 1, complete: true, assignedTime: "09:15:00" })],
   });
@@ -515,10 +516,7 @@ test("uncompleteTaskClearsAssignedTime", async () => {
   const updates = api.calls.filter((c) => c.method === "update");
   assert.deepEqual(
     updates.map((c) => [c.args.field, c.args.value]),
-    [
-      ["complete", "false"],
-      ["assignedTime", "null"],
-    ]
+    [["complete", "false"]]
   );
   assert.equal(result.task.complete, false);
   assert.equal(result.task.completed_at, undefined);
@@ -531,6 +529,79 @@ test("uncompleteTaskAlreadyIncomplete", async () => {
   const result = parseResult(await uncompleteTask({ id: 1 }, makeCtx(api)));
   assert.deepEqual(result.warnings, ["already_incomplete"]);
   assert.equal(api.calls.filter((c) => c.method === "update").length, 0);
+});
+
+// ---------- push_task ----------
+
+test("pushTaskCreatesClone", async () => {
+  const api = new FakeApi({
+    tasks: [
+      makeRawTask({
+        id: 1,
+        name: "Push me",
+        complete: false,
+        repeatType: "EVERY_X_DAYS",
+        repeatDuration: 1,
+      }),
+    ],
+  });
+  const result = parseResult(
+    await pushTask({ id: 1, reason: "Blocked", date: "2026-10-31" }, makeCtx(api))
+  );
+  const call = api.calls.find((c) => c.method === "push");
+  assert.deepEqual(call.args, { id: 1, reason: "Blocked", date: "2026-10-31" });
+  assert.equal(result.task.complete, true);
+  assert.equal(result.task.push_count, 1);
+  assert.equal(result.clone.date, "2026-10-31");
+  assert.equal(result.clone.complete, false);
+  assert.equal(result.clone.pushed_from, 1);
+  assert.equal(result.clone.push_count, 1);
+  assert.equal(result.clone.repeat, "EVERY_X_DAYS");
+});
+
+test("pushTaskDefaultsToBackendDate", async () => {
+  const api = new FakeApi({
+    tasks: [makeRawTask({ id: 1, complete: false })],
+  });
+  const result = parseResult(
+    await pushTask({ id: 1, reason: "Later" }, makeCtx(api))
+  );
+  const call = api.calls.find((c) => c.method === "push");
+  assert.equal(call.args.date, undefined);
+  assert.equal(result.clone.date, "2026-10-29");
+});
+
+test("pushTaskRequiresReason", async () => {
+  const api = new FakeApi({
+    tasks: [makeRawTask({ id: 1, complete: false })],
+  });
+  const wrapped = runTool(pushTask, deps(api));
+  const result = await wrapped({ id: 1, reason: "   " });
+  assert.equal(result.isError, true);
+  assert.equal(parseResult(result).error, "invalid_reason");
+  assert.equal(api.calls.filter((c) => c.method === "push").length, 0);
+});
+
+test("pushTaskRejectsCompletedTask", async () => {
+  const api = new FakeApi({
+    tasks: [makeRawTask({ id: 1, complete: true })],
+  });
+  const wrapped = runTool(pushTask, deps(api));
+  const result = await wrapped({ id: 1, reason: "Again" });
+  assert.equal(result.isError, true);
+  assert.equal(parseResult(result).error, "already_complete");
+  assert.equal(api.calls.filter((c) => c.method === "push").length, 0);
+});
+
+test("pushTaskRejectsPastDate", async () => {
+  const api = new FakeApi({
+    tasks: [makeRawTask({ id: 1, complete: false })],
+  });
+  const wrapped = runTool(pushTask, deps(api));
+  const result = await wrapped({ id: 1, reason: "Later", date: "2026-10-27" });
+  assert.equal(result.isError, true);
+  assert.equal(parseResult(result).error, "date_in_past");
+  assert.equal(api.calls.filter((c) => c.method === "push").length, 0);
 });
 
 // ---------- delete_task ----------

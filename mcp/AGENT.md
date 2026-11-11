@@ -18,6 +18,7 @@ All files under `mcp/`.
 - Timezone is `Asia/Kolkata`; weeks are Monday–Sunday.
 - `project` maps to the backend `category` field.
 - `update_task` maps `name` to backend `taskName`.
+- `push_task` maps to `POST /todo/push` (`reason` required, `date` optional/`+3` default); it returns the completed `task` and the deferred `clone`.
 - Never trust the `/todo/delete/{id}` boolean; verify by re-fetching.
 
 ## Work Guidance

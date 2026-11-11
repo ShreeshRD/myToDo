@@ -240,6 +240,24 @@
     margin-left: 5px;
 }
 
+/* Push chain badge ("Pushed N×") bottom-right of the row */
+.push-badge {
+    margin-left: auto;
+    padding-left: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #2563eb;
+    white-space: nowrap;
+}
+
+.todo_item_box.dark .push-badge {
+    color: #7aa7ff;
+}
+
+.app-container.glass .push-badge {
+    color: #a9c2ff;
+}
+
 /* Inline notice under a row completed with open checklist items */
 .subtask-warning {
     padding: 2px 15px 0 24px;

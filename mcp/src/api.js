@@ -109,4 +109,10 @@ export class TodoApi {
   delete(id) {
     return this.request("DELETE", `/todo/delete/${id}`);
   }
+
+  push(id, reason, date) {
+    return this.request("POST", "/todo/push", {
+      params: { id, reason, date },
+    });
+  }
 }

@@ -93,6 +93,49 @@
     opacity: 1;
 }
 
+/* Push action under the drawer header */
+.drawer-actions {
+    padding: 10px 16px 0;
+    flex-shrink: 0;
+}
+
+.drawer-push {
+    width: 100%;
+    border: 1px solid rgba(37, 99, 235, 0.4);
+    border-radius: 6px;
+    background-color: rgba(37, 99, 235, 0.08);
+    color: #2563eb;
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    padding: 7px 12px;
+    cursor: pointer;
+}
+
+.drawer-push:hover {
+    background-color: rgba(37, 99, 235, 0.16);
+}
+
+.task-detail-drawer.dark .drawer-push {
+    border-color: rgba(122, 167, 255, 0.4);
+    background-color: rgba(122, 167, 255, 0.12);
+    color: #7aa7ff;
+}
+
+.task-detail-drawer.dark .drawer-push:hover {
+    background-color: rgba(122, 167, 255, 0.2);
+}
+
+.task-detail-drawer.glass .drawer-push {
+    border-color: rgba(169, 194, 255, 0.4);
+    background-color: rgba(169, 194, 255, 0.12);
+    color: #a9c2ff;
+}
+
+.task-detail-drawer.glass .drawer-push:hover {
+    background-color: rgba(169, 194, 255, 0.2);
+}
+
 .drawer-body {
     flex: 1;
     overflow-y: auto;

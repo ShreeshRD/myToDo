@@ -12,6 +12,7 @@ import {
   updateTask,
   completeTask,
   uncompleteTask,
+  pushTask,
   deleteTask,
 } from "./write.js";
 
@@ -157,6 +158,24 @@ export function registerWriteTools(server, deps) {
       },
     },
     runTool(uncompleteTask, deps)
+  );
+
+  server.registerTool(
+    "push_task",
+    {
+      title: "Push task",
+      description:
+        "Push a task to a later date: mark it complete now, record the required reason, and create a deferred copy (only unchecked checklist items) on the chosen date. Defaults to +1 day.",
+      inputSchema: {
+        id: z.number().int().positive().describe("Task id"),
+        reason: z.string().min(1).max(500).describe("Why the task is being pushed"),
+        date: z
+          .string()
+          .optional()
+          .describe("YYYY-MM-DD, today or later. OMIT for +1 day."),
+      },
+    },
+    runTool(pushTask, deps)
   );
 
   server.registerTool(

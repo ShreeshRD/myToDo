@@ -9,5 +9,7 @@ public interface TaskEventRepository extends CrudRepository<TaskEvent, Long> {
 
     long countByTaskId(Long taskId);
 
+    long countByTaskIdAndTypeNot(Long taskId, String type);
+
     void deleteByTaskId(Long taskId);
 }

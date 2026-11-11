@@ -53,10 +53,11 @@ test("toolsList", async () => {
       "get_day",
       "get_week",
       "list_projects",
+      "push_task",
       "uncomplete_task",
       "update_task",
     ]);
-    assert.equal(tools.length, 10);
+    assert.equal(tools.length, 11);
   });
 });
 

@@ -301,7 +301,7 @@ function TaskChecklist({ task, refreshSubtaskCounts }) {
 }
 
 function TaskDetailDrawer() {
-    const { detailTask, closeDetail, updateTask, showPopup, refreshSubtaskCounts } = useTasks();
+    const { detailTask, closeDetail, updateTask, openPush, showPopup, refreshSubtaskCounts } = useTasks();
     const { theme } = useUI();
     const drawerRef = useRef(null);
     const task = detailTask;
@@ -353,6 +353,8 @@ function TaskDetailDrawer() {
             ? { label: 'Repeat', value: task.repeatType.replaceAll('_', ' ').toLowerCase() }
             : null,
         task.longTerm ? { label: 'Type', value: 'Long-term' } : null,
+        task.pushCount > 0 ? { label: 'Pushed', value: `${task.pushCount}×` } : null,
+        task.pushedFromId ? { label: 'Pushed from', value: `Task #${task.pushedFromId}` } : null,
     ].filter(Boolean);
 
     // Portal to body so the drawer (and its backdrop blur) sit outside
@@ -370,6 +372,18 @@ function TaskDetailDrawer() {
                     <h2 className={task.complete ? 'strikethrough' : ''}>{task.name}</h2>
                     <button className="drawer-close" onClick={closeDetail} aria-label="Close details">×</button>
                 </div>
+
+                {!task.complete && (
+                    <div className="drawer-actions">
+                        <button
+                            type="button"
+                            className="drawer-push"
+                            onClick={() => openPush(task)}
+                        >
+                            Push to another day…
+                        </button>
+                    </div>
+                )}
 
                 <div className="drawer-body">
                     <section className="drawer-section">

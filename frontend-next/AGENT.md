@@ -15,6 +15,7 @@ All files under `frontend-next/`.
 - Context-based state management (`TaskContext`, `UIContext`, `StopwatchContext`)
 - Direct sync with Spring Boot backend via REST API (configured in `lib/constants.js`)
 - Task rows open `TaskDetailDrawer` (notes, checklist, metadata, activity); checklist counts live in `TaskContext` (`subtaskCounts`) and refresh after checklist mutations
+- Pushing a task ("not in my hands") is available from the row checkbox (right-click), the row context menu (`Push…`), and the detail drawer. `PushTaskPopup` requires a reason, defaults the destination to the task date `+1` day, offers `+1d / +3d / +1w` chips relative to the task date, and submits with `Ctrl/Cmd+Enter`; rows show a `Pushed N×` badge and an inline warning when un-completing keeps an active deferred copy
 - Tests in `__tests__/` using Jest
 
 ## Work Guidance
