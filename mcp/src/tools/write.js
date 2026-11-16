@@ -1,6 +1,5 @@
 import { isIsoDate } from "../dates.js";
 import { compactTask, normalizeProject } from "../tasks.js";
-import { nextOccurrence, REPEAT_TYPES } from "../recurrence.js";
 import { ToolError, ok } from "../errors.js";
 
 function assertDateNotPast(date, today) {
@@ -122,14 +121,6 @@ export async function updateTask(args = {}, ctx) {
   });
 }
 
-function hasValidRepeatRule(task) {
-  if (!REPEAT_TYPES.includes(task.repeatType)) return false;
-  const duration = task.repeatDuration;
-  if (!Number.isInteger(duration) || duration <= 0) return false;
-  if (task.repeatType === "SPECIFIC_WEEKDAYS" && duration > 127) return false;
-  return true;
-}
-
 export async function completeTask(args = {}, ctx) {
   const { api, today, week } = ctx;
   const id = args.id;
@@ -147,9 +138,14 @@ export async function completeTask(args = {}, ctx) {
     });
   }
 
+  // Backend owns recurrence: completing returns nextTask when it created one,
+  // or a warning explaining why it did not.
   const result = await api.update(id, "complete", "true");
   if (result?.status && String(result.status).startsWith("Error")) {
     throw new ToolError("backend_error", result.status);
+  }
+  if (result?.warning) {
+    warnings.push(result.warning);
   }
 
   try {
@@ -159,98 +155,15 @@ export async function completeTask(args = {}, ctx) {
   }
 
   task = await api.getItem(id);
+  const nextTask = result?.nextTask ?? null;
 
-  const claimsRecur =
-    task.repeatType != null && task.repeatType !== "NONE";
-
-  if (!hasValidRepeatRule(task)) {
-    if (claimsRecur) {
-      warnings.push("invalid_repeat_rule");
-    }
-    return ok({
-      today,
-      week,
-      task: compactTask(task, today),
-      next_task: null,
-      warnings,
-    });
-  }
-
-  const nextDate = nextOccurrence({
-    taskDate: task.taskDate,
-    repeatType: task.repeatType,
-    repeatDuration: task.repeatDuration,
+  return ok({
+    today,
+    week,
+    task: compactTask(task, today),
+    next_task: nextTask ? compactTask(nextTask, today) : null,
+    warnings,
   });
-
-  if (!nextDate) {
-    warnings.push("invalid_repeat_rule");
-    return ok({
-      today,
-      week,
-      task: compactTask(task, today),
-      next_task: null,
-      warnings,
-    });
-  }
-
-  const category = normalizeProject(task.category);
-  const existing = await api.query({
-    exactName: task.name,
-    project: category,
-    start: nextDate,
-    end: nextDate,
-    limit: 50,
-  });
-
-  const duplicate = existing.find((t) => t.id !== task.id);
-  if (duplicate) {
-    warnings.push("next_instance_exists");
-    return ok({
-      today,
-      week,
-      task: compactTask(task, today),
-      next_task: null,
-      warnings,
-    });
-  }
-
-  try {
-    const created = await api.add({
-      category,
-      name: task.name,
-      taskDate: nextDate,
-      priority: task.priority ?? 0,
-      repeatType: task.repeatType,
-      repeatDuration: task.repeatDuration,
-      longTerm: task.longTerm ?? false,
-    });
-    if (created?.status && String(created.status).startsWith("Error")) {
-      warnings.push("next_instance_create_failed");
-      return ok({
-        today,
-        week,
-        task: compactTask(task, today),
-        next_task: null,
-        warnings,
-      });
-    }
-    return ok({
-      today,
-      week,
-      task: compactTask(task, today),
-      next_task: compactTask(created.item, today),
-      warnings,
-    });
-  } catch {
-    warnings.push("next_instance_create_failed");
-    return ok({
-      today,
-      week,
-      task: compactTask(task, today),
-      next_task: null,
-      warnings,
-    });
-  }
 }
 
 export async function uncompleteTask(args = {}, ctx) {

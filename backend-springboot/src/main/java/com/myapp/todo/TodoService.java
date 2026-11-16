@@ -214,6 +214,9 @@ public class TodoService {
             logger.info("Updated task {} field: {}", id, field);
             TodoOperationResult result = new TodoOperationResult("Updated", savedItem);
             result.setWarning(warning);
+            if ("complete".equals(field) && !wasComplete && savedItem.isComplete()) {
+                result.setNextTask(generateNextOccurrence(savedItem));
+            }
             return result;
         } catch (IllegalArgumentException | java.time.format.DateTimeParseException e) {
             logger.error("Error updating task {}: {}", id, e.getMessage());
@@ -261,11 +264,114 @@ public class TodoService {
             logger.info("Patched task {} with {} field(s)", id, fields == null ? 0 : fields.size());
             TodoOperationResult result = new TodoOperationResult("Updated", savedItem);
             result.setWarning(warning);
+            if (completeChanged && !wasComplete && savedItem.isComplete()) {
+                result.setNextTask(generateNextOccurrence(savedItem));
+            }
             return result;
         } catch (IllegalArgumentException | java.time.format.DateTimeParseException e) {
             logger.error("Error patching task {}: {}", id, e.getMessage());
             return new TodoOperationResult("Error: " + e.getMessage(), null);
         }
+    }
+
+    /**
+     * Completing a recurring task creates its next occurrence on the computed
+     * date. The clone keeps name, project, priority, longTerm, description, and
+     * repeat settings. A same-name/same-project/same-day row already in the DB
+     * suppresses creation so repeated completions cannot pile up duplicates.
+     * Push never reaches this path — its clone is the next occurrence.
+     */
+    private TodoItem generateNextOccurrence(TodoItem source) {
+        TodoItem.RepeatPattern pattern = source.getRepeatType();
+        if (pattern == null || pattern == TodoItem.RepeatPattern.NONE) {
+            return null;
+        }
+        Integer duration = source.getRepeatDuration();
+        if (duration == null || duration <= 0) {
+            logger.info("Skipping next occurrence for task {}: invalid repeat rule", source.getId());
+            return null;
+        }
+        LocalDate nextDate = nextOccurrenceDate(source.getTaskDate(), pattern, duration);
+        if (nextDate == null) {
+            logger.info("Skipping next occurrence for task {}: cannot compute next date", source.getId());
+            return null;
+        }
+        if (hasOccurrenceOn(source, nextDate)) {
+            logger.info("Next occurrence of task {} already exists on {}", source.getId(), nextDate);
+            return null;
+        }
+
+        TodoItem next = new TodoItem(nextDate, nextOrderFor(nextDate), source.getCategory(), source.getName());
+        next.setPriority(source.getPriority());
+        next.setLongTerm(source.isLongTerm());
+        next.setDescription(source.getDescription());
+        next.setRepeatType(source.getRepeatType());
+        next.setRepeatDuration(source.getRepeatDuration());
+        try {
+            TodoItem saved = repository.save(next);
+            taskEventService.record(saved.getId(), "CREATED",
+                    "Next occurrence of task " + source.getId());
+            logger.info("Created next occurrence {} of task {} on {}", saved.getId(), source.getId(), nextDate);
+            return saved;
+        } catch (RuntimeException e) {
+            logger.error("Failed to create next occurrence of task {}: {}", source.getId(), e.getMessage());
+            return null;
+        }
+    }
+
+    private boolean hasOccurrenceOn(TodoItem source, LocalDate date) {
+        String sourceName = source.getName() == null ? null : source.getName().trim();
+        String sourceCategory = projectName(source);
+        return repository.findByTaskDate(date).stream()
+                .filter(t -> !t.getId().equals(source.getId()))
+                .anyMatch(t -> equalsIgnoreCase(sourceName, t.getName())
+                        && equalsIgnoreCase(sourceCategory, projectName(t)));
+    }
+
+    /**
+     * Shared date math for every recurrence pattern. Month steps use
+     * {@link LocalDate#plusMonths} so Jan 31 + 1 month lands on the last day
+     * of February rather than overflowing.
+     */
+    static LocalDate nextOccurrenceDate(LocalDate from, TodoItem.RepeatPattern pattern, int duration) {
+        if (from == null || pattern == null || duration <= 0) {
+            return null;
+        }
+        switch (pattern) {
+            case EVERY_X_DAYS:
+                return from.plusDays(duration);
+            case EVERY_X_WEEKS:
+                return from.plusWeeks(duration);
+            case EVERY_X_MONTHS:
+                return from.plusMonths(duration);
+            case SPECIFIC_WEEKDAYS:
+                return nextSpecificWeekday(from, duration);
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Weekday mask matches the frontend/MCP bit layout: bit 6 (value 64) is
+     * Monday … bit 0 (value 1) is Sunday, encoded as a 7-char binary string
+     * where index 0 is Monday.
+     */
+    private static LocalDate nextSpecificWeekday(LocalDate from, int mask) {
+        if (mask > 127) {
+            return null;
+        }
+        String bits = String.format("%7s", Integer.toBinaryString(mask)).replace(' ', '0');
+        LocalDate cursor = from;
+        for (int i = 0; i < 7; i++) {
+            cursor = cursor.plusDays(1);
+            // Java DOW: MON=1..SAT=6, SUN=7 → map to Mon=0..Sun=6
+            int dayIndex = cursor.getDayOfWeek() == java.time.DayOfWeek.SUNDAY ? 6
+                    : cursor.getDayOfWeek().getValue() - 1;
+            if (bits.charAt(dayIndex) == '1') {
+                return cursor;
+            }
+        }
+        return null;
     }
 
     private void applyField(TodoItem item, String field, String rawValue) {

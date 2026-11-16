@@ -23,6 +23,7 @@ All files under `backend-springboot/`.
 - Re-opening a pushed task (`complete=false`) deletes its deferred clone only while that clone is untouched (not complete, no `timeTaken`, no events beyond `CREATED`, no checked subtasks); otherwise the clone is kept and `TodoOperationResult.warning` is set
 - Deleting a task also deletes its subtasks and timeline events
 - Completion sets `completedAt` and must never overwrite `assignedTime` (scheduled time)
+- Completing a recurring task generates the next occurrence on the backend (`nextTask` on `TodoOperationResult`); duplicate same name/project/day rows suppress creation. Push bypasses this path on purpose
 - `LegacyDataBackfill` fills `createdAt`/`completedAt` for pre-existing rows on startup
 - Query filtering is in-memory in `TodoService`; acceptable for the current dataset size
 - Do not wrap `save(...)` of a new entity in an outer `@Transactional` when the method also reads first: SQLite then holds a read lock while Hibernate's table-sequence generator commits on a second connection, which fails with `SQLITE_BUSY`. Keep `@Transactional` for delete-only methods (`SubtaskService`, `TaskEventService`)

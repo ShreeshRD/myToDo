@@ -115,7 +115,7 @@ Files: `TodoItem.java`, new `POST /todo/push`, `TodoService`, `TaskEvent`, front
 - Uncomplete cascade: delete untouched clone, warn otherwise.
 Verify: reason/date recorded; clone correct; badge increments on repeated pushes; no duplicate recurring task; heatmap and reps count the pushed completion; roadmap step does not tick (verified in Step 8).
 
-### [ ] Step 6 — Server-side recurrence centralization
+### [x] Step 6 — Server-side recurrence centralization
 Files: `TodoService.java` completion path, `frontend-next/hooks/useTaskManagement.js`, `mcp/src/tools/write.js`, `mcp/src/recurrence.js`.
 - Generate next occurrence in the backend on completion; duplicate check in DB.
 - Remove frontend + MCP recurrence generation; MCP `complete_task` just calls the backend.

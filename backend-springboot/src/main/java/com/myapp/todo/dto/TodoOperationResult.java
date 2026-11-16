@@ -17,6 +17,15 @@ public class TodoOperationResult {
             "EI_EXPOSE_REP2" }, justification = "TodoItem is an entity object; defensive copying is not appropriate for DTOs")
     private TodoItem item;
 
+    /**
+     * Next recurrence occurrence created when this completion generated one.
+     * Null when the task does not recur, the rule is invalid, a duplicate
+     * already exists, or creation failed.
+     */
+    @SuppressFBWarnings(value = { "EI_EXPOSE_REP",
+            "EI_EXPOSE_REP2" }, justification = "TodoItem is an entity object; defensive copying is not appropriate for DTOs")
+    private TodoItem nextTask;
+
     public TodoOperationResult() {
     }
 
@@ -47,5 +56,13 @@ public class TodoOperationResult {
 
     public void setWarning(String warning) {
         this.warning = warning;
+    }
+
+    public TodoItem getNextTask() {
+        return nextTask;
+    }
+
+    public void setNextTask(TodoItem nextTask) {
+        this.nextTask = nextTask;
     }
 }

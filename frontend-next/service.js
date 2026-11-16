@@ -71,7 +71,7 @@ const globalMutationQueue = new RequestQueue();
  * @param {number} id - Task ID
  * @param {string} field - Field name to update
  * @param {*} value - New value for the field
- * @returns {Promise<Object>} TodoOperationResult ({ status, item, warning })
+ * @returns {Promise<Object>} TodoOperationResult ({ status, item, warning, nextTask })
  * @throws {Error} If the update fails
  */
 export const updateField = async (id, field, value) => {
@@ -96,7 +96,7 @@ export const updateField = async (id, field, value) => {
  * Updates several fields of an existing task in one request, preserving its ID.
  * @param {number} id - Task ID
  * @param {Object} fields - Field name to value map
- * @returns {Promise<Object>} TodoOperationResult ({ status, item, warning })
+ * @returns {Promise<Object>} TodoOperationResult ({ status, item, warning, nextTask })
  * @throws {Error} If the update fails
  */
 export const updateTaskFields = async (id, fields) => {

@@ -1,5 +1,46 @@
 export const FIXED_CLOCK = () => new Date("2026-10-28T10:00:00+05:30");
 
+/** Same date math the backend uses (Java LocalDate semantics for months). */
+function nextOccurrenceDate(taskDate, repeatType, repeatDuration) {
+  if (!Number.isInteger(repeatDuration) || repeatDuration <= 0) return null;
+  const d = new Date(`${taskDate}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return null;
+  const addDays = (n) => {
+    const c = new Date(d);
+    c.setUTCDate(c.getUTCDate() + n);
+    return c.toISOString().slice(0, 10);
+  };
+  switch (repeatType) {
+    case "EVERY_X_DAYS":
+      return addDays(repeatDuration);
+    case "EVERY_X_WEEKS":
+      return addDays(repeatDuration * 7);
+    case "EVERY_X_MONTHS": {
+      const day = d.getUTCDate();
+      const target = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + repeatDuration, 1));
+      const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+      target.setUTCDate(Math.min(day, lastDay));
+      return target.toISOString().slice(0, 10);
+    }
+    case "SPECIFIC_WEEKDAYS": {
+      if (repeatDuration > 127) return null;
+      const bits = repeatDuration.toString(2).padStart(7, "0");
+      let cursor = d;
+      for (let i = 0; i < 7; i++) {
+        cursor = new Date(cursor);
+        cursor.setUTCDate(cursor.getUTCDate() + 1);
+        const dayIndex = (cursor.getUTCDay() + 6) % 7; // Mon=0..Sun=6
+        if (bits[dayIndex] === "1") {
+          return cursor.toISOString().slice(0, 10);
+        }
+      }
+      return null;
+    }
+    default:
+      return null;
+  }
+}
+
 export function makeConfig(overrides = {}) {
   return {
     host: "127.0.0.1",
@@ -206,12 +247,25 @@ export class FakeApi {
       case "longTerm":
         task.longTerm = String(value) === "true";
         break;
-      case "complete":
+      case "complete": {
+        const wasComplete = task.complete;
         task.complete = String(value) === "true";
         if (task.complete) {
           task.assignedTime = "09:15:00";
+          // Mirror the real backend: completing a recurring task creates the
+          // next occurrence and returns it as nextTask (or a warning why not).
+          if (!wasComplete) {
+            const next = this._maybeCreateNextOccurrence(task);
+            if (next) {
+              return { status: "Updated", item: { ...task }, nextTask: { ...next } };
+            }
+            if (task.repeatType != null && task.repeatType !== "NONE") {
+              return { status: "Updated", item: { ...task }, warning: this._lastRepeatWarning ?? null };
+            }
+          }
         }
         break;
+      }
       case "inProgress":
         task.inProgress = String(value) === "true";
         break;
@@ -222,6 +276,56 @@ export class FakeApi {
         return { status: "Error: Invalid field", item: null };
     }
     return { status: "Updated", item: { ...task } };
+  }
+
+  _maybeCreateNextOccurrence(source) {
+    this._lastRepeatWarning = null;
+    const pattern = source.repeatType;
+    if (pattern == null || pattern === "NONE") return null;
+    const duration = source.repeatDuration;
+    if (!Number.isInteger(duration) || duration <= 0) {
+      this._lastRepeatWarning = "invalid_repeat_rule";
+      return null;
+    }
+    const nextDate = nextOccurrenceDate(source.taskDate, pattern, duration);
+    if (!nextDate) {
+      this._lastRepeatWarning = "invalid_repeat_rule";
+      return null;
+    }
+    const duplicate = this.tasks.find(
+      (t) =>
+        t.id !== source.id &&
+        t.taskDate === nextDate &&
+        String(t.name).trim().toLowerCase() === String(source.name).trim().toLowerCase() &&
+        String(t.category ?? "None").trim().toLowerCase() ===
+          String(source.category ?? "None").trim().toLowerCase()
+    );
+    if (duplicate) {
+      this._lastRepeatWarning = "next_instance_exists";
+      return null;
+    }
+    if (this.failNext === "add") {
+      this.failNext = null;
+      this._lastRepeatWarning = "next_instance_create_failed";
+      return null;
+    }
+    const item = {
+      id: this._nextId++,
+      taskDate: nextDate,
+      dayOrder: this.tasks.filter((t) => t.taskDate === nextDate).length + 1,
+      category: source.category,
+      name: source.name,
+      complete: false,
+      repeatType: source.repeatType,
+      repeatDuration: source.repeatDuration,
+      priority: source.priority ?? 0,
+      inProgress: false,
+      longTerm: source.longTerm ?? false,
+      assignedTime: null,
+      timeTaken: null,
+    };
+    this.tasks.push(item);
+    return item;
   }
 
   async push(id, reason, date) {

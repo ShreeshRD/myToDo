@@ -7,7 +7,7 @@ HTTP MCP server that lets local AI clients read and manage tasks through the Spr
 - Exposes 10 MCP tools over stateless Streamable HTTP at `http://127.0.0.1:8765/mcp`.
 - Reads today/week tasks, counts, and single-task lookups.
 - Creates, updates, completes, uncompletes, and deletes tasks.
-- Continues recurring chains when a recurring task is completed.
+- Continues recurring chains when a recurring task is completed (backend creates the next instance).
 - Never touches SQLite; every call goes through the REST API at `TODO_API_URL`.
 
 ## Prerequisites
@@ -76,7 +76,7 @@ console.log(JSON.parse(result.content[0].text));
 | `find_task` | One task by filters; use `exact_name` for recurring names. |
 | `create_task` | Create a non-recurring task on today or a future date. |
 | `update_task` | Update name/date/project/priority/long_term by id. |
-| `complete_task` | Mark complete; creates the next recurring instance when applicable. |
+| `complete_task` | Mark complete; returns the backend-created next recurring instance when applicable. |
 | `uncomplete_task` | Mark incomplete and clear completion time. |
 | `delete_task` | Delete by id; requires exact current name as a safety check. |
 | `list_projects` | Project names (backend `category`) with task counts. |

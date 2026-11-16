@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import dayjs from 'dayjs';
-import { getTasks, updateField, deleteTask, addTask } from '../service';
+import { getTasks, updateField, deleteTask } from '../service';
 import { startInProgressSession, endInProgressSession, clearInProgressSession } from '../lib/inProgressTimer';
 
 const useTaskManagement = () => {
@@ -251,22 +251,23 @@ const useTaskManagement = () => {
         }
         return updateField(id, field, value)
             .then((result) => {
-                const taskItem = result?.item ?? result;
                 // Persist inProgress clear alongside complete so refetch matches UI
                 if (field === "complete" && value === true) {
                     updateField(id, "inProgress", false).catch((error) => {
                         console.error(`Error clearing inProgress for task ${id}:`, error);
                     });
+                    // Backend generates the next recurrence occurrence (or returns
+                    // null when the rule is invalid / a duplicate already exists).
+                    const nextTask = result?.nextTask ?? null;
+                    if (nextTask) {
+                        addToFrontend(nextTask);
+                    }
                 }
-                // Handle repeat tasks after backend confirms (for complete field)
-                if (field === "complete" && value === true && taskItem && taskItem.repeatType !== "NONE") {
-                    addNextRepeat(taskItem);
-                }
-                return { warning: result?.warning || null };
+                return { warning: result?.warning || null, nextTask: result?.nextTask || null };
             })
             .catch((error) => {
                 console.error(`Error updating task with id ${id}:`, error);
-                return { warning: null };
+                return { warning: null, nextTask: null };
             });
     };
 
@@ -277,60 +278,6 @@ const useTaskManagement = () => {
             console.error(`Error updating task with id ${id}:`, error);
         }
     }
-
-    const addNextRepeat = async (task) => {
-        const { taskDate, repeatType, repeatDuration } = task;
-        let date = dayjs(taskDate);
-
-        switch (repeatType) {
-            case "EVERY_X_DAYS":
-                date = date.add(repeatDuration, 'day');
-                break;
-            case "EVERY_X_WEEKS":
-                date = date.add(repeatDuration, 'week');
-                break;
-            case "EVERY_X_MONTHS":
-                date = date.add(repeatDuration, 'month');
-                break;
-            case "SPECIFIC_WEEKDAYS":
-                const binaryString = repeatDuration.toString(2).padStart(7, '0');
-                let nextDayFound = false;
-                while (!nextDayFound) {
-                    date = date.add(1, 'day');
-                    const dayIndex = (date.day() + 6) % 7;
-                    if (binaryString[dayIndex] === '1') {
-                        nextDayFound = true;
-                    }
-                }
-                break;
-            default:
-                break;
-        }
-
-        const newDate = date.format('YYYY-MM-DD');
-
-        // Check if task already exists in the future date
-        const existingTasks = taskDays[newDate] || [];
-        const isDuplicate = existingTasks.some(t => {
-            return t.name === task.name &&
-                t.category === task.category &&
-                t.id.toString() !== task.id.toString();
-        });
-
-        if (isDuplicate) {
-            console.log("Recurring task already exists for date:", newDate);
-            return;
-        }
-
-        task.taskDate = newDate;
-
-        try {
-            const newTask = await addTask(task.name, newDate, task.category, task.priority, repeatType, repeatDuration, task.longTerm);
-            addToFrontend(newTask);
-        } catch (error) {
-            console.error('Error adding task:', error);
-        }
-    };
 
     const removeTask = async (taskId, date, update = false) => {
         const targetId = taskId ? taskId.toString() : '';
@@ -500,8 +447,7 @@ const useTaskManagement = () => {
         updateTask,
         removeTask,
         moveTask,
-        updateBackend,
-        addNextRepeat
+        updateBackend
     };
 };
 

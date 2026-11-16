@@ -17,6 +17,8 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -120,6 +122,109 @@ class TodoServiceTest {
         assertNotNull(sampleItem.getCompletedAt());
         // Completion must not overwrite the scheduled time.
         assertEquals(java.time.LocalTime.of(9, 0), sampleItem.getAssignedTime());
+        // Non-recurring task: no next occurrence.
+        assertNull(result.getNextTask());
+    }
+
+    @Test
+    void testCompleteRecurringTaskCreatesNextOccurrence() {
+        // Arrange: daily task on 2026-10-28
+        sampleItem.setTaskDate(LocalDate.of(2026, 10, 28));
+        sampleItem.setRepeatType(TodoItem.RepeatPattern.EVERY_X_DAYS);
+        sampleItem.setRepeatDuration(1);
+        sampleItem.setPriority(2);
+        sampleItem.setLongTerm(true);
+        when(repository.findById(1L)).thenReturn(Optional.of(sampleItem));
+        when(repository.findByTaskDate(LocalDate.of(2026, 10, 29))).thenReturn(new ArrayList<>());
+        when(repository.save(any(TodoItem.class))).thenAnswer(invocation -> {
+            TodoItem item = invocation.getArgument(0);
+            if (item.getId() == null) {
+                item.setId(2L);
+            }
+            return item;
+        });
+
+        // Act
+        TodoOperationResult result = todoService.updateTaskField(1L, "complete", "true");
+
+        // Assert
+        assertTrue(sampleItem.isComplete());
+        TodoItem next = result.getNextTask();
+        assertNotNull(next);
+        assertEquals(LocalDate.of(2026, 10, 29), next.getTaskDate());
+        assertEquals("Test Task", next.getName());
+        assertEquals("Work", next.getCategory());
+        assertEquals(2, next.getPriority());
+        assertTrue(next.isLongTerm());
+        assertEquals(TodoItem.RepeatPattern.EVERY_X_DAYS, next.getRepeatType());
+        assertEquals(1, next.getRepeatDuration());
+        assertFalse(next.isComplete());
+        verify(taskEventService).record(eq(2L), eq("CREATED"), contains("Next occurrence"));
+    }
+
+    @Test
+    void testCompleteRecurringTaskSkipsDuplicate() {
+        // Arrange: next day already has the same task
+        sampleItem.setTaskDate(LocalDate.of(2026, 10, 28));
+        sampleItem.setRepeatType(TodoItem.RepeatPattern.EVERY_X_DAYS);
+        sampleItem.setRepeatDuration(1);
+        TodoItem existingNext = new TodoItem(LocalDate.of(2026, 10, 29), 1, "Work", "Test Task");
+        existingNext.setId(9L);
+        when(repository.findById(1L)).thenReturn(Optional.of(sampleItem));
+        when(repository.findByTaskDate(LocalDate.of(2026, 10, 29))).thenReturn(List.of(existingNext));
+        when(repository.save(any(TodoItem.class))).thenReturn(sampleItem);
+
+        // Act
+        TodoOperationResult result = todoService.updateTaskField(1L, "complete", "true");
+
+        // Assert
+        assertTrue(sampleItem.isComplete());
+        assertNull(result.getNextTask());
+        // Only the original was saved (no second save for a clone)
+        verify(repository, times(1)).save(any(TodoItem.class));
+    }
+
+    @Test
+    void testPushDoesNotGenerateRecurrence() {
+        // Arrange: push path completes the original without going through updateTaskField
+        LocalDate destination = LocalDate.now().plusDays(3);
+        sampleItem.setTaskDate(LocalDate.now());
+        sampleItem.setRepeatType(TodoItem.RepeatPattern.EVERY_X_DAYS);
+        sampleItem.setRepeatDuration(1);
+        when(repository.findById(1L)).thenReturn(Optional.of(sampleItem));
+        when(repository.findByTaskDate(any(LocalDate.class))).thenReturn(new ArrayList<>());
+        when(repository.save(any(TodoItem.class))).thenAnswer(invocation -> {
+            TodoItem item = invocation.getArgument(0);
+            if (item.getId() == null) {
+                item.setId(3L);
+            }
+            return item;
+        });
+
+        // Act
+        PushResult result = todoService.pushTask(1L, "Busy", destination);
+
+        // Assert: clone exists, but no separate recurrence occurrence
+        assertNotNull(result.getClone());
+        assertEquals(destination, result.getClone().getTaskDate());
+        // Only original + clone saved — no third recurrence row
+        verify(repository, times(2)).save(any(TodoItem.class));
+    }
+
+    @Test
+    void testNextOccurrenceDatePatterns() {
+        assertEquals(LocalDate.of(2026, 10, 29),
+                TodoService.nextOccurrenceDate(LocalDate.of(2026, 10, 28), TodoItem.RepeatPattern.EVERY_X_DAYS, 1));
+        assertEquals(LocalDate.of(2026, 11, 4),
+                TodoService.nextOccurrenceDate(LocalDate.of(2026, 10, 28), TodoItem.RepeatPattern.EVERY_X_WEEKS, 1));
+        // Month-end clamps: Jan 31 + 1 month → Feb 28 (2026 is not a leap year)
+        assertEquals(LocalDate.of(2026, 2, 28),
+                TodoService.nextOccurrenceDate(LocalDate.of(2026, 1, 31), TodoItem.RepeatPattern.EVERY_X_MONTHS, 1));
+        // Mask 84 = Mon+Wed+Fri (bits 6+4+2); from Wed 2026-10-28 next is Fri 2026-10-30
+        assertEquals(LocalDate.of(2026, 10, 30),
+                TodoService.nextOccurrenceDate(LocalDate.of(2026, 10, 28), TodoItem.RepeatPattern.SPECIFIC_WEEKDAYS, 84));
+        assertNull(TodoService.nextOccurrenceDate(LocalDate.of(2026, 10, 28), TodoItem.RepeatPattern.NONE, 1));
+        assertNull(TodoService.nextOccurrenceDate(LocalDate.of(2026, 10, 28), TodoItem.RepeatPattern.EVERY_X_DAYS, 0));
     }
 
     @Test
