@@ -10,6 +10,7 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { BsLayoutSidebar } from "react-icons/bs";
 import { CiHashtag } from "react-icons/ci";
 import { FaRegStickyNote } from "react-icons/fa";
+import { FaBullseye } from "react-icons/fa";
 import { FaSearch } from "react-icons/fa";
 import { IoIosArrowDown } from "react-icons/io";
 import '../styles/sidebar.scss'
@@ -98,6 +99,10 @@ function Sidebar({
           <li onClick={() => setViewPage('Calendar')} className={viewPage === 'Calendar' ? 'active' : ''}>
             <FaRegCalendarAlt />
             <span> Calendar</span>
+          </li>
+          <li onClick={() => setViewPage('Goals')} className={viewPage === 'Goals' ? 'active' : ''}>
+            <FaBullseye />
+            <span> Goals</span>
           </li>
           <li onClick={() => setViewPage('Search')} className={viewPage === 'Search' ? 'active' : ''}>
             <FaSearch />

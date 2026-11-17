@@ -144,20 +144,22 @@ export const pushTask = async (id, reason, date) => {
  * @returns {Promise<Object>} Created task item
  * @throws {Error} If the creation fails
  */
-export const addTask = async (task, tdate, category = "None", priority = 0, repeatType = "NONE", repeatDuration = 0, longTerm = false) => {
+export const addTask = async (task, tdate, category = "None", priority = 0, repeatType = "NONE", repeatDuration = 0, longTerm = false, goalId = null) => {
 	return globalMutationQueue.enqueue(async () => {
 		try {
-			const response = await axios.post(`${API_URL}/add`, null, {
-				params: {
-					name: task,
-					category: category,
-					taskDate: tdate,
-					priority: priority,
-					repeatType: repeatType,
-					repeatDuration: repeatDuration,
-					longTerm: longTerm,
-				},
-			});
+			const params = {
+				name: task,
+				category: category,
+				taskDate: tdate,
+				priority: priority,
+				repeatType: repeatType,
+				repeatDuration: repeatDuration,
+				longTerm: longTerm,
+			};
+			if (goalId != null) {
+				params.goalId = goalId;
+			}
+			const response = await axios.post(`${API_URL}/add`, null, { params });
 			return response.data.item;
 		} catch (error) {
 			console.error('Error adding task:', error);
@@ -304,6 +306,145 @@ export const deleteSubtask = async (id) => {
 			throw error;
 		}
 	});
+};
+
+/**
+ * Deletes a goal (linked tasks are unlinked, longTerm kept)
+ * @param {number} id - Goal ID
+ * @returns {Promise<void>}
+ * @throws {Error} If the request fails
+ */
+export const deleteGoal = async (id) => {
+	return globalMutationQueue.enqueue(async () => {
+		try {
+			await axios.delete(`${API_URL}/goals/${id}`);
+		} catch (error) {
+			console.error(`Error deleting goal ${id}:`, error);
+			throw error;
+		}
+	});
+};
+
+/**
+ * Fetches all goals with live progress
+ * @returns {Promise<Array>} List of GoalView objects
+ * @throws {Error} If the request fails
+ */
+export const getGoals = async () => {
+	try {
+		const response = await axios.get(`${API_URL}/goals`);
+		return response.data;
+	} catch (error) {
+		console.error('Error fetching goals:', error);
+		throw error;
+	}
+};
+
+/**
+ * Fetches a single goal with live progress
+ * @param {number} id - Goal ID
+ * @returns {Promise<Object>} GoalView
+ * @throws {Error} If the request fails
+ */
+export const getGoal = async (id) => {
+	try {
+		const response = await axios.get(`${API_URL}/goals/${id}`);
+		return response.data;
+	} catch (error) {
+		console.error(`Error fetching goal ${id}:`, error);
+		throw error;
+	}
+};
+
+/**
+ * Creates a goal
+ * @param {string} title - Goal title
+ * @param {string} [kind] - GOAL | SKILL
+ * @param {string} [mode] - METRIC | ROADMAP | REPS
+ * @returns {Promise<Object>} Created GoalView
+ * @throws {Error} If the request fails
+ */
+export const createGoal = async (title, kind = "GOAL", mode = "METRIC") => {
+	return globalMutationQueue.enqueue(async () => {
+		try {
+			const response = await axios.post(`${API_URL}/goals`, { title, kind, mode });
+			return response.data;
+		} catch (error) {
+			console.error('Error creating goal:', error);
+			throw error;
+		}
+	});
+};
+
+/**
+ * Updates goal fields (title, mode, metric*, repsTarget)
+ * @param {number} id - Goal ID
+ * @param {Object} fields - Field name to value map
+ * @returns {Promise<Object>} Updated GoalView
+ * @throws {Error} If the request fails
+ */
+export const updateGoal = async (id, fields) => {
+	return globalMutationQueue.enqueue(async () => {
+		try {
+			const response = await axios.patch(`${API_URL}/goals/${id}`, fields);
+			return response.data;
+		} catch (error) {
+			console.error(`Error updating goal ${id}:`, error);
+			throw error;
+		}
+	});
+};
+
+/**
+ * Manually completes (archives) a goal
+ * @param {number} id - Goal ID
+ * @returns {Promise<Object>} GoalView
+ * @throws {Error} If the request fails
+ */
+export const completeGoal = async (id) => {
+	return globalMutationQueue.enqueue(async () => {
+		try {
+			const response = await axios.post(`${API_URL}/goals/${id}/complete`);
+			return response.data;
+		} catch (error) {
+			console.error(`Error completing goal ${id}:`, error);
+			throw error;
+		}
+	});
+};
+
+/**
+ * Reopens a completed goal
+ * @param {number} id - Goal ID
+ * @returns {Promise<Object>} GoalView
+ * @throws {Error} If the request fails
+ */
+export const reopenGoal = async (id) => {
+	return globalMutationQueue.enqueue(async () => {
+		try {
+			const response = await axios.post(`${API_URL}/goals/${id}/reopen`);
+			return response.data;
+		} catch (error) {
+			console.error(`Error reopening goal ${id}:`, error);
+			throw error;
+		}
+	});
+};
+
+/**
+ * Fetches tasks linked to a goal
+ * @param {number} id - Goal ID
+ * @returns {Promise<Array>} List of TodoItem
+ * @throws {Error} If the request fails
+ */
+export const getGoalTasks = async (id) => {
+	try {
+		const response = await axios.get(`${API_URL}/goals/${id}/tasks`);
+		return response.data;
+	} catch (error) {
+		console.error(`Error fetching tasks for goal ${id}:`, error);
+		throw error;
+	}
 };
 
 /**

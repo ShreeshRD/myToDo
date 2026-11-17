@@ -11,6 +11,7 @@ import { BsArrowRepeat } from "react-icons/bs";
 import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
 import '../styles/popup.scss'
 import { useTasks } from "../contexts/TaskContext";
+import { getGoals } from "../service";
 import {
   PRIORITY_MAP,
   REPEAT_TYPE_MAP,
@@ -25,6 +26,8 @@ import {
   getRepeatTypeValue,
   getRepeatDuration
 } from '../lib/taskHelpers';
+
+const NO_GOAL = 'No goal';
 
 function CreateTaskPopup({ projects, theme, date, task }) {
   const { onPopupClose } = useTasks();
@@ -56,6 +59,25 @@ function CreateTaskPopup({ projects, theme, date, task }) {
   const [error, setError] = useState('');
   const [days, setDays] = useState([...WEEKDAYS]);
   const [order, setOrder] = useState(0);
+  const [goals, setGoals] = useState([]);
+  const [selectedGoalId, setSelectedGoalId] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      getGoals()
+        .then((rows) => {
+          if (!cancelled) {
+            setGoals((Array.isArray(rows) ? rows : []).filter((g) => g.status === 'ACTIVE'));
+          }
+        })
+        .catch((err) => console.error('getGoals failed:', err));
+    }, 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, []);
 
   useEffect(() => {
     if (task) {
@@ -71,8 +93,15 @@ function CreateTaskPopup({ projects, theme, date, task }) {
       setRepeatDuration(task.repeatType === "SPECIFIC_WEEKDAYS" ? '' : (task.repeatDuration === 0 ? '' : task.repeatDuration));
       setOrder(task.dayOrder);
       setAssignedTime(task.assignedTime && task.assignedTime !== "null" ? dayjs(`${task.taskDate}T${task.assignedTime}`) : null);
+      setSelectedGoalId(task.goalId ?? null);
     }
   }, [task]);
+
+  const goalTitleFor = (id) => {
+    if (id == null) return NO_GOAL;
+    const match = goals.find((g) => g.id === id || String(g.id) === String(id));
+    return match ? match.title : NO_GOAL;
+  };
 
   const createTask = async () => {
     const formattedDate = selectedDate.format('YYYY-MM-DD');
@@ -83,9 +112,10 @@ function CreateTaskPopup({ projects, theme, date, task }) {
     const timeToPass = assignedTime ? assignedTime.format('HH:mm:ss') : null;
     const inProgress = task?.inProgress || false;
     const timeTaken = task?.timeTaken || 0;
-    const longTerm = task?.longTerm || false;
+    // Linking a goal marks the task long-term (backend enforces this too).
+    const longTerm = selectedGoalId != null ? true : (task?.longTerm || false);
 
-    onPopupClose(taskID, taskName, formattedDate, projectToPass, priorityValue, repeatTypeValue, repeatDurationInt, order, timeToPass, inProgress, timeTaken, longTerm);
+    onPopupClose(taskID, taskName, formattedDate, projectToPass, priorityValue, repeatTypeValue, repeatDurationInt, order, timeToPass, inProgress, timeTaken, longTerm, selectedGoalId);
     setTaskName('');
     setSelectedDate(dayjs());
   };
@@ -126,6 +156,16 @@ function CreateTaskPopup({ projects, theme, date, task }) {
     const selectedValue = event.target.textContent;
     // If "None" is selected, reset to "Project" placeholder
     setSelectedProject(selectedValue === 'None' ? 'Project' : selectedValue);
+  };
+
+  const handleGoalSelect = (event) => {
+    const selectedValue = event.target.textContent;
+    if (selectedValue === NO_GOAL) {
+      setSelectedGoalId(null);
+      return;
+    }
+    const match = goals.find((g) => g.title === selectedValue);
+    setSelectedGoalId(match ? match.id : null);
   };
 
   const handlePrioritySelect = (event) => {
@@ -227,6 +267,11 @@ function CreateTaskPopup({ projects, theme, date, task }) {
         </div>
         <div className="task-options">
           <Dropdown placeholder={selectedProject} items={['None', ...projects]} handler={handleProjectSelect} />
+          <Dropdown
+            placeholder={goalTitleFor(selectedGoalId)}
+            items={[NO_GOAL, ...goals.map((g) => g.title)]}
+            handler={handleGoalSelect}
+          />
           <div className="split-dropdowns">
             <Dropdown placeholder={getPriorityIcon()} items={PRIORITIES} handler={handlePrioritySelect} />
             <Dropdown placeholder={getRepeatIcon()} items={REPEAT_OPTIONS} handler={handleRepeatTypeSelect} />

@@ -33,6 +33,9 @@ class TodoServiceTest {
     @Mock
     private SubtaskService subtaskService;
 
+    @Mock
+    private GoalRepository goalRepository;
+
     @InjectMocks
     private TodoService todoService;
 
@@ -80,7 +83,7 @@ class TodoServiceTest {
 
         // Act
         TodoOperationResult result = todoService.addTask("Work", "New Task", LocalDate.now(),
-                TodoItem.RepeatPattern.NONE, 0, 1, false);
+                TodoItem.RepeatPattern.NONE, 0, 1, false, null);
 
         // Assert
         assertNotNull(result);

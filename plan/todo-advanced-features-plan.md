@@ -122,7 +122,7 @@ Files: `TodoService.java` completion path, `frontend-next/hooks/useTaskManagemen
 - Preserve push suppression.
 Verify: all four repeat patterns work with the frontend closed; no duplicates; MCP parity.
 
-### [ ] Step 7 — Goals core (metric + reps)
+### [x] Step 7 — Goals core (metric + reps)
 Files: new `Goal` entity/service/controller; `TodoItem.goalId`; `Sidebar.js`, `MainView.js`, new `GoalsView`/`GoalDetail`; `TodayView.js`; `CreateTaskPopup.js`.
 - Goal CRUD, mode switching, archive/reopen.
 - Goal selector in the task popup; selecting a goal sets `longTerm = true`.

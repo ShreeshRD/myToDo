@@ -2,17 +2,20 @@
 
 import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { useTasks } from "../contexts/TaskContext";
 import dayjs from 'dayjs';
 import { RiCheckboxBlankCircleLine, RiCheckboxCircleFill } from "react-icons/ri";
 import DeleteIcon from '@mui/icons-material/Delete';
 import CustomCheckbox from "./CustomCheckbox";
 import CustomContextMenu from "./CustomContextMenu";
+import { useTasks } from "../contexts/TaskContext";
 import { useUI } from "../contexts/UIContext";
 import { useStopwatch } from "../contexts/StopwatchContext";
+import { getGoals } from "../service";
+import { goalProgressLabel } from "./GoalsView";
 import { formatTimeTaken } from "../lib/dateHelpers";
 import '../styles/todoitem.css';
 import '../styles/todayview.scss';
+import '../styles/GoalsView.scss';
 
 // Generate time slots every 90 minutes from 00:00 to 00:00 (next day)
 const generateTimeSlots = () => {
@@ -33,7 +36,7 @@ const TIME_SLOTS = generateTimeSlots();
 
 function TodayView() {
     const { taskDays, updateTask, removeTask, callPopup, openDetail, openPush, subtaskCounts } = useTasks();
-    const { theme } = useUI();
+    const { theme, openGoal } = useUI();
     const { toggleStopwatch, stopStopwatch } = useStopwatch();
     const [todayTasks, setTodayTasks] = useState([]);
     const [assignedTasks, setAssignedTasks] = useState({});
@@ -41,9 +44,45 @@ function TodayView() {
     const [currentTime, setCurrentTime] = useState(dayjs());
     const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, task: null });
     const [warnTask, setWarnTask] = useState(null);
+    const [goals, setGoals] = useState([]);
     const warnTimer = React.useRef(null);
 
     useEffect(() => () => clearTimeout(warnTimer.current), []);
+
+    useEffect(() => {
+        let cancelled = false;
+        const timer = setTimeout(() => {
+            getGoals()
+                .then((rows) => {
+                    if (!cancelled) setGoals(Array.isArray(rows) ? rows : []);
+                })
+                .catch((err) => console.error('getGoals failed:', err));
+        }, 0);
+        return () => {
+            cancelled = true;
+            clearTimeout(timer);
+        };
+    }, []);
+
+    // Slim strip: only goals with at least one task scheduled today.
+    const todayGoalStrip = (() => {
+        const today = dayjs().format('YYYY-MM-DD');
+        const scheduledToday = taskDays[today] || [];
+        if (scheduledToday.length === 0) return [];
+        const byGoal = new Map();
+        scheduledToday.forEach((task) => {
+            if (task.goalId == null) return;
+            const key = String(task.goalId);
+            byGoal.set(key, (byGoal.get(key) || 0) + 1);
+        });
+        if (byGoal.size === 0) return [];
+        return goals
+            .filter((g) => g.status === 'ACTIVE' && byGoal.has(String(g.id)))
+            .map((g) => ({
+                goal: g,
+                taskCount: byGoal.get(String(g.id)),
+            }));
+    })();
 
     // Inline row notice (open checklist items, kept deferred copy, …).
     const showRowWarning = (taskId, message) => {
@@ -417,101 +456,122 @@ function TodayView() {
 
     return (
         <div className={`today-view ${theme}`}>
-            <DragDropContext onDragEnd={onDragEnd}>
-                {/* Tasks Column */}
-                <div className="tasks-column">
+            {todayGoalStrip.length > 0 && (
+                <div className="today-goal-strip" aria-label="Goals with work today">
+                    {todayGoalStrip.map(({ goal, taskCount }) => (
+                        <button
+                            key={goal.id}
+                            type="button"
+                            className="goal-strip-chip"
+                            onClick={() => openGoal(goal.id)}
+                            title={`Open ${goal.title}`}
+                        >
+                            <span className="goal-strip-name">{goal.title}</span>
+                            <span className="goal-strip-progress">{goalProgressLabel(goal)}</span>
+                            <span className="goal-strip-count">
+                                {taskCount} task{taskCount === 1 ? '' : 's'}
+                            </span>
+                        </button>
+                    ))}
+                </div>
+            )}
+            <div className="today-main">
+                <DragDropContext onDragEnd={onDragEnd}>
+                    {/* Tasks Column */}
+                    <div className="tasks-column">
 
-                    {/* Overdue Section */}
-                    {overdueTasks.length > 0 && (
-                        <div className="overdue-section">
-                            <h3>Overdue</h3>
-                            <Droppable droppableId="overdue">
+                        {/* Overdue Section */}
+                        {overdueTasks.length > 0 && (
+                            <div className="overdue-section">
+                                <h3>Overdue</h3>
+                                <Droppable droppableId="overdue">
+                                    {(provided) => (
+                                        <div
+                                            ref={provided.innerRef}
+                                            {...provided.droppableProps}
+                                            className="overdue-list"
+                                        >
+                                            {overdueTasks.map((task, index) => renderTask(task, index))}
+                                            {provided.placeholder}
+                                        </div>
+                                    )}
+                                </Droppable>
+                            </div>
+                        )}
+
+                        {/* Unassigned Tasks */}
+                        <div className="unassigned-section">
+                            <h3>Tasks</h3>
+                            <Droppable droppableId="unassigned">
                                 {(provided) => (
                                     <div
                                         ref={provided.innerRef}
                                         {...provided.droppableProps}
-                                        className="overdue-list"
+                                        className="unassigned-list"
                                     >
-                                        {overdueTasks.map((task, index) => renderTask(task, index))}
+                                        {todayTasks.map((task, index) => renderTask(task, index))}
                                         {provided.placeholder}
                                     </div>
                                 )}
                             </Droppable>
                         </div>
-                    )}
-
-                    {/* Unassigned Tasks */}
-                    <div className="unassigned-section">
-                        <h3>Tasks</h3>
-                        <Droppable droppableId="unassigned">
-                            {(provided) => (
-                                <div
-                                    ref={provided.innerRef}
-                                    {...provided.droppableProps}
-                                    className="unassigned-list"
-                                >
-                                    {todayTasks.map((task, index) => renderTask(task, index))}
-                                    {provided.placeholder}
-                                </div>
-                            )}
-                        </Droppable>
                     </div>
-                </div>
 
-                {/* Schedule Column */}
-                <div className="schedule-column">
-                    <h3>Schedule</h3>
-                    <div className="slots-container">
-                        {TIME_SLOTS.map((slot) => {
-                            const isPast = isSlotInPast(slot);
-                            const lineStyle = getCurrentTimeLineStyle(slot);
-                            const hasTasks = assignedTasks[slot] && assignedTasks[slot].length > 0;
+                    {/* Schedule Column */}
+                    <div className="schedule-column">
+                        <h3>Schedule</h3>
+                        <div className="slots-container">
+                            {TIME_SLOTS.map((slot) => {
+                                const isPast = isSlotInPast(slot);
+                                const lineStyle = getCurrentTimeLineStyle(slot);
+                                const hasTasks = assignedTasks[slot] && assignedTasks[slot].length > 0;
 
-                            // Hide past slots if they have no tasks
-                            if (isPast && !hasTasks) {
-                                return null;
-                            }
+                                // Hide past slots if they have no tasks
+                                if (isPast && !hasTasks) {
+                                    return null;
+                                }
 
-                            return (
-                                <div key={slot} className="time-slot">
-                                    <div className="slot-label">
-                                        {slot}
-                                    </div>
-                                    <Droppable droppableId={slot}>
-                                        {(provided, snapshot) => (
-                                            <div
-                                                ref={provided.innerRef}
-                                                {...provided.droppableProps}
-                                                className={`slot-droppable${snapshot.isDraggingOver ? ' dragging-over' : ''}${isPast ? ' past' : ''}`}
-                                            >
-                                                {/* Dark Overlay for Past Slots or Dragging Over */}
-                                                {(isPast || snapshot.isDraggingOver) && !lineStyle && (
-                                                    <div className="dark-overlay" style={{ height: '100%' }} />
-                                                )}
+                                return (
+                                    <div key={slot} className="time-slot">
+                                        <div className="slot-label">
+                                            {slot}
+                                        </div>
+                                        <Droppable droppableId={slot}>
+                                            {(provided, snapshot) => (
+                                                <div
+                                                    ref={provided.innerRef}
+                                                    {...provided.droppableProps}
+                                                    className={`slot-droppable${snapshot.isDraggingOver ? ' dragging-over' : ''}${isPast ? ' past' : ''}`}
+                                                >
+                                                    {/* Dark Overlay for Past Slots or Dragging Over */}
+                                                    {(isPast || snapshot.isDraggingOver) && !lineStyle && (
+                                                        <div className="dark-overlay" style={{ height: '100%' }} />
+                                                    )}
 
-                                                {lineStyle && (
-                                                    <>
-                                                        {/* Darken area before line */}
-                                                        <div className="dark-overlay" style={{ height: lineStyle.top }} />
-                                                        {/* The Line */}
-                                                        <div className="current-time-line" style={{ top: lineStyle.top }} />
-                                                    </>
-                                                )}
+                                                    {lineStyle && (
+                                                        <>
+                                                            {/* Darken area before line */}
+                                                            <div className="dark-overlay" style={{ height: lineStyle.top }} />
+                                                            {/* The Line */}
+                                                            <div className="current-time-line" style={{ top: lineStyle.top }} />
+                                                        </>
+                                                    )}
 
-                                                {/* Content */}
-                                                <div className="slot-content">
-                                                    {assignedTasks[slot] && assignedTasks[slot].map((task, index) => renderTask(task, index))}
+                                                    {/* Content */}
+                                                    <div className="slot-content">
+                                                        {assignedTasks[slot] && assignedTasks[slot].map((task, index) => renderTask(task, index))}
+                                                    </div>
+                                                    {provided.placeholder}
                                                 </div>
-                                                {provided.placeholder}
-                                            </div>
-                                        )}
-                                    </Droppable>
-                                </div>
-                            );
-                        })}
+                                            )}
+                                        </Droppable>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
-                </div>
-            </DragDropContext>
+                </DragDropContext>
+            </div>
             <CustomContextMenu
                 visible={contextMenu.visible}
                 x={contextMenu.x}

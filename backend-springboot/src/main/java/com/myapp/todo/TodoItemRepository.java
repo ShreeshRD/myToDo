@@ -8,4 +8,8 @@ public interface TodoItemRepository extends CrudRepository<TodoItem, Long> {
     List<TodoItem> findByTaskDate(LocalDate taskDate);
 
     List<TodoItem> findByPushedFromId(Long pushedFromId);
+
+    List<TodoItem> findByGoalId(Long goalId);
+
+    long countByGoalIdAndCompleteTrue(Long goalId);
 }

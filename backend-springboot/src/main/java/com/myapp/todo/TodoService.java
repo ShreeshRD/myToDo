@@ -41,8 +41,11 @@ public class TodoService {
     @Autowired
     private SubtaskService subtaskService;
 
+    @Autowired
+    private GoalRepository goalRepository;
+
     private static final Set<String> TIMELINE_FIELDS = Set.of(
-            "taskName", "category", "taskDate", "priority", "repeatType", "repeatDuration", "description", "longTerm");
+            "taskName", "category", "taskDate", "priority", "repeatType", "repeatDuration", "description", "longTerm", "goalId");
 
     public GroupedTodoItems getGroupedByDate() {
         Iterable<TodoItem> todoList = repository.findAll();
@@ -72,7 +75,8 @@ public class TodoService {
     }
 
     public TodoOperationResult addTask(String category, String name, LocalDate taskDate,
-            TodoItem.RepeatPattern repeatType, Integer repeatDuration, Integer priority, Boolean longTerm) {
+            TodoItem.RepeatPattern repeatType, Integer repeatDuration, Integer priority, Boolean longTerm,
+            Long goalId) {
         // Calculate next order for the task date
         List<TodoItem> existingTasks = repository.findByTaskDate(taskDate);
         int nextOrder = existingTasks.size() + 1;
@@ -83,6 +87,14 @@ public class TodoService {
         item.setRepeatDuration(repeatDuration != null ? repeatDuration : 0);
         item.setPriority(priority != null ? priority : 0);
         item.setLongTerm(longTerm != null ? longTerm : false);
+        if (goalId != null) {
+            if (!goalRepository.existsById(goalId)) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Goal not found");
+            }
+            item.setGoalId(goalId);
+            // Linking a task to a goal marks it as growth work.
+            item.setLongTerm(true);
+        }
 
         TodoItem saved = repository.save(item);
         taskEventService.record(saved.getId(), "CREATED", "Task created");
@@ -134,6 +146,7 @@ public class TodoService {
         clone.setDescription(original.getDescription());
         clone.setRepeatType(original.getRepeatType());
         clone.setRepeatDuration(original.getRepeatDuration());
+        clone.setGoalId(original.getGoalId());
         clone.setChainRootId(original.getChainRootId());
         clone.setPushedFromId(original.getId());
         clone.setPushCount(nextPushCount);
@@ -307,6 +320,7 @@ public class TodoService {
         next.setDescription(source.getDescription());
         next.setRepeatType(source.getRepeatType());
         next.setRepeatDuration(source.getRepeatDuration());
+        next.setGoalId(source.getGoalId());
         try {
             TodoItem saved = repository.save(next);
             taskEventService.record(saved.getId(), "CREATED",
@@ -420,10 +434,35 @@ public class TodoService {
             case "description":
                 item.setDescription(value.equals("null") ? null : value);
                 break;
+            case "goalId":
+                applyGoalId(item, value);
+                break;
             default:
                 logger.warn("Invalid field update attempted: {}", field);
                 throw new IllegalArgumentException("Invalid field");
         }
+    }
+
+    /**
+     * Linking sets the goal and forces longTerm on. Unlinking clears only the
+     * goal — longTerm is never auto-cleared.
+     */
+    private void applyGoalId(TodoItem item, String value) {
+        if (value == null || value.isBlank() || "null".equals(value)) {
+            item.setGoalId(null);
+            return;
+        }
+        long goalId;
+        try {
+            goalId = Long.parseLong(value.trim());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid goalId");
+        }
+        if (!goalRepository.existsById(goalId)) {
+            throw new IllegalArgumentException("Goal not found");
+        }
+        item.setGoalId(goalId);
+        item.setLongTerm(true);
     }
 
     private void recordFieldEvent(Long taskId, String field, TodoItem item) {
@@ -464,6 +503,8 @@ public class TodoService {
                 return "repeat";
             case "longTerm":
                 return "long-term flag";
+            case "goalId":
+                return "goal";
             default:
                 return field;
         }

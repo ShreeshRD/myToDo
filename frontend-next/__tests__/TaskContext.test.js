@@ -100,6 +100,7 @@ describe('TaskContext', () => {
             repeatDuration: String(repeatDuration),
             dayOrder: String(taskOrder),
             assignedTime: 'null',
+            goalId: 'null',
         });
         expect(mockFetchTasks).toHaveBeenCalled();
     });

@@ -129,7 +129,7 @@ export const TaskProvider = ({ children }) => {
     // If the open detail task is deleted, findTaskById returns null and the
     // drawer hides itself; detailTaskId is cleared the next time a task is opened.
 
-    const onPopupClose = async (taskID = -1, taskName = '', dateChoice, projectChoice = "None", priority = 0, repeatType = "NONE", repeatDuration = 0, taskOrder = 0, assignedTime = null, inProgress = false, timeTaken = 0, longTerm = false) => {
+    const onPopupClose = async (taskID = -1, taskName = '', dateChoice, projectChoice = "None", priority = 0, repeatType = "NONE", repeatDuration = 0, taskOrder = 0, assignedTime = null, inProgress = false, timeTaken = 0, longTerm = false, goalId = null) => {
         const isEditing = taskID !== -1 && taskID !== "-1" && taskID !== null && taskID !== undefined;
 
         if (taskName.trim() !== '') {
@@ -146,6 +146,7 @@ export const TaskProvider = ({ children }) => {
                         repeatDuration: String(repeatDuration),
                         dayOrder: String(taskOrder),
                         assignedTime: assignedTime || "null",
+                        goalId: goalId == null ? "null" : String(goalId),
                     });
                     await taskManagement.fetchTasks();
                 } catch (err) {
@@ -155,7 +156,7 @@ export const TaskProvider = ({ children }) => {
             } else {
                 let task;
                 try {
-                    task = await addTask(taskName, dateChoice, projectChoice, priority, repeatType, repeatDuration, longTerm);
+                    task = await addTask(taskName, dateChoice, projectChoice, priority, repeatType, repeatDuration, longTerm, goalId);
                 } catch (err) {
                     console.error('addTask backend failed:', err);
                     return;

@@ -182,4 +182,7 @@ public class TodoItem {
     private Long chainRootId;
     private Long pushedFromId;
     private Integer pushCount;
+
+    /** Optional goal link; setting it also marks the task long-term. */
+    private Long goalId;
 }

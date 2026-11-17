@@ -10,6 +10,7 @@ import PushTaskPopup from "./PushTaskPopup";
 import Upcoming from "./Upcoming";
 import Search from "./Search";
 import TodayView from "./TodayView";
+import GoalsView from "./GoalsView";
 import Scratchpad from "./Scratchpad/index";
 import { useUI } from "../contexts/UIContext";
 import { useTasks } from "../contexts/TaskContext";
@@ -119,6 +120,8 @@ function MainView() {
 						</>
 					) : viewPage === 'Search' ? (
 						<Search />
+					) : viewPage === 'Goals' ? (
+						<GoalsView />
 					) : viewPage === 'Scratchpad' ? (
 						<Scratchpad theme={theme} />
 					) : "Something went wrong"
