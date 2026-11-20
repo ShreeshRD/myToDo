@@ -45,11 +45,14 @@ public class TodoService {
     private GoalRepository goalRepository;
 
     private static final Set<String> TIMELINE_FIELDS = Set.of(
-            "taskName", "category", "taskDate", "priority", "repeatType", "repeatDuration", "description", "longTerm", "goalId");
+            "taskName", "category", "taskDate", "priority", "repeatType", "repeatDuration", "description", "longTerm", "goalId", "roadmapOrder");
 
     public GroupedTodoItems getGroupedByDate() {
         Iterable<TodoItem> todoList = repository.findAll();
+        // Undated roadmap steps (taskDate == null) are backlog and must never
+        // appear in day lists.
         Map<String, List<TodoItem>> itemsByDate = StreamSupport.stream(todoList.spliterator(), false)
+                .filter(item -> item.getTaskDate() != null)
                 .collect(Collectors.groupingBy(
                         item -> item.getTaskDate().toString(),
                         Collectors.collectingAndThen(
@@ -136,6 +139,10 @@ public class TodoService {
         original.setComplete(true);
         original.setCompletedAt(LocalDateTime.now(COMPLETION_ZONE));
         original.setInProgress(false);
+        // Pushing a roadmap step must not tick it: the order moves to the clone
+        // so the step stays pending; the original is completed history only.
+        Integer roadmapOrder = original.getRoadmapOrder();
+        original.setRoadmapOrder(null);
         TodoItem savedOriginal = repository.save(original);
         taskEventService.record(id, "PUSHED", "Pushed: " + trimmedReason,
                 original.getTaskDate(), target);
@@ -150,6 +157,7 @@ public class TodoService {
         clone.setChainRootId(original.getChainRootId());
         clone.setPushedFromId(original.getId());
         clone.setPushCount(nextPushCount);
+        clone.setRoadmapOrder(roadmapOrder);
         TodoItem savedClone = repository.save(clone);
         taskEventService.record(savedClone.getId(), "CREATED", "Deferred copy of pushed task " + id);
 
@@ -183,6 +191,16 @@ public class TodoService {
         boolean kept = false;
         for (TodoItem clone : clones) {
             if (isUntouchedClone(clone)) {
+                // If the clone carried a roadmap step, put it back on the original
+                // so reopening does not silently drop the step from the roadmap.
+                if (clone.getRoadmapOrder() != null) {
+                    Optional<TodoItem> originalOpt = repository.findById(taskId);
+                    if (originalOpt.isPresent()) {
+                        TodoItem original = originalOpt.get();
+                        original.setRoadmapOrder(clone.getRoadmapOrder());
+                        repository.save(original);
+                    }
+                }
                 repository.deleteById(clone.getId());
                 taskEventService.deleteForTask(clone.getId());
                 subtaskService.deleteForTask(clone.getId());
@@ -320,6 +338,7 @@ public class TodoService {
         next.setDescription(source.getDescription());
         next.setRepeatType(source.getRepeatType());
         next.setRepeatDuration(source.getRepeatDuration());
+        // Recurrence is never a roadmap step — roadmapOrder stays with the step chain.
         next.setGoalId(source.getGoalId());
         try {
             TodoItem saved = repository.save(next);
@@ -398,7 +417,16 @@ public class TodoService {
                 item.setCategory(value);
                 break;
             case "taskDate":
-                item.setTaskDate(LocalDate.parse(value));
+                // "null" clears the date so a roadmap step returns to backlog.
+                if (value == null || value.isBlank() || "null".equals(value)) {
+                    item.setTaskDate(null);
+                } else {
+                    LocalDate newDate = LocalDate.parse(value);
+                    if (!newDate.equals(item.getTaskDate())) {
+                        item.setTaskDate(newDate);
+                        item.setDayOrder(nextOrderFor(newDate));
+                    }
+                }
                 break;
             case "dayOrder":
                 item.setDayOrder(Integer.parseInt(value));
@@ -437,6 +465,17 @@ public class TodoService {
             case "goalId":
                 applyGoalId(item, value);
                 break;
+            case "roadmapOrder":
+                if (value == null || value.isBlank() || "null".equals(value)) {
+                    item.setRoadmapOrder(null);
+                } else {
+                    try {
+                        item.setRoadmapOrder(Integer.parseInt(value.trim()));
+                    } catch (NumberFormatException e) {
+                        throw new IllegalArgumentException("Invalid roadmapOrder");
+                    }
+                }
+                break;
             default:
                 logger.warn("Invalid field update attempted: {}", field);
                 throw new IllegalArgumentException("Invalid field");
@@ -450,6 +489,8 @@ public class TodoService {
     private void applyGoalId(TodoItem item, String value) {
         if (value == null || value.isBlank() || "null".equals(value)) {
             item.setGoalId(null);
+            // An unlinked task is no longer part of any roadmap.
+            item.setRoadmapOrder(null);
             return;
         }
         long goalId;
@@ -505,6 +546,8 @@ public class TodoService {
                 return "long-term flag";
             case "goalId":
                 return "goal";
+            case "roadmapOrder":
+                return "roadmap position";
             default:
                 return field;
         }
@@ -576,8 +619,10 @@ public class TodoService {
                 .filter(item -> q == null || containsIgnoreCase(item.getName(), q))
                 .filter(item -> exactName == null || equalsIgnoreCase(item.getName(), exactName))
                 .filter(item -> project == null || equalsIgnoreCase(projectName(item), project))
-                .filter(item -> start == null || !item.getTaskDate().isBefore(start))
-                .filter(item -> end == null || !item.getTaskDate().isAfter(end))
+                // Undated backlog steps only match when no date window is requested.
+                .filter(item -> (start == null && end == null) || item.getTaskDate() != null)
+                .filter(item -> start == null || (item.getTaskDate() != null && !item.getTaskDate().isBefore(start)))
+                .filter(item -> end == null || (item.getTaskDate() != null && !item.getTaskDate().isAfter(end)))
                 .filter(item -> {
                     if ("open".equals(status)) {
                         return !item.isComplete();

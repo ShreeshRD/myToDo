@@ -29,6 +29,8 @@ public class GoalView {
     private long repsCount;
     private long linkedTotal;
     private long linkedCompleted;
+    private long roadmapTotal;
+    private long roadmapCompleted;
     private boolean targetMet;
 
     public static GoalView from(Goal goal) {

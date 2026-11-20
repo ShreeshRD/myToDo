@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useUI } from '../contexts/UIContext';
 import { useTasks } from '../contexts/TaskContext';
 import {
@@ -9,17 +10,113 @@ import {
 	completeGoal,
 	reopenGoal,
 	getGoalTasks,
+	addRoadmapStep,
+	reorderRoadmap,
+	updateTaskFields,
+	updateField,
+	deleteTask,
 } from '../service';
 import { goalProgressLabel, goalProgressPercent } from './GoalsView';
+import CustomCheckbox from './CustomCheckbox';
+import ConfirmDialog from './ConfirmDialog';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import { RiCheckboxCircleFill, RiCheckboxBlankCircleLine } from 'react-icons/ri';
 
 const MODE_OPTIONS = [
 	{ value: 'METRIC', label: 'Metric' },
+	{ value: 'ROADMAP', label: 'Roadmap' },
 	{ value: 'REPS', label: 'Reps' },
 ];
 
+/** Undated incomplete steps are a hidden draft outside ROADMAP mode. */
+function isHiddenDraftStep(goal, task) {
+	if (!goal || goal.mode === 'ROADMAP') return false;
+	return task.roadmapOrder != null && !task.taskDate && !task.complete;
+}
+
+function RoadmapStepRow({ step, index, isDone, onRename, onToggle, onSchedule, onDelete }) {
+	const [nameDraft, setNameDraft] = useState(step.name ?? '');
+	const [saving, setSaving] = useState(false);
+
+	useEffect(() => {
+		setNameDraft(step.name ?? '');
+	}, [step.name]);
+
+	const commitName = async () => {
+		const trimmed = nameDraft.trim();
+		if (!trimmed || trimmed === step.name) {
+			setNameDraft(step.name ?? '');
+			return;
+		}
+		setSaving(true);
+		try {
+			await onRename(step.id, trimmed);
+		} finally {
+			setSaving(false);
+		}
+	};
+
+	return (
+		<Draggable draggableId={step.id.toString()} index={index} isDragDisabled={isDone}>
+			{(provided, snapshot) => (
+				<li
+					ref={provided.innerRef}
+					{...provided.draggableProps}
+					className={`roadmap-step${step.complete ? ' done' : ''}${snapshot.isDragging ? ' dragging' : ''}`}
+				>
+					{/* Drag handle: the dots are the affordance, so the handle
+					    lives here instead of on the whole row (which would make
+					    the inputs feel grabby). */}
+					<span
+						className={`roadmap-step-handle${isDone ? ' disabled' : ''}`}
+						{...provided.dragHandleProps}
+						aria-hidden={!provided.dragHandleProps}
+					>
+						<DragIndicatorIcon />
+					</span>
+					<CustomCheckbox
+						checked={step.complete}
+						onChange={() => onToggle(step)}
+						disabled={isDone}
+						icon={<RiCheckboxBlankCircleLine className="checkbox_icon_unchecked" />}
+						checkedIcon={<RiCheckboxCircleFill className="checkbox_icon_checked" />}
+					/>
+					<input
+						type="text"
+						className="roadmap-step-name"
+						value={nameDraft}
+						onChange={(e) => setNameDraft(e.target.value)}
+						onBlur={commitName}
+						onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+						disabled={isDone || saving}
+						maxLength={255}
+					/>
+					<input
+						type="date"
+						className="roadmap-step-date"
+						value={step.taskDate ?? ''}
+						onChange={(e) => onSchedule(step.id, e.target.value || null)}
+						disabled={isDone}
+						title={step.taskDate ? 'Scheduled — clear to return to backlog' : 'Backlog — pick a date to schedule'}
+					/>
+					<button
+						type="button"
+						className="roadmap-step-delete"
+						title="Delete step"
+						onClick={() => onDelete(step)}
+						disabled={isDone}
+					>
+						×
+					</button>
+				</li>
+			)}
+		</Draggable>
+	);
+}
+
 function GoalDetail({ goalId, onBack, onChanged }) {
 	const { theme } = useUI();
-	const { openDetail } = useTasks();
+	const { openDetail, fetchTasks } = useTasks();
 	const [goal, setGoal] = useState(null);
 	const [tasks, setTasks] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -29,6 +126,9 @@ function GoalDetail({ goalId, onBack, onChanged }) {
 	const [metricUnit, setMetricUnit] = useState('');
 	const [repsTarget, setRepsTarget] = useState('');
 	const [error, setError] = useState('');
+	const [newStepName, setNewStepName] = useState('');
+	const [newStepDate, setNewStepDate] = useState('');
+	const [stepToDelete, setStepToDelete] = useState(null);
 
 	const refresh = useCallback(async () => {
 		try {
@@ -85,13 +185,17 @@ function GoalDetail({ goalId, onBack, onChanged }) {
 	const handleModeSwitch = async (mode) => {
 		if (!goal || goal.mode === mode) return;
 		await patch({ mode });
+		// Mode switch never deletes steps; reload so draft vs visible is correct.
+		await refresh();
 	};
 
 	const handleComplete = async () => {
 		try {
 			const updated = await completeGoal(goalId);
 			setGoal(updated);
+			await refresh();
 			onChanged?.();
+			fetchTasks?.();
 		} catch (err) {
 			console.error('completeGoal failed:', err);
 		}
@@ -101,9 +205,118 @@ function GoalDetail({ goalId, onBack, onChanged }) {
 		try {
 			const updated = await reopenGoal(goalId);
 			setGoal(updated);
+			await refresh();
 			onChanged?.();
 		} catch (err) {
 			console.error('reopenGoal failed:', err);
+		}
+	};
+
+	const roadmapSteps = React.useMemo(() => {
+		return tasks
+			.filter((t) => t.roadmapOrder != null)
+			.sort((a, b) => (a.roadmapOrder ?? 0) - (b.roadmapOrder ?? 0));
+	}, [tasks]);
+
+	const handleAddStep = async () => {
+		const name = newStepName.trim();
+		if (!name) return;
+		try {
+			await addRoadmapStep(goalId, name, newStepDate || null);
+			setNewStepName('');
+			setNewStepDate('');
+			setError('');
+			await refresh();
+			onChanged?.();
+			fetchTasks?.();
+		} catch (err) {
+			console.error('addRoadmapStep failed:', err);
+			setError('Could not add step');
+		}
+	};
+
+	const handleRenameStep = async (id, name) => {
+		try {
+			await updateTaskFields(id, { taskName: name });
+			setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, name } : t)));
+			onChanged?.();
+		} catch (err) {
+			console.error('rename step failed:', err);
+			setError('Could not rename step');
+			await refresh();
+		}
+	};
+
+	const handleToggleStep = async (step) => {
+		if (goal?.status === 'COMPLETED') return;
+		try {
+			const result = await updateField(step.id, 'complete', String(!step.complete));
+			if (result?.warning) {
+				setError(result.warning);
+			} else {
+				setError('');
+			}
+			await refresh();
+			onChanged?.();
+			fetchTasks?.();
+		} catch (err) {
+			console.error('toggle step failed:', err);
+			setError('Could not update step');
+		}
+	};
+
+	const handleScheduleStep = async (id, date) => {
+		try {
+			// patch keeps ID stable; "null" returns the step to backlog.
+			await updateTaskFields(id, { taskDate: date ?? 'null' });
+			await refresh();
+			onChanged?.();
+			fetchTasks?.();
+		} catch (err) {
+			console.error('schedule step failed:', err);
+			setError('Could not schedule step');
+		}
+	};
+
+	const confirmDeleteStep = async () => {
+		const step = stepToDelete;
+		setStepToDelete(null);
+		if (!step) return;
+		try {
+			await deleteTask(step.id);
+			await refresh();
+			onChanged?.();
+			fetchTasks?.();
+		} catch (err) {
+			console.error('delete step failed:', err);
+			setError('Could not delete step');
+		}
+	};
+
+	const handleStepDragEnd = async (result) => {
+		const { source, destination } = result;
+		if (!destination || source.droppableId !== destination.droppableId) return;
+		if (source.index === destination.index) return;
+
+		const ordered = [...roadmapSteps];
+		const [moved] = ordered.splice(source.index, 1);
+		ordered.splice(destination.index, 0, moved);
+
+		// Optimistic reorder so the list feels immediate.
+		const withOrders = ordered.map((t, i) => ({ ...t, roadmapOrder: i + 1 }));
+		setTasks((prev) => {
+			const byId = new Map(withOrders.map((t) => [t.id, t]));
+			return prev.map((t) => byId.get(t.id) ?? t);
+		});
+
+		try {
+			await reorderRoadmap(goalId, ordered.map((t) => t.id));
+			await refresh();
+			onChanged?.();
+		} catch (err) {
+			console.error('reorder roadmap failed:', err);
+			setError('Could not reorder steps');
+			await refresh();
 		}
 	};
 
@@ -121,8 +334,16 @@ function GoalDetail({ goalId, onBack, onChanged }) {
 
 	const percent = goalProgressPercent(goal);
 	const isDone = goal.status === 'COMPLETED';
-	const activeTasks = tasks.filter((t) => !t.complete);
-	const doneTasks = tasks.filter((t) => t.complete);
+	const isRoadmap = goal.mode === 'ROADMAP';
+
+	// Steps live in the roadmap panel when ROADMAP is active; elsewhere they
+	// are normal linked tasks unless they are a hidden undated draft.
+	const linkedNonSteps = tasks.filter((t) => {
+		if (t.roadmapOrder == null) return true;
+		return !isRoadmap && !isHiddenDraftStep(goal, t);
+	});
+	const activeTasks = linkedNonSteps.filter((t) => !t.complete);
+	const doneTasks = linkedNonSteps.filter((t) => t.complete);
 
 	return (
 		<div className="goal-detail">
@@ -162,7 +383,7 @@ function GoalDetail({ goalId, onBack, onChanged }) {
 
 			{goal.targetMet && !isDone && (
 				<div className="goal-nudge">
-					Target met — mark this goal complete?
+					{isRoadmap ? 'All steps done — mark this goal complete?' : 'Target met — mark this goal complete?'}
 					<button className="btn btn-primary" onClick={handleComplete}>Complete</button>
 				</div>
 			)}
@@ -237,15 +458,84 @@ function GoalDetail({ goalId, onBack, onChanged }) {
 						</label>
 					</div>
 				)}
+
+				{isRoadmap && (
+					<p className="goal-roadmap-hint">
+						No date = backlog (hidden from day lists). Dated steps appear in Today/Upcoming and can be dragged between days.
+					</p>
+				)}
 			</div>
 
 			{error && <p className="myerror">{error}</p>}
 
+			{isRoadmap && (
+				<div className="goal-roadmap">
+					<h3>Roadmap steps</h3>
+					<div className="roadmap-add-form">
+						<input
+							type="text"
+							placeholder="New step…"
+							value={newStepName}
+							onChange={(e) => setNewStepName(e.target.value)}
+							onKeyDown={(e) => { if (e.key === 'Enter') handleAddStep(); }}
+							disabled={isDone}
+							maxLength={255}
+						/>
+						<input
+							type="date"
+							value={newStepDate}
+							onChange={(e) => setNewStepDate(e.target.value)}
+							disabled={isDone}
+							title="Optional date — leave empty for backlog"
+						/>
+						<button
+							className="btn btn-primary"
+							onClick={handleAddStep}
+							disabled={isDone || !newStepName.trim()}
+						>
+							Add step
+						</button>
+					</div>
+
+					{roadmapSteps.length === 0 ? (
+						<p className="goals-empty">No steps yet. Add the first one above.</p>
+					) : (
+						<DragDropContext onDragEnd={handleStepDragEnd}>
+							<Droppable droppableId="roadmap-steps">
+								{(provided) => (
+									<ul
+										className="roadmap-list"
+										ref={provided.innerRef}
+										{...provided.droppableProps}
+									>
+										{roadmapSteps.map((step, index) => (
+											<RoadmapStepRow
+												key={step.id}
+												step={step}
+												index={index}
+												isDone={isDone}
+												onRename={handleRenameStep}
+												onToggle={handleToggleStep}
+												onSchedule={handleScheduleStep}
+												onDelete={setStepToDelete}
+											/>
+										))}
+										{provided.placeholder}
+									</ul>
+								)}
+							</Droppable>
+						</DragDropContext>
+					)}
+				</div>
+			)}
+
 			<div className="goal-tasks">
-				<h3>Linked tasks</h3>
-				{tasks.length === 0 ? (
+				<h3>{isRoadmap ? 'Other linked tasks' : 'Linked tasks'}</h3>
+				{linkedNonSteps.length === 0 ? (
 					<p className="goals-empty">
-						No tasks yet — pick this goal in the task popup to link one.
+						{isRoadmap
+							? 'No other tasks linked to this goal.'
+							: 'No tasks yet — pick this goal in the task popup to link one.'}
 					</p>
 				) : (
 					<>
@@ -253,7 +543,7 @@ function GoalDetail({ goalId, onBack, onChanged }) {
 							{activeTasks.map((t) => (
 								<li key={t.id} onClick={() => openDetail(t)}>
 									<span className="goal-task-name">{t.name}</span>
-									<span className="goal-task-date">{t.taskDate}</span>
+									<span className="goal-task-date">{t.taskDate ?? 'Backlog'}</span>
 								</li>
 							))}
 						</ul>
@@ -264,7 +554,7 @@ function GoalDetail({ goalId, onBack, onChanged }) {
 									{doneTasks.map((t) => (
 										<li key={t.id} onClick={() => openDetail(t)}>
 											<span className="goal-task-name">{t.name}</span>
-											<span className="goal-task-date">{t.taskDate}</span>
+											<span className="goal-task-date">{t.taskDate ?? '—'}</span>
 										</li>
 									))}
 								</ul>
@@ -273,6 +563,15 @@ function GoalDetail({ goalId, onBack, onChanged }) {
 					</>
 				)}
 			</div>
+
+			<ConfirmDialog
+				open={stepToDelete != null}
+				title={stepToDelete ? `Delete "${stepToDelete.name}"?` : ''}
+				message="This removes the step from the roadmap. Dated steps also leave the day lists."
+				confirmLabel="Delete"
+				onConfirm={confirmDeleteStep}
+				onCancel={() => setStepToDelete(null)}
+			/>
 		</div>
 	);
 }

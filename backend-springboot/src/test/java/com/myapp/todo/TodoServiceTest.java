@@ -52,7 +52,9 @@ class TodoServiceTest {
         // Arrange
         TodoItem item1 = new TodoItem(LocalDate.of(2023, 10, 27), 1, "Work", "Task 1");
         TodoItem item2 = new TodoItem(LocalDate.of(2023, 10, 26), 1, "Personal", "Task 2");
-        when(repository.findAll()).thenReturn(Arrays.asList(item1, item2));
+        TodoItem backlog = new TodoItem(null, 0, null, "Backlog step");
+        backlog.setRoadmapOrder(1);
+        when(repository.findAll()).thenReturn(Arrays.asList(item1, item2, backlog));
 
         // Act
         GroupedTodoItems result = todoService.getGroupedByDate();
@@ -69,6 +71,9 @@ class TodoServiceTest {
         List<String> keys = new ArrayList<>(result.getItemsByDate().keySet());
         assertEquals("2023-10-26", keys.get(0));
         assertEquals("2023-10-27", keys.get(1));
+        // Undated roadmap backlog never appears in day lists.
+        result.getItemsByDate().values().forEach(list ->
+                assertTrue(list.stream().noneMatch(t -> t.getTaskDate() == null)));
     }
 
     @Test
@@ -381,6 +386,96 @@ class TodoServiceTest {
         verify(subtaskService, never()).create(2L, "Already done");
         verify(taskEventService).record(1L, "PUSHED", "Pushed: Waiting on client",
                 sampleItem.getTaskDate(), destination);
+    }
+
+    @Test
+    void testPushTask_MovesRoadmapOrderToCloneWithoutTickingStep() {
+        // Arrange: an open roadmap step being pushed
+        LocalDate destination = LocalDate.now().plusDays(3);
+        sampleItem.setRoadmapOrder(2);
+        sampleItem.setGoalId(7L);
+        when(repository.findById(1L)).thenReturn(Optional.of(sampleItem));
+        when(repository.findByTaskDate(destination)).thenReturn(new ArrayList<>());
+        when(repository.save(any(TodoItem.class))).thenAnswer(invocation -> {
+            TodoItem item = invocation.getArgument(0);
+            if (item.getId() == null) {
+                item.setId(2L);
+            }
+            return item;
+        });
+        when(subtaskService.listForTask(1L)).thenReturn(new ArrayList<>());
+
+        // Act
+        PushResult result = todoService.pushTask(1L, "Blocked", destination);
+
+        // Assert: original is history without the step; clone holds the pending step.
+        assertNull(result.getOriginal().getRoadmapOrder());
+        assertTrue(result.getOriginal().isComplete());
+        assertEquals(2, result.getClone().getRoadmapOrder());
+        assertEquals(7L, result.getClone().getGoalId());
+        assertFalse(result.getClone().isComplete());
+    }
+
+    @Test
+    void testUncompletePushedTaskRestoresRoadmapOrderFromDeletedClone() {
+        // Arrange
+        sampleItem.setComplete(true);
+        TodoItem clone = new TodoItem(LocalDate.now().plusDays(3), 1, "Work", "Test Task");
+        clone.setId(2L);
+        clone.setPushedFromId(1L);
+        clone.setRoadmapOrder(5);
+        when(repository.findById(1L)).thenReturn(Optional.of(sampleItem));
+        when(repository.findByPushedFromId(1L)).thenReturn(List.of(clone));
+        when(repository.save(any(TodoItem.class))).thenReturn(sampleItem);
+        when(taskEventService.countActivity(2L)).thenReturn(0L);
+        when(subtaskService.listForTask(2L)).thenReturn(new ArrayList<>());
+
+        // Act
+        TodoOperationResult result = todoService.updateTaskField(1L, "complete", "false");
+
+        // Assert
+        assertEquals("Updated", result.getStatus());
+        assertEquals(5, sampleItem.getRoadmapOrder());
+        verify(repository).deleteById(2L);
+        verify(taskEventService).deleteForTask(2L);
+        verify(subtaskService).deleteForTask(2L);
+    }
+
+    @Test
+    void testClearTaskDateReturnsStepToBacklog() {
+        // Arrange
+        sampleItem.setTaskDate(LocalDate.of(2026, 10, 28));
+        when(repository.findById(1L)).thenReturn(Optional.of(sampleItem));
+        when(repository.save(any(TodoItem.class))).thenReturn(sampleItem);
+
+        // Act
+        TodoOperationResult result = todoService.updateTaskField(1L, "taskDate", "null");
+
+        // Assert
+        assertEquals("Updated", result.getStatus());
+        assertNull(sampleItem.getTaskDate());
+        verify(repository).save(sampleItem);
+        verify(taskEventService).record(1L, "EDITED", "Updated date");
+    }
+
+    @Test
+    void testUnlinkGoalClearsRoadmapOrder() {
+        // Arrange
+        sampleItem.setGoalId(7L);
+        sampleItem.setRoadmapOrder(3);
+        sampleItem.setLongTerm(true);
+        when(repository.findById(1L)).thenReturn(Optional.of(sampleItem));
+        when(repository.save(any(TodoItem.class))).thenReturn(sampleItem);
+
+        // Act
+        TodoOperationResult result = todoService.updateTaskField(1L, "goalId", "null");
+
+        // Assert: unlink clears goal + roadmap slot but never auto-clears longTerm.
+        assertEquals("Updated", result.getStatus());
+        assertNull(sampleItem.getGoalId());
+        assertNull(sampleItem.getRoadmapOrder());
+        assertTrue(sampleItem.isLongTerm());
+        verify(repository).save(sampleItem);
     }
 
     @Test

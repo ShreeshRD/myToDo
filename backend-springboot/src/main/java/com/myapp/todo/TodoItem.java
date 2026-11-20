@@ -183,6 +183,15 @@ public class TodoItem {
     private Long pushedFromId;
     private Integer pushCount;
 
-    /** Optional goal link; setting it also marks the task long-term. */
+    /**
+     * Optional goal link; setting it also marks the task long-term.
+     */
     private Long goalId;
+
+    /**
+     * Position within a goal's roadmap (null = not a step). A step with a null
+     * {@link #taskDate} is backlog and never appears in day lists; a dated step
+     * is a normal day-to-day task. Push moves this field to the clone.
+     */
+    private Integer roadmapOrder;
 }

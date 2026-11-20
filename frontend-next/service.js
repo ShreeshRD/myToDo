@@ -448,6 +448,46 @@ export const getGoalTasks = async (id) => {
 };
 
 /**
+ * Creates a roadmap step (goal-linked task with roadmapOrder).
+ * @param {number} goalId - Goal ID
+ * @param {string} name - Step name
+ * @param {string|null} [date] - YYYY-MM-DD, or null/undefined for backlog
+ * @returns {Promise<Object>} TodoItem
+ * @throws {Error} If the request fails
+ */
+export const addRoadmapStep = async (goalId, name, date = null) => {
+	return globalMutationQueue.enqueue(async () => {
+		try {
+			const body = { name };
+			if (date) body.date = date;
+			const response = await axios.post(`${API_URL}/goals/${goalId}/roadmap/steps`, body);
+			return response.data;
+		} catch (error) {
+			console.error(`Error adding roadmap step to goal ${goalId}:`, error);
+			throw error;
+		}
+	});
+};
+
+/**
+ * Reorders all roadmap steps of a goal.
+ * @param {number} goalId - Goal ID
+ * @param {number[]} orderedIds - Full ordered list of step task IDs
+ * @returns {Promise<void>}
+ * @throws {Error} If the request fails
+ */
+export const reorderRoadmap = async (goalId, orderedIds) => {
+	return globalMutationQueue.enqueue(async () => {
+		try {
+			await axios.post(`${API_URL}/goals/${goalId}/roadmap/reorder`, orderedIds);
+		} catch (error) {
+			console.error(`Error reordering roadmap for goal ${goalId}:`, error);
+			throw error;
+		}
+	});
+};
+
+/**
  * Fetches the scratchpad content
  * @returns {Promise<Object>} Scratchpad object with content string
  */

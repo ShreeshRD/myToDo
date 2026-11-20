@@ -160,7 +160,7 @@ function ToDoDay({ tasks, date, id }) {
                                             <span>
                                                 {date === "Overdue" && formatDateShort(task.taskDate)}
                                                 {task.repeatType !== "NONE" && <BsArrowRepeat className="repeat_icon" />}
-                                                {task.category !== 'None' && ` #${task.category}`}
+                                                {task.category && task.category !== 'None' && ` #${task.category}`}
                                                 {subtaskCounts[task.id] && subtaskCounts[task.id].total > 0 &&
                                                     ` • ${subtaskCounts[task.id].done}/${subtaskCounts[task.id].total}`}
                                                 {task.complete && task.timeTaken > 0 && ` • ${formatTimeTaken(task.timeTaken)}`}

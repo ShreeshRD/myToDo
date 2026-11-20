@@ -328,6 +328,147 @@
     }
 }
 
+/* ----- Roadmap ----- */
+
+.goal-roadmap {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    h3 {
+        margin: 0;
+    }
+}
+
+.goal-roadmap-hint {
+    margin: 0;
+    font-size: 0.85rem;
+    opacity: 0.7;
+    line-height: 1.4;
+}
+
+.roadmap-add-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+
+    input[type="text"] {
+        flex: 1;
+        min-width: 160px;
+        padding: 8px 10px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        background: transparent;
+        color: inherit;
+    }
+
+    input[type="date"] {
+        padding: 7px 8px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        background: transparent;
+        color: inherit;
+    }
+}
+
+.roadmap-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.roadmap-step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.02);
+
+    &.done .roadmap-step-name {
+        text-decoration: line-through;
+        opacity: 0.65;
+    }
+
+    &.dragging {
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+        background: #fff;
+    }
+}
+
+.roadmap-step-handle {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    color: #bbb;
+    cursor: grab;
+    // Comfortable grab target without crowding the inputs.
+    padding: 2px 0;
+    font-size: 20px;
+
+    &:active {
+        cursor: grabbing;
+    }
+
+    &.disabled {
+        cursor: default;
+        opacity: 0.4;
+    }
+}
+
+.roadmap-step-name {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    border-bottom: 1px solid transparent;
+    background: transparent;
+    color: inherit;
+    padding: 4px 0;
+    outline: none;
+    font-size: 0.95rem;
+
+    &:focus {
+        border-bottom-color: #246fe0;
+    }
+}
+
+.roadmap-step-date {
+    flex-shrink: 0;
+    padding: 4px 6px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    font-size: 0.85rem;
+}
+
+.roadmap-step-delete {
+    border: none;
+    background: transparent;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.45;
+    color: inherit;
+    padding: 4px 6px;
+    flex-shrink: 0;
+
+    &:hover {
+        opacity: 1;
+        color: #d1453b;
+    }
+
+    &:disabled {
+        opacity: 0.2;
+        cursor: default;
+    }
+}
+
 .goal-tasks-subhead {
     margin: 14px 0 6px;
     font-size: 0.85rem;
@@ -447,8 +588,23 @@
     .goal-mode-btn,
     .goals-create-form input,
     .goal-metric-editor input,
-    .goal-reps-editor input {
+    .goal-reps-editor input,
+    .roadmap-add-form input,
+    .roadmap-step-date {
         border-color: #555;
+    }
+
+    .roadmap-step {
+        border-color: #444;
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .roadmap-step-handle {
+        color: #777;
+    }
+
+    .roadmap-step.dragging {
+        background: #2c2c2c;
     }
 
     .goal-nudge {
@@ -496,8 +652,23 @@
     .goal-mode-btn,
     .goals-create-form input,
     .goal-metric-editor input,
-    .goal-reps-editor input {
+    .goal-reps-editor input,
+    .roadmap-add-form input,
+    .roadmap-step-date {
         border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .roadmap-step {
+        border-color: rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.04);
+    }
+
+    .roadmap-step-handle {
+        color: rgba(255, 255, 255, 0.45);
+    }
+
+    .roadmap-step.dragging {
+        background: rgba(255, 255, 255, 0.1);
     }
 
     .goal-nudge {

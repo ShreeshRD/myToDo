@@ -131,7 +131,7 @@ Files: new `Goal` entity/service/controller; `TodoItem.goalId`; `Sidebar.js`, `M
 - Today strip: only goals with tasks today.
 Verify: link task → longTerm + heatmap; reps increment; strip shows/hides correctly; metric updates.
 
-### [ ] Step 8 — Roadmap mode
+### [x] Step 8 — Roadmap mode
 Files: `GoalDetail`, `TodoItem.roadmapOrder`, `TodoService`, `Upcoming.js`/`CalendarView.js` drag support, `TaskEvent` (mode changes).
 - Ordered roadmap list; add/rename/reorder/delete steps; date picker; drag to schedule.
 - Progress = completed steps / total steps.

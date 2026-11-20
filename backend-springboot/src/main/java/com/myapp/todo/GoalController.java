@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -68,6 +69,21 @@ public class GoalController {
     @GetMapping("/{id}/tasks")
     public @ResponseBody List<TodoItem> linkedTasks(@PathVariable Long id) {
         return goalService.linkedTasks(id);
+    }
+
+    @PostMapping("/{id}/roadmap/steps")
+    public @ResponseBody TodoItem addRoadmapStep(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        String name = body == null ? null : body.get("name");
+        String rawDate = body == null ? null : body.get("date");
+        LocalDate date = (rawDate == null || rawDate.isBlank() || "null".equals(rawDate))
+                ? null
+                : LocalDate.parse(rawDate.trim());
+        return goalService.addRoadmapStep(id, name, date);
+    }
+
+    @PostMapping("/{id}/roadmap/reorder")
+    public @ResponseBody void reorderRoadmap(@PathVariable Long id, @RequestBody List<Long> orderedIds) {
+        goalService.reorderRoadmap(id, orderedIds);
     }
 
     @DeleteMapping("/{id}")

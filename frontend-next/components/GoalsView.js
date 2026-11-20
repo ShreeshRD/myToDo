@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useUI } from '../contexts/UIContext';
 import { getGoals, createGoal, deleteGoal } from '../service';
 import GoalDetail from './GoalDetail';
+import ConfirmDialog from './ConfirmDialog';
 import '../styles/GoalsView.scss';
 
 /** Compact progress label shared by cards, strip, and detail header. */
@@ -24,9 +25,9 @@ export function goalProgressLabel(goal) {
 		}
 		return `${goal.repsCount} rep${goal.repsCount === 1 ? '' : 's'}`;
 	}
-	// ROADMAP progress arrives with Step 8; fall back to linked-task ratio.
-	if (goal.linkedTotal > 0) {
-		return `${goal.linkedCompleted} / ${goal.linkedTotal}`;
+	// ROADMAP: completed steps / total steps
+	if (goal.roadmapTotal > 0) {
+		return `${goal.roadmapCompleted} / ${goal.roadmapTotal} steps`;
 	}
 	return 'Roadmap';
 }
@@ -42,8 +43,8 @@ export function goalProgressPercent(goal) {
 		if (goal.repsTarget == null || goal.repsTarget <= 0) return null;
 		return Math.min(100, Math.round((goal.repsCount / goal.repsTarget) * 100));
 	}
-	if (goal.linkedTotal > 0) {
-		return Math.min(100, Math.round((goal.linkedCompleted / goal.linkedTotal) * 100));
+	if (goal.roadmapTotal > 0) {
+		return Math.min(100, Math.round((goal.roadmapCompleted / goal.roadmapTotal) * 100));
 	}
 	return null;
 }
@@ -95,6 +96,7 @@ function GoalsView() {
 	const [showCreate, setShowCreate] = useState(false);
 	const [newTitle, setNewTitle] = useState('');
 	const [error, setError] = useState('');
+	const [goalToDelete, setGoalToDelete] = useState(null);
 
 	const refresh = useCallback(async () => {
 		try {
@@ -130,11 +132,10 @@ function GoalsView() {
 		}
 	};
 
-	const handleDelete = async (goal) => {
-		const ok = window.confirm(
-			`Delete "${goal.title}"? Linked tasks keep their long-term flag but lose the goal link.`
-		);
-		if (!ok) return;
+	const confirmDeleteGoal = async () => {
+		const goal = goalToDelete;
+		setGoalToDelete(null);
+		if (!goal) return;
 		try {
 			await deleteGoal(goal.id);
 			if (selectedGoalId === goal.id) {
@@ -204,7 +205,7 @@ function GoalsView() {
 				<>
 					<div className="goals-grid">
 						{active.map((goal) => (
-							<GoalCard key={goal.id} goal={goal} onOpen={openGoal} onDelete={handleDelete} />
+							<GoalCard key={goal.id} goal={goal} onOpen={openGoal} onDelete={setGoalToDelete} />
 						))}
 					</div>
 					{archived.length > 0 && (
@@ -212,13 +213,22 @@ function GoalsView() {
 							<h3 className="goals-section-title">Completed</h3>
 							<div className="goals-grid archived">
 								{archived.map((goal) => (
-									<GoalCard key={goal.id} goal={goal} onOpen={openGoal} onDelete={handleDelete} />
+									<GoalCard key={goal.id} goal={goal} onOpen={openGoal} onDelete={setGoalToDelete} />
 								))}
 							</div>
 						</>
 					)}
 				</>
 			)}
+
+			<ConfirmDialog
+				open={goalToDelete != null}
+				title={goalToDelete ? `Delete "${goalToDelete.title}"?` : ''}
+				message="Linked tasks keep their long-term flag but lose the goal link."
+				confirmLabel="Delete"
+				onConfirm={confirmDeleteGoal}
+				onCancel={() => setGoalToDelete(null)}
+			/>
 		</div>
 	);
 }

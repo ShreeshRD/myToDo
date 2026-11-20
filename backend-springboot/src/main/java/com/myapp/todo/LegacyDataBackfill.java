@@ -52,6 +52,13 @@ public class LegacyDataBackfill implements CommandLineRunner {
                 changed = true;
             }
 
+            // "None" is the canonical no-project value; a null category renders
+            // as "#null" in day-list infobars and reads oddly in the edit popup.
+            if (item.getCategory() == null || item.getCategory().isBlank()) {
+                item.setCategory("None");
+                changed = true;
+            }
+
             if (changed) {
                 repository.save(item);
                 updated++;

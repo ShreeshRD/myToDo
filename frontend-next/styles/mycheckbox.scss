@@ -21,3 +21,7 @@
         color: white;
     }
 }
+.checkmark.disabled {
+    cursor: default;
+    opacity: 0.55;
+}
