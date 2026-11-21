@@ -47,12 +47,15 @@ function Heatmap({ currentDate, tasksByDate }) {
                         ? (source[dateString] || [])
                         : (source[dateString] || []).filter(task => task.longTerm);
                     const count = tasks.length;
+                    const label = tasksByDate
+                        ? `practice session${count === 1 ? '' : 's'}`
+                        : `long-term task${count === 1 ? '' : 's'}`;
 
                     return (
-                        <div 
-                            key={dateString} 
+                        <div
+                            key={dateString}
                             className={`heatmap-cell ${getIntensityClass(count)}`}
-                            title={`${dateString}: ${count} long-term task${count === 1 ? '' : 's'}`}
+                            title={`${dateString}: ${count} ${label}`}
                         >
                         </div>
                     );

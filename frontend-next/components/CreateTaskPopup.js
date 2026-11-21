@@ -68,7 +68,9 @@ function CreateTaskPopup({ projects, theme, date, task }) {
       getGoals()
         .then((rows) => {
           if (!cancelled) {
-            setGoals((Array.isArray(rows) ? rows : []).filter((g) => g.status === 'ACTIVE'));
+            // Skills are never task targets — only goals may be linked.
+            setGoals((Array.isArray(rows) ? rows : [])
+              .filter((g) => g.status === 'ACTIVE' && g.kind !== 'SKILL'));
           }
         })
         .catch((err) => console.error('getGoals failed:', err));

@@ -101,7 +101,8 @@ function GoalsView() {
 	const refresh = useCallback(async () => {
 		try {
 			const rows = await getGoals();
-			setGoals(Array.isArray(rows) ? rows : []);
+			// Skills live only in the Skills view.
+			setGoals((Array.isArray(rows) ? rows : []).filter((g) => g.kind !== 'SKILL'));
 		} catch (err) {
 			console.error('getGoals failed:', err);
 		} finally {

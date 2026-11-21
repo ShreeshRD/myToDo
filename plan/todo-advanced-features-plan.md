@@ -139,7 +139,7 @@ Files: `GoalDetail`, `TodoItem.roadmapOrder`, `TodoService`, `Upcoming.js`/`Cale
 - Push moves `roadmapOrder` to the clone.
 Verify: undated steps stay out of day lists; dated steps appear and drag normally; mode switching preserves/restores; pushed step stays pending; completion cleanup rules hold.
 
-### [ ] Step 9 — Skills
+### [x] Step 9 — Skills
 Files: new `SkillOccurrence` entity/service/controller; new `SkillsView`/`SkillDetail`; `Sidebar.js`, `MainView.js`; reuse `Heatmap`.
 - Skills only in the Skills view; no Today strip, no task link.
 - "+1 occurrence" form: date, duration, rating 1–5 (required).

@@ -11,6 +11,7 @@ import Upcoming from "./Upcoming";
 import Search from "./Search";
 import TodayView from "./TodayView";
 import GoalsView from "./GoalsView";
+import SkillsView from "./SkillsView";
 import Scratchpad from "./Scratchpad/index";
 import { useUI } from "../contexts/UIContext";
 import { useTasks } from "../contexts/TaskContext";
@@ -122,6 +123,8 @@ function MainView() {
 						<Search />
 					) : viewPage === 'Goals' ? (
 						<GoalsView />
+					) : viewPage === 'Skills' ? (
+						<SkillsView />
 					) : viewPage === 'Scratchpad' ? (
 						<Scratchpad theme={theme} />
 					) : "Something went wrong"

@@ -34,6 +34,9 @@ class GoalServiceTest {
     @Mock
     private TaskEventService taskEventService;
 
+    @Mock
+    private SkillOccurrenceRepository skillOccurrenceRepository;
+
     @InjectMocks
     private GoalService goalService;
 

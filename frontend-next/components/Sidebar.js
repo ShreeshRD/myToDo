@@ -12,6 +12,7 @@ import { CiHashtag } from "react-icons/ci";
 import { FaRegStickyNote } from "react-icons/fa";
 import { FaBullseye } from "react-icons/fa";
 import { FaSearch } from "react-icons/fa";
+import { FaMusic } from "react-icons/fa";
 import { IoIosArrowDown } from "react-icons/io";
 import '../styles/sidebar.scss'
 import { useState, useRef, useEffect } from "react";
@@ -103,6 +104,10 @@ function Sidebar({
           <li onClick={() => setViewPage('Goals')} className={viewPage === 'Goals' ? 'active' : ''}>
             <FaBullseye />
             <span> Goals</span>
+          </li>
+          <li onClick={() => setViewPage('Skills')} className={viewPage === 'Skills' ? 'active' : ''}>
+            <FaMusic />
+            <span> Skills</span>
           </li>
           <li onClick={() => setViewPage('Search')} className={viewPage === 'Search' ? 'active' : ''}>
             <FaSearch />

@@ -77,7 +77,7 @@ function TodayView() {
         });
         if (byGoal.size === 0) return [];
         return goals
-            .filter((g) => g.status === 'ACTIVE' && byGoal.has(String(g.id)))
+            .filter((g) => g.kind !== 'SKILL' && g.status === 'ACTIVE' && byGoal.has(String(g.id)))
             .map((g) => ({
                 goal: g,
                 taskCount: byGoal.get(String(g.id)),

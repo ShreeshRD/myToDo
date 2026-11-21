@@ -488,6 +488,85 @@ export const reorderRoadmap = async (goalId, orderedIds) => {
 };
 
 /**
+ * Fetches practice occurrences for a skill (kind = SKILL goal)
+ * @param {number} skillId - Skill goal ID
+ * @returns {Promise<Array>} List of SkillOccurrence, newest first
+ * @throws {Error} If the request fails
+ */
+export const getSkillOccurrences = async (skillId) => {
+	try {
+		const response = await axios.get(`${API_URL}/skills/${skillId}/occurrences`);
+		return response.data;
+	} catch (error) {
+		console.error(`Error fetching occurrences for skill ${skillId}:`, error);
+		throw error;
+	}
+};
+
+/**
+ * Logs one practice occurrence (duration and rating required)
+ * @param {number} skillId - Skill goal ID
+ * @param {Object} data - { date?, durationMinutes, rating }
+ * @returns {Promise<Object>} Created SkillOccurrence
+ * @throws {Error} If the request fails
+ */
+export const logSkillOccurrence = async (skillId, data) => {
+	return globalMutationQueue.enqueue(async () => {
+		try {
+			const response = await axios.post(`${API_URL}/skills/${skillId}/occurrences`, {
+				date: data?.date ?? null,
+				durationMinutes: String(data?.durationMinutes ?? ''),
+				rating: String(data?.rating ?? ''),
+			});
+			return response.data;
+		} catch (error) {
+			console.error(`Error logging occurrence for skill ${skillId}:`, error);
+			throw error;
+		}
+	});
+};
+
+/**
+ * Updates a skill occurrence (date and/or durationMinutes and/or rating)
+ * @param {number} id - Occurrence ID
+ * @param {Object} fields - Field name to value map (numbers as strings or numbers)
+ * @returns {Promise<Object>} Updated SkillOccurrence
+ * @throws {Error} If the request fails
+ */
+export const updateSkillOccurrence = async (id, fields) => {
+	return globalMutationQueue.enqueue(async () => {
+		try {
+			const payload = {};
+			Object.entries(fields).forEach(([key, value]) => {
+				payload[key] = value == null ? null : String(value);
+			});
+			const response = await axios.patch(`${API_URL}/skills/occurrences/${id}`, payload);
+			return response.data;
+		} catch (error) {
+			console.error(`Error updating occurrence ${id}:`, error);
+			throw error;
+		}
+	});
+};
+
+/**
+ * Deletes a skill occurrence
+ * @param {number} id - Occurrence ID
+ * @returns {Promise<void>}
+ * @throws {Error} If the request fails
+ */
+export const deleteSkillOccurrence = async (id) => {
+	return globalMutationQueue.enqueue(async () => {
+		try {
+			await axios.delete(`${API_URL}/skills/occurrences/${id}`);
+		} catch (error) {
+			console.error(`Error deleting occurrence ${id}:`, error);
+			throw error;
+		}
+	});
+};
+
+/**
  * Fetches the scratchpad content
  * @returns {Promise<Object>} Scratchpad object with content string
  */

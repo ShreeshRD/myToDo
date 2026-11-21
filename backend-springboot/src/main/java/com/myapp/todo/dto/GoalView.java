@@ -32,6 +32,8 @@ public class GoalView {
     private long roadmapTotal;
     private long roadmapCompleted;
     private boolean targetMet;
+    /** All-time practice sessions; only populated for {@code kind = SKILL}. */
+    private long occurrenceCount;
 
     public static GoalView from(Goal goal) {
         GoalView view = new GoalView();

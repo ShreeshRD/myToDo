@@ -23,13 +23,16 @@ public class GoalService {
     private final TodoItemRepository taskRepository;
     private final SubtaskService subtaskService;
     private final TaskEventService taskEventService;
+    private final SkillOccurrenceRepository skillOccurrenceRepository;
 
     public GoalService(GoalRepository repository, TodoItemRepository taskRepository,
-            SubtaskService subtaskService, TaskEventService taskEventService) {
+            SubtaskService subtaskService, TaskEventService taskEventService,
+            SkillOccurrenceRepository skillOccurrenceRepository) {
         this.repository = repository;
         this.taskRepository = taskRepository;
         this.subtaskService = subtaskService;
         this.taskEventService = taskEventService;
+        this.skillOccurrenceRepository = skillOccurrenceRepository;
     }
 
     public List<GoalView> list() {
@@ -167,6 +170,7 @@ public class GoalService {
             task.setRoadmapOrder(null);
             taskRepository.save(task);
         }
+        skillOccurrenceRepository.deleteByGoalId(id);
         repository.deleteById(id);
         logger.info("Deleted goal {}", id);
     }
@@ -253,6 +257,9 @@ public class GoalService {
         view.setRoadmapTotal(roadmapTotal);
         view.setRoadmapCompleted(roadmapCompleted);
         view.setTargetMet(isTargetMet(goal, completed, roadmapTotal, roadmapCompleted));
+        if (goal.getKind() == Goal.Kind.SKILL) {
+            view.setOccurrenceCount(skillOccurrenceRepository.countByGoalId(goal.getId()));
+        }
         return view;
     }
 
