@@ -102,4 +102,4 @@ When the user requests a durable behavior change, record it here or in the relev
 | Backend | `backend-springboot/AGENT.md` | Spring Boot REST API, services, data layer |
 | Frontend | `frontend-next/AGENT.md` | Next.js components, contexts, hooks, utilities |
 | Plan & Analysis | `plan/AGENT.md` | Implementation plans, flow analysis, project docs |
-| MCP Server | `mcp/AGENT.md` | HTTP MCP bridge, tool schemas, recurrence logic |
+| MCP Server | `mcp/AGENT.md` | HTTP MCP bridge and tool schemas (tasks, goals, skills, subtasks) |

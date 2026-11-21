@@ -1,5 +1,11 @@
 import { isIsoDate } from "../dates.js";
-import { compactTask, normalizeProject } from "../tasks.js";
+import {
+  compactTask,
+  compactGoal,
+  compactSubtask,
+  compactOccurrence,
+  normalizeProject,
+} from "../tasks.js";
 import { ToolError, ok } from "../errors.js";
 
 function assertDateNotPast(date, today) {
@@ -38,27 +44,40 @@ export async function createTask(args = {}, ctx) {
   const project = normalizeProject(args.project);
   const priority = args.priority ?? 0;
   const longTerm = args.long_term ?? false;
-
-  const result = await api.add({
+  const params = {
     category: project,
     name,
     taskDate: date,
     priority,
     longTerm,
-  });
+  };
+  if (args.goal_id != null) {
+    if (!Number.isInteger(args.goal_id) || args.goal_id <= 0) {
+      throw new ToolError("invalid_goal_id", "goal_id must be a positive integer");
+    }
+    params.goalId = args.goal_id;
+  }
+
+  const result = await api.add(params);
 
   if (result?.status && String(result.status).startsWith("Error")) {
     throw new ToolError("backend_error", result.status);
   }
 
+  let item = result.item;
+  if (args.description != null && String(args.description) !== "") {
+    await api.patch(item.id, { description: String(args.description) });
+    item = await api.getItem(item.id);
+  }
+
   return ok({
     today,
     week,
-    task: compactTask(result.item, today),
+    task: compactTask(item, today),
   });
 }
 
-const FIELD_ORDER = ["name", "date", "project", "priority", "long_term"];
+const FIELD_ORDER = ["name", "date", "project", "priority", "long_term", "description", "goal_id"];
 
 const FIELD_TO_BACKEND = {
   name: "taskName",
@@ -66,6 +85,8 @@ const FIELD_TO_BACKEND = {
   project: "category",
   priority: "priority",
   long_term: "longTerm",
+  description: "description",
+  goal_id: "goalId",
 };
 
 export async function updateTask(args = {}, ctx) {
@@ -91,6 +112,18 @@ export async function updateTask(args = {}, ctx) {
       assertDateNotPast(value, today);
     } else if (field === "project") {
       value = normalizeProject(value);
+    } else if (field === "description") {
+      value = value == null ? "" : String(value);
+    } else if (field === "goal_id") {
+      if (value == null) {
+        value = "null";
+      } else {
+        const n = Number(value);
+        if (!Number.isInteger(n) || n <= 0) {
+          throw new ToolError("invalid_goal_id", "goal_id must be a positive integer or null");
+        }
+        value = String(n);
+      }
     }
     values[field] = value;
   }
@@ -269,4 +302,233 @@ export async function deleteTask(args = {}, ctx) {
     deleted: true,
     task: compactTask(task, today),
   });
+}
+
+// ---------- goals / roadmap ----------
+
+function assertPositiveId(value, field) {
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new ToolError(`invalid_${field}`, `${field} must be a positive integer`);
+  }
+}
+
+async function fetchGoal(api, id) {
+  try {
+    return await api.getGoal(id);
+  } catch (error) {
+    if (error?.status === 404 || error?.code === "backend_error") {
+      throw new ToolError("goal_not_found", `Goal ${id} not found`);
+    }
+    throw error;
+  }
+}
+
+export async function createGoal(args = {}, ctx) {
+  const { api, today, week } = ctx;
+  const title = String(args.title ?? "").trim();
+  if (!title) {
+    throw new ToolError("invalid_title", "title must not be empty");
+  }
+  const body = { title };
+  if (args.kind) body.kind = args.kind;
+  if (args.mode) body.mode = args.mode;
+  const created = await api.createGoal(body);
+  return ok({ today, week, goal: compactGoal(created) });
+}
+
+export async function updateGoal(args = {}, ctx) {
+  const { api, today, week } = ctx;
+  assertPositiveId(args.id, "id");
+  const fields = {};
+  if (args.title !== undefined) {
+    const title = String(args.title).trim();
+    if (!title) throw new ToolError("invalid_title", "title must not be empty");
+    fields.title = title;
+  }
+  if (args.mode !== undefined) fields.mode = args.mode;
+  if (args.metric_current !== undefined) {
+    fields.metricCurrent = args.metric_current == null ? "null" : String(args.metric_current);
+  }
+  if (args.metric_target !== undefined) {
+    fields.metricTarget = args.metric_target == null ? "null" : String(args.metric_target);
+  }
+  if (args.metric_unit !== undefined) {
+    fields.metricUnit = args.metric_unit == null ? "null" : String(args.metric_unit);
+  }
+  if (args.reps_target !== undefined) {
+    fields.repsTarget = args.reps_target == null ? "null" : String(args.reps_target);
+  }
+  if (Object.keys(fields).length === 0) {
+    throw new ToolError("no_fields", "provide at least one field");
+  }
+  const updated = await api.updateGoal(args.id, fields);
+  return ok({ today, week, goal: compactGoal(updated) });
+}
+
+export async function deleteGoal(args = {}, ctx) {
+  const { api, today, week } = ctx;
+  assertPositiveId(args.id, "id");
+  const title = String(args.title ?? "").trim();
+  const goal = await fetchGoal(api, args.id);
+  if (title.toLowerCase() !== String(goal.title ?? "").trim().toLowerCase()) {
+    throw new ToolError("title_mismatch", "title does not match goal", {
+      actual_title: goal.title,
+      id: args.id,
+    });
+  }
+  await api.deleteGoal(args.id);
+  return ok({ today, week, deleted: true, goal: compactGoal(goal) });
+}
+
+export async function completeGoal(args = {}, ctx) {
+  const { api, today, week } = ctx;
+  assertPositiveId(args.id, "id");
+  const goal = args.reopen === true
+    ? await api.reopenGoal(args.id)
+    : await api.completeGoal(args.id);
+  return ok({ today, week, goal: compactGoal(goal) });
+}
+
+export async function addRoadmapStep(args = {}, ctx) {
+  const { api, today, week } = ctx;
+  assertPositiveId(args.goal_id, "goal_id");
+  const name = String(args.name ?? "").trim();
+  if (!name) throw new ToolError("invalid_name", "name must not be empty");
+  if (args.date !== undefined && args.date != null) {
+    assertValidDate(args.date);
+    // Roadmap steps may be scheduled into the past (backlog/dated history).
+  }
+  const body = { name };
+  if (args.date) body.date = args.date;
+  const step = await api.addRoadmapStep(args.goal_id, body);
+  return ok({ today, week, task: compactTask(step, today) });
+}
+
+export async function reorderRoadmap(args = {}, ctx) {
+  const { api, today, week } = ctx;
+  assertPositiveId(args.goal_id, "goal_id");
+  const ids = args.ordered_ids;
+  if (!Array.isArray(ids) || ids.length === 0 || !ids.every((n) => Number.isInteger(n) && n > 0)) {
+    throw new ToolError("invalid_ordered_ids", "ordered_ids must be a non-empty array of positive integers");
+  }
+  await api.reorderRoadmap(args.goal_id, ids);
+  return ok({ today, week, reordered: ids });
+}
+
+// ---------- subtasks ----------
+
+export async function listSubtasks(args = {}, ctx) {
+  const { api, today, week } = ctx;
+  assertPositiveId(args.task_id, "task_id");
+  const rows = await api.listSubtasks(args.task_id);
+  return ok({
+    today,
+    week,
+    task_id: args.task_id,
+    subtasks: rows.map(compactSubtask),
+  });
+}
+
+export async function addSubtask(args = {}, ctx) {
+  const { api, today, week } = ctx;
+  assertPositiveId(args.task_id, "task_id");
+  const title = String(args.title ?? "").trim();
+  if (!title) throw new ToolError("invalid_title", "title must not be empty");
+  const created = await api.addSubtask(args.task_id, { title });
+  return ok({ today, week, subtask: compactSubtask(created) });
+}
+
+export async function updateSubtask(args = {}, ctx) {
+  const { api, today, week } = ctx;
+  assertPositiveId(args.id, "id");
+  const fields = {};
+  if (args.title !== undefined) {
+    const title = String(args.title).trim();
+    if (!title) throw new ToolError("invalid_title", "title must not be empty");
+    fields.title = title;
+  }
+  if (args.done !== undefined) fields.done = String(args.done === true);
+  if (Object.keys(fields).length === 0) {
+    throw new ToolError("no_fields", "provide title and/or done");
+  }
+  const updated = await api.updateSubtask(args.id, fields);
+  return ok({ today, week, subtask: compactSubtask(updated) });
+}
+
+export async function deleteSubtask(args = {}, ctx) {
+  const { api, today, week } = ctx;
+  assertPositiveId(args.id, "id");
+  await api.deleteSubtask(args.id);
+  return ok({ today, week, deleted: true, id: args.id });
+}
+
+// ---------- skills ----------
+
+export async function logSkillOccurrence(args = {}, ctx) {
+  const { api, today, week } = ctx;
+  assertPositiveId(args.skill_id, "skill_id");
+  const duration = Number(args.duration_minutes);
+  const rating = Number(args.rating);
+  if (!Number.isInteger(duration) || duration <= 0) {
+    throw new ToolError("invalid_duration", "duration_minutes must be a positive integer");
+  }
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    throw new ToolError("invalid_rating", "rating must be an integer from 1 to 5");
+  }
+  const date = args.date ?? today;
+  assertValidDate(date);
+  const created = await api.logSkillOccurrence(args.skill_id, {
+    date,
+    durationMinutes: String(duration),
+    rating: String(rating),
+  });
+  return ok({ today, week, occurrence: compactOccurrence(created) });
+}
+
+export async function listSkillOccurrences(args = {}, ctx) {
+  const { api, today, week } = ctx;
+  assertPositiveId(args.skill_id, "skill_id");
+  const rows = await api.listSkillOccurrences(args.skill_id);
+  return ok({
+    today,
+    week,
+    skill_id: args.skill_id,
+    occurrences: rows.map(compactOccurrence),
+  });
+}
+
+export async function updateSkillOccurrence(args = {}, ctx) {
+  const { api, today, week } = ctx;
+  assertPositiveId(args.id, "id");
+  const fields = {};
+  if (args.date !== undefined) {
+    assertValidDate(args.date);
+    fields.date = args.date;
+  }
+  if (args.duration_minutes !== undefined) {
+    const duration = Number(args.duration_minutes);
+    if (!Number.isInteger(duration) || duration <= 0) {
+      throw new ToolError("invalid_duration", "duration_minutes must be a positive integer");
+    }
+    fields.durationMinutes = String(duration);
+  }
+  if (args.rating !== undefined) {
+    const rating = Number(args.rating);
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      throw new ToolError("invalid_rating", "rating must be an integer from 1 to 5");
+    }
+    fields.rating = String(rating);
+  }
+  if (Object.keys(fields).length === 0) {
+    throw new ToolError("no_fields", "provide date, duration_minutes, and/or rating");
+  }
+  const updated = await api.updateSkillOccurrence(args.id, fields);
+  return ok({ today, week, occurrence: compactOccurrence(updated) });
+}
+
+export async function deleteSkillOccurrence(args = {}, ctx) {
+  const { api, today, week } = ctx;
+  assertPositiveId(args.id, "id");
+  await api.deleteSkillOccurrence(args.id);
+  return ok({ today, week, deleted: true, id: args.id });
 }

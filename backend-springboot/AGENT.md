@@ -27,6 +27,10 @@ All files under `backend-springboot/`.
 - `LegacyDataBackfill` fills `createdAt`/`completedAt` for pre-existing rows on startup
 - Query filtering is in-memory in `TodoService`; acceptable for the current dataset size
 - Do not wrap `save(...)` of a new entity in an outer `@Transactional` when the method also reads first: SQLite then holds a read lock while Hibernate's table-sequence generator commits on a second connection, which fails with `SQLITE_BUSY`. Keep `@Transactional` for delete-only methods (`SubtaskService`, `TaskEventService`)
+- Goals/skills: `Goal` entity (`kind` `GOAL|SKILL`, `mode` `METRIC|ROADMAP|REPS`). REST under `/todo/goals` (CRUD, complete/reopen, linked tasks, roadmap steps/reorder). Linking a task via `goalId` forces `longTerm=true`. Deleting a goal unlinks tasks (keeps `longTerm`) and, for skills, deletes all `SkillOccurrence` rows
+- Roadmap steps are goal-linked tasks with `roadmapOrder`; undated incomplete steps are a hidden draft outside `ROADMAP` mode and are deleted when a non-roadmap goal completes
+- Skills: `SkillOccurrence` (`goalId`, `date`, `durationMinutes` 1–5 rating required). REST: `GET/POST /todo/skills/{skillId}/occurrences`, `PATCH/DELETE /todo/skills/occurrences/{id}`. Occurrences never become tasks and never feed the global heatmap. `GoalView.occurrenceCount` is populated only for `kind=SKILL`
+- Activity timeline: `TaskEvent` via `GET /todo/events/{taskId}` (created/completed/uncompleted/pushed/edited)
 
 ## Work Guidance
 

@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
@@ -160,7 +161,10 @@ public class GoalService {
     /**
      * Deleting a goal unlinks its tasks (goalId and roadmapOrder cleared) but
      * leaves longTerm alone — unlinking never auto-clears the growth flag.
+     * Transactional: derived deleteByGoalId requires an active EntityManager
+     * transaction (unlike CrudRepository.deleteById, which is self-transactional).
      */
+    @Transactional
     public void delete(Long id) {
         if (!repository.existsById(id)) {
             return;

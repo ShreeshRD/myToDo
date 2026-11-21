@@ -15,6 +15,20 @@ import {
   uncompleteTask,
   pushTask,
   deleteTask,
+  createGoal,
+  updateGoal,
+  deleteGoal,
+  completeGoal,
+  addRoadmapStep,
+  reorderRoadmap,
+  listSubtasks,
+  addSubtask,
+  updateSubtask,
+  deleteSubtask,
+  logSkillOccurrence,
+  listSkillOccurrences,
+  updateSkillOccurrence,
+  deleteSkillOccurrence,
 } from "../src/tools/write.js";
 import { FakeApi, FIXED_CLOCK, makeConfig, makeRawTask, parseResult } from "./fixtures.js";
 
@@ -667,4 +681,193 @@ test("deleteTaskIgnoresFalseBoolean", async () => {
   );
   assert.equal(result.deleted, true);
   assert.equal(api.tasks.length, 0);
+});
+
+// ---------- description / goal link ----------
+
+test("updateTaskSetsDescription", async () => {
+  const api = new FakeApi({ tasks: [makeRawTask({ id: 1 })] });
+  const result = parseResult(
+    await updateTask({ id: 1, description: "Drink water" }, makeCtx(api))
+  );
+  assert.deepEqual(result.updated_fields, ["description"]);
+  assert.equal(result.task.description, "Drink water");
+});
+
+test("createTaskAcceptsGoalId", async () => {
+  const api = new FakeApi({
+    goals: [{ id: 3, title: "Run", kind: "GOAL", mode: "METRIC", status: "ACTIVE" }],
+  });
+  const result = parseResult(
+    await createTask({ name: "Long run", goal_id: 3 }, makeCtx(api))
+  );
+  const call = api.calls.find((c) => c.method === "add");
+  assert.equal(call.args.goalId, 3);
+  assert.equal(result.task.goal_id, 3);
+  assert.equal(result.task.long_term, true);
+});
+
+// ---------- goals / roadmap ----------
+
+test("createGoalAndList", async () => {
+  const api = new FakeApi();
+  const created = parseResult(await createGoal({ title: "Ship feature" }, makeCtx(api)));
+  assert.equal(created.goal.title, "Ship feature");
+  assert.equal(created.goal.kind, "GOAL");
+
+  const skill = parseResult(await createGoal({ title: "Guitar", kind: "SKILL" }, makeCtx(api)));
+  assert.equal(skill.goal.kind, "SKILL");
+
+  const rows = await api.listGoals();
+  assert.equal(rows.length, 2);
+});
+
+test("updateGoalMetricFields", async () => {
+  const api = new FakeApi({
+    goals: [{ id: 1, title: "Run", kind: "GOAL", mode: "METRIC", status: "ACTIVE" }],
+  });
+  const result = parseResult(
+    await updateGoal(
+      { id: 1, metric_current: 10, metric_target: 50, metric_unit: "km" },
+      makeCtx(api)
+    )
+  );
+  assert.equal(result.goal.metric_current, 10);
+  assert.equal(result.goal.metric_target, 50);
+  assert.equal(result.goal.metric_unit, "km");
+});
+
+test("deleteGoalRequiresTitleMatch", async () => {
+  const api = new FakeApi({
+    goals: [{ id: 1, title: "Run more", kind: "GOAL", mode: "METRIC", status: "ACTIVE" }],
+  });
+  const wrapped = runTool(deleteGoal, deps(api));
+  const bad = await wrapped({ id: 1, title: "Wrong" });
+  assert.equal(bad.isError, true);
+  assert.equal(parseResult(bad).error, "title_mismatch");
+
+  const good = parseResult(await deleteGoal({ id: 1, title: "Run more" }, makeCtx(api)));
+  assert.equal(good.deleted, true);
+  assert.equal(api.goals.length, 0);
+});
+
+test("completeGoalReopens", async () => {
+  const api = new FakeApi({
+    goals: [{ id: 1, title: "X", kind: "GOAL", mode: "METRIC", status: "ACTIVE" }],
+  });
+  const done = parseResult(await completeGoal({ id: 1 }, makeCtx(api)));
+  assert.equal(done.goal.status, "COMPLETED");
+  const reopened = parseResult(await completeGoal({ id: 1, reopen: true }, makeCtx(api)));
+  assert.equal(reopened.goal.status, "ACTIVE");
+});
+
+test("addRoadmapStepAndReorder", async () => {
+  const api = new FakeApi({
+    goals: [{ id: 1, title: "Learn", kind: "GOAL", mode: "ROADMAP", status: "ACTIVE" }],
+  });
+  const a = parseResult(
+    await addRoadmapStep({ goal_id: 1, name: "Step A" }, makeCtx(api))
+  );
+  const b = parseResult(
+    await addRoadmapStep({ goal_id: 1, name: "Step B", date: "2026-10-30" }, makeCtx(api))
+  );
+  assert.equal(a.task.roadmap_order, 1);
+  assert.equal(a.task.date, null);
+  assert.equal(b.task.date, "2026-10-30");
+
+  const reordered = parseResult(
+    await reorderRoadmap({ goal_id: 1, ordered_ids: [b.task.id, a.task.id] }, makeCtx(api))
+  );
+  assert.deepEqual(reordered.reordered, [b.task.id, a.task.id]);
+  const stepA = api.tasks.find((t) => t.id === a.task.id);
+  const stepB = api.tasks.find((t) => t.id === b.task.id);
+  assert.equal(stepB.roadmapOrder, 1);
+  assert.equal(stepA.roadmapOrder, 2);
+});
+
+// ---------- subtasks ----------
+
+test("subtaskLifecycle", async () => {
+  const api = new FakeApi({ tasks: [makeRawTask({ id: 1 })] });
+  const added = parseResult(await addSubtask({ task_id: 1, title: "Buy milk" }, makeCtx(api)));
+  assert.equal(added.subtask.done, false);
+  assert.equal(added.subtask.sort_order, 0);
+
+  const updated = parseResult(
+    await updateSubtask({ id: added.subtask.id, done: true }, makeCtx(api))
+  );
+  assert.equal(updated.subtask.done, true);
+
+  const listed = parseResult(await listSubtasks({ task_id: 1 }, makeCtx(api)));
+  assert.equal(listed.subtasks.length, 1);
+  assert.equal(listed.subtasks[0].done, true);
+
+  const deleted = parseResult(
+    await deleteSubtask({ id: added.subtask.id }, makeCtx(api))
+  );
+  assert.equal(deleted.deleted, true);
+  const after = parseResult(await listSubtasks({ task_id: 1 }, makeCtx(api)));
+  assert.equal(after.subtasks.length, 0);
+});
+
+// ---------- skills ----------
+
+test("logSkillOccurrenceRequiresDurationAndRating", async () => {
+  const api = new FakeApi({
+    goals: [{ id: 2, title: "Guitar", kind: "SKILL", mode: "METRIC", status: "ACTIVE" }],
+  });
+  const bad = runTool(logSkillOccurrence, deps(api));
+  const missing = await bad({ skill_id: 2, duration_minutes: 10 });
+  assert.equal(missing.isError, true);
+  assert.equal(parseResult(missing).error, "invalid_rating");
+
+  const good = parseResult(
+    await logSkillOccurrence(
+      { skill_id: 2, duration_minutes: 25, rating: 4, date: "2026-10-28" },
+      makeCtx(api)
+    )
+  );
+  assert.equal(good.occurrence.duration_minutes, 25);
+  assert.equal(good.occurrence.rating, 4);
+  assert.equal(good.occurrence.date, "2026-10-28");
+});
+
+test("skillOccurrenceUpdateAndDelete", async () => {
+  const api = new FakeApi({
+    goals: [{ id: 2, title: "Guitar", kind: "SKILL", mode: "METRIC", status: "ACTIVE" }],
+  });
+  const created = parseResult(
+    await logSkillOccurrence(
+      { skill_id: 2, duration_minutes: 15, rating: 3 },
+      makeCtx(api)
+    )
+  );
+  const updated = parseResult(
+    await updateSkillOccurrence(
+      { id: created.occurrence.id, duration_minutes: 40, rating: 5 },
+      makeCtx(api)
+    )
+  );
+  assert.equal(updated.occurrence.duration_minutes, 40);
+  assert.equal(updated.occurrence.rating, 5);
+
+  const listed = parseResult(await listSkillOccurrences({ skill_id: 2 }, makeCtx(api)));
+  assert.equal(listed.occurrences.length, 1);
+
+  const deleted = parseResult(
+    await deleteSkillOccurrence({ id: created.occurrence.id }, makeCtx(api))
+  );
+  assert.equal(deleted.deleted, true);
+  const after = parseResult(await listSkillOccurrences({ skill_id: 2 }, makeCtx(api)));
+  assert.equal(after.occurrences.length, 0);
+});
+
+test("logSkillOccurrenceRejectsNonPositiveDuration", async () => {
+  const api = new FakeApi({
+    goals: [{ id: 2, title: "Guitar", kind: "SKILL", mode: "METRIC", status: "ACTIVE" }],
+  });
+  const wrapped = runTool(logSkillOccurrence, deps(api));
+  const result = await wrapped({ skill_id: 2, duration_minutes: 0, rating: 3 });
+  assert.equal(result.isError, true);
+  assert.equal(parseResult(result).error, "invalid_duration");
 });

@@ -17,8 +17,13 @@ All files under `mcp/`.
 - `TODO_API_URL` defaults to the dev backend on port 8000; prod is 5555.
 - Timezone is `Asia/Kolkata`; weeks are Monday–Sunday.
 - `project` maps to the backend `category` field.
-- `update_task` maps `name` to backend `taskName`.
-- `push_task` maps to `POST /todo/push` (`reason` required, `date` optional/`+3` default); it returns the completed `task` and the deferred `clone`.
+- `update_task` maps `name` → `taskName`, `description` → `description`, `goal_id` → `goalId` (null unlinks).
+- `create_task` accepts `goal_id` (sets long_term) and `description` (applied via patch after create).
+- `push_task` maps to `POST /todo/push` (`reason` required, `date` optional/`+1` default); returns completed `task` + deferred `clone`.
+- Goals/skills: `list_goals`, `create_goal`, `update_goal`, `delete_goal` (exact title required), `complete_goal` (`reopen=true` to reverse).
+- Roadmap: `add_roadmap_step` (omit `date` for backlog), `reorder_roadmap` (full ordered id list). Step rename/date/complete/delete use `update_task` / `complete_task` / `delete_task`.
+- Subtasks: `list_subtasks`, `add_subtask`, `update_subtask`, `delete_subtask` — checklist rows only, never day-list tasks.
+- Skills: `log_skill_occurrence` (duration_minutes > 0 and rating 1–5 required), `list_skill_occurrences`, `update_skill_occurrence`, `delete_skill_occurrence`. Skills are `kind=SKILL` goals; never link them to tasks.
 - Never trust the `/todo/delete/{id}` boolean; verify by re-fetching.
 
 ## Work Guidance

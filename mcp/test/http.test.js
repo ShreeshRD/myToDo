@@ -45,19 +45,34 @@ test("toolsList", async () => {
     const { tools } = await client.listTools();
     const names = tools.map((t) => t.name).sort();
     assert.deepEqual(names, [
+      "add_roadmap_step",
+      "add_subtask",
+      "complete_goal",
       "complete_task",
       "count_tasks",
+      "create_goal",
       "create_task",
+      "delete_goal",
+      "delete_skill_occurrence",
+      "delete_subtask",
       "delete_task",
       "find_task",
       "get_day",
       "get_week",
+      "list_goals",
       "list_projects",
+      "list_skill_occurrences",
+      "list_subtasks",
+      "log_skill_occurrence",
       "push_task",
+      "reorder_roadmap",
       "uncomplete_task",
+      "update_goal",
+      "update_skill_occurrence",
+      "update_subtask",
       "update_task",
     ]);
-    assert.equal(tools.length, 11);
+    assert.equal(tools.length, 26);
   });
 });
 

@@ -11,7 +11,7 @@ export function normalizeProject(value) {
 }
 
 export function compactTask(raw, today) {
-  const date = raw.taskDate ?? raw.date;
+  const date = raw.taskDate ?? raw.date ?? null;
   const project =
     raw.category == null || String(raw.category).trim() === ""
       ? "None"
@@ -52,8 +52,68 @@ export function compactTask(raw, today) {
   if (raw.pushedFromId != null) {
     compact.pushed_from = raw.pushedFromId;
   }
+  if (raw.goalId != null) {
+    compact.goal_id = raw.goalId;
+  }
+  if (raw.roadmapOrder != null) {
+    compact.roadmap_order = raw.roadmapOrder;
+  }
+  if (raw.description != null && raw.description !== "") {
+    compact.description = raw.description;
+  }
+  if (Array.isArray(raw.subtasks)) {
+    compact.subtasks = raw.subtasks.map((s) => ({
+      id: s.id,
+      title: s.title,
+      done: s.done === true,
+    }));
+  }
 
   return compact;
+}
+
+/** Compact GoalView / SkillOccurrence payloads for tool results. */
+export function compactGoal(raw) {
+  if (raw == null) return null;
+  const compact = {
+    id: raw.id,
+    title: raw.title,
+    kind: raw.kind ?? "GOAL",
+    mode: raw.mode ?? "METRIC",
+    status: raw.status ?? "ACTIVE",
+    linked_total: raw.linkedTotal ?? 0,
+    linked_completed: raw.linkedCompleted ?? 0,
+    target_met: raw.targetMet === true,
+  };
+  if (raw.metricCurrent != null) compact.metric_current = raw.metricCurrent;
+  if (raw.metricTarget != null) compact.metric_target = raw.metricTarget;
+  if (raw.metricUnit != null) compact.metric_unit = raw.metricUnit;
+  if (raw.repsTarget != null) compact.reps_target = raw.repsTarget;
+  if (raw.repsCount != null) compact.reps_count = raw.repsCount;
+  if (raw.roadmapTotal != null) compact.roadmap_total = raw.roadmapTotal;
+  if (raw.roadmapCompleted != null) compact.roadmap_completed = raw.roadmapCompleted;
+  if (raw.occurrenceCount != null) compact.occurrence_count = raw.occurrenceCount;
+  return compact;
+}
+
+export function compactSubtask(raw) {
+  return {
+    id: raw.id,
+    task_id: raw.taskId,
+    title: raw.title,
+    done: raw.done === true,
+    sort_order: raw.sortOrder ?? 0,
+  };
+}
+
+export function compactOccurrence(raw) {
+  return {
+    id: raw.id,
+    skill_id: raw.goalId,
+    date: raw.date,
+    duration_minutes: raw.durationMinutes,
+    rating: raw.rating,
+  };
 }
 
 export function sortDayOrder(tasks) {

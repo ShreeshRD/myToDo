@@ -146,7 +146,7 @@ Files: new `SkillOccurrence` entity/service/controller; new `SkillsView`/`SkillD
 - Skill detail: count, per-skill heatmap, occurrence list with edit/delete.
 Verify: occurrences persist; per-skill heatmap updates; global heatmap unaffected; skills absent from Today/Upcoming.
 
-### [ ] Step 10 — MCP parity, docs, prod
+### [x] Step 10 — MCP parity, docs, prod
 Files: `mcp/src/tools/*`, `mcp/AGENT.md`, `backend-springboot/AGENT.md`, `frontend-next/AGENT.md`, root `AGENT.md`.
 - Add MCP tools: `push_task`, subtask ops, goal CRUD, roadmap ops, `log_skill_occurrence`, description updates.
 - Backup prod DB, run `./update-prod.sh`, verify service + heatmap + a live push/goal/skill.

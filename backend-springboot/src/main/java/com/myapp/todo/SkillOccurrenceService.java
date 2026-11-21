@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
@@ -65,6 +66,7 @@ public class SkillOccurrenceService {
         logger.info("Deleted skill occurrence {}", id);
     }
 
+    @Transactional
     public void deleteForSkill(Long skillId) {
         repository.deleteByGoalId(skillId);
     }
