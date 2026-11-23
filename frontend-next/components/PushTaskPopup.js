@@ -31,6 +31,8 @@ function PushForm({ task, theme, onCancel, onPushed }) {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
+        // Guard covers Ctrl/Cmd+Enter, which bypasses the disabled submit button.
+        if (saving) return;
         const trimmed = reason.trim();
         if (!trimmed) {
             setError('A reason is required.');

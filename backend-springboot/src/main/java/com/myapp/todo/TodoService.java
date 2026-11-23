@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -91,18 +92,45 @@ public class TodoService {
         item.setPriority(priority != null ? priority : 0);
         item.setLongTerm(longTerm != null ? longTerm : false);
         if (goalId != null) {
-            if (!goalRepository.existsById(goalId)) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Goal not found");
-            }
+            requireLinkableGoalOrHttp(goalId);
             item.setGoalId(goalId);
             // Linking a task to a goal marks it as growth work.
             item.setLongTerm(true);
         }
 
         TodoItem saved = repository.save(item);
-        taskEventService.record(saved.getId(), "CREATED", "Task created");
+        // Timeline is best-effort: a failed CREATED row must not report the
+        // committed add as failed (the client would retry and duplicate the task).
+        try {
+            taskEventService.record(saved.getId(), "CREATED", "Task created");
+        } catch (RuntimeException e) {
+            logger.warn("Failed to record CREATED event for task {}: {}", saved.getId(), e.getMessage());
+        }
         logger.info("Created new task with id: {}", saved.getId());
         return new TodoOperationResult("Added", saved);
+    }
+
+    /**
+     * Tasks may link only to {@code kind=GOAL} records; skills never link to tasks.
+     * Throws {@link IllegalArgumentException} so field-update paths can return
+     * a normal error result; callers that surface HTTP errors convert as needed.
+     */
+    private void requireLinkableGoal(Long goalId) {
+        Goal goal = goalRepository.findById(goalId)
+                .orElseThrow(() -> new IllegalArgumentException("Goal not found"));
+        if (goal.getKind() != Goal.Kind.GOAL) {
+            throw new IllegalArgumentException("Skills cannot be linked to tasks");
+        }
+    }
+
+    private void requireLinkableGoalOrHttp(Long goalId) {
+        try {
+            requireLinkableGoal(goalId);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(
+                    "Goal not found".equals(e.getMessage()) ? HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST,
+                    e.getMessage());
+        }
     }
 
     /**
@@ -132,43 +160,95 @@ public class TodoService {
         }
 
         int nextPushCount = (original.getPushCount() == null ? 0 : original.getPushCount()) + 1;
-        if (original.getChainRootId() == null) {
+        Long previousChainRootId = original.getChainRootId();
+        Integer previousRoadmapOrder = original.getRoadmapOrder();
+        Integer previousPushCount = original.getPushCount();
+        boolean previousInProgress = original.isInProgress();
+        LocalDateTime completedAt = LocalDateTime.now(COMPLETION_ZONE);
+
+        // Atomic claim: only one concurrent push may complete an open task.
+        int claimed = repository.markCompleteIfOpen(id, completedAt);
+        if (claimed == 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Task is already complete");
+        }
+
+        if (previousChainRootId == null) {
             original.setChainRootId(original.getId());
         }
         original.setPushCount(nextPushCount);
         original.setComplete(true);
-        original.setCompletedAt(LocalDateTime.now(COMPLETION_ZONE));
+        original.setCompletedAt(completedAt);
         original.setInProgress(false);
         // Pushing a roadmap step must not tick it: the order moves to the clone
         // so the step stays pending; the original is completed history only.
-        Integer roadmapOrder = original.getRoadmapOrder();
         original.setRoadmapOrder(null);
-        TodoItem savedOriginal = repository.save(original);
-        taskEventService.record(id, "PUSHED", "Pushed: " + trimmedReason,
-                original.getTaskDate(), target);
 
-        TodoItem clone = new TodoItem(target, nextOrderFor(target), original.getCategory(), original.getName());
-        clone.setPriority(original.getPriority());
-        clone.setLongTerm(original.isLongTerm());
-        clone.setDescription(original.getDescription());
-        clone.setRepeatType(original.getRepeatType());
-        clone.setRepeatDuration(original.getRepeatDuration());
-        clone.setGoalId(original.getGoalId());
-        clone.setChainRootId(original.getChainRootId());
-        clone.setPushedFromId(original.getId());
-        clone.setPushCount(nextPushCount);
-        clone.setRoadmapOrder(roadmapOrder);
-        TodoItem savedClone = repository.save(clone);
-        taskEventService.record(savedClone.getId(), "CREATED", "Deferred copy of pushed task " + id);
+        TodoItem savedClone = null;
+        try {
+            TodoItem savedOriginal = repository.save(original);
+            recordBestEffort(() -> taskEventService.record(id, "PUSHED", "Pushed: " + trimmedReason,
+                    original.getTaskDate(), target));
 
-        for (Subtask subtask : subtaskService.listForTask(id)) {
-            if (!subtask.isDone()) {
-                subtaskService.create(savedClone.getId(), subtask.getTitle());
+            TodoItem clone = new TodoItem(target, nextOrderFor(target), original.getCategory(), original.getName());
+            clone.setPriority(original.getPriority());
+            clone.setLongTerm(original.isLongTerm());
+            clone.setDescription(original.getDescription());
+            clone.setRepeatType(original.getRepeatType());
+            clone.setRepeatDuration(original.getRepeatDuration());
+            clone.setGoalId(original.getGoalId());
+            clone.setChainRootId(original.getChainRootId());
+            clone.setPushedFromId(original.getId());
+            clone.setPushCount(nextPushCount);
+            clone.setRoadmapOrder(previousRoadmapOrder);
+            TodoItem persistedClone = repository.save(clone);
+            savedClone = persistedClone;
+            Long cloneId = persistedClone.getId();
+            recordBestEffort(() -> taskEventService.record(cloneId, "CREATED",
+                    "Deferred copy of pushed task " + id));
+
+            for (Subtask subtask : subtaskService.listForTask(id)) {
+                if (!subtask.isDone()) {
+                    subtaskService.create(persistedClone.getId(), subtask.getTitle());
+                }
             }
-        }
 
-        logger.info("Pushed task {} to {} (deferred copy {})", id, target, savedClone.getId());
-        return new PushResult("Pushed", savedOriginal, savedClone);
+            logger.info("Pushed task {} to {} (deferred copy {})", id, target, persistedClone.getId());
+            return new PushResult("Pushed", savedOriginal, persistedClone);
+        } catch (RuntimeException e) {
+            // Compensate: leave the original open so the client can retry cleanly.
+            if (savedClone != null) {
+                try {
+                    repository.deleteById(savedClone.getId());
+                    taskEventService.deleteForTask(savedClone.getId());
+                    subtaskService.deleteForTask(savedClone.getId());
+                } catch (RuntimeException cleanupError) {
+                    logger.error("Failed to clean up clone after push failure for task {}: {}",
+                            id, cleanupError.getMessage());
+                }
+            }
+            original.setComplete(false);
+            original.setCompletedAt(null);
+            original.setPushCount(previousPushCount);
+            original.setChainRootId(previousChainRootId);
+            original.setRoadmapOrder(previousRoadmapOrder);
+            original.setInProgress(previousInProgress);
+            try {
+                repository.save(original);
+            } catch (RuntimeException restoreError) {
+                logger.error("Failed to restore task {} after push failure: {}", id, restoreError.getMessage());
+            }
+            logger.error("Push of task {} failed and was rolled back: {}", id, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Push failed; the task was left open so you can retry", e);
+        }
+    }
+
+    private void recordBestEffort(Runnable action) {
+        try {
+            action.run();
+        } catch (RuntimeException e) {
+            logger.warn("Timeline write failed: {}", e.getMessage());
+        }
     }
 
     private int nextOrderFor(LocalDate date) {
@@ -181,13 +261,9 @@ public class TodoService {
      * checklist rows, or completion) is left alone and reported to the caller.
      */
     private String releaseDeferredClones(Long taskId) {
-        List<TodoItem> clones;
-        try {
-            clones = repository.findByPushedFromId(taskId);
-        } catch (RuntimeException e) {
-            logger.warn("Could not look up deferred copies of task {}: {}", taskId, e.getMessage());
-            return null;
-        }
+        // Lookup failures propagate so the reopen path can fail closed instead
+        // of reporting Updated while cleanup is unfinished.
+        List<TodoItem> clones = repository.findByPushedFromId(taskId);
         boolean kept = false;
         for (TodoItem clone : clones) {
             if (isUntouchedClone(clone)) {
@@ -240,7 +316,7 @@ public class TodoService {
             recordFieldEvent(id, field, savedItem);
             String warning = null;
             if ("complete".equals(field) && wasComplete && !savedItem.isComplete()) {
-                warning = releaseDeferredClones(id);
+                warning = releaseDeferredClonesOrRestore(id, item, wasComplete);
             }
             logger.info("Updated task {} field: {}", id, field);
             TodoOperationResult result = new TodoOperationResult("Updated", savedItem);
@@ -249,9 +325,38 @@ public class TodoService {
                 result.setNextTask(generateNextOccurrence(savedItem));
             }
             return result;
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (IllegalArgumentException | java.time.format.DateTimeParseException e) {
             logger.error("Error updating task {}: {}", id, e.getMessage());
             return new TodoOperationResult("Error: " + e.getMessage(), null);
+        }
+    }
+
+    /**
+     * Runs deferred-copy cleanup after a reopen has already been saved. If
+     * cleanup fails, restores the completed state so a retry can finish the
+     * operation instead of leaving an open task with orphaned clones.
+     */
+    private String releaseDeferredClonesOrRestore(Long id, TodoItem item, boolean wasComplete) {
+        try {
+            return releaseDeferredClones(id);
+        } catch (RuntimeException e) {
+            logger.error("Deferred-copy cleanup failed for task {}: {}", id, e.getMessage());
+            item.setComplete(wasComplete);
+            if (wasComplete) {
+                item.setCompletedAt(item.getCompletedAt() != null
+                        ? item.getCompletedAt()
+                        : LocalDateTime.now(COMPLETION_ZONE));
+            }
+            try {
+                repository.save(item);
+            } catch (RuntimeException restoreError) {
+                logger.error("Failed to restore task {} after cleanup failure: {}",
+                        id, restoreError.getMessage());
+            }
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Could not release deferred copies; the task was left complete so you can retry", e);
         }
     }
 
@@ -281,16 +386,26 @@ public class TodoService {
                     }
                 }
             }
-            TodoItem savedItem = repository.save(item);
-            if (completeChanged) {
-                recordCompletionEvent(id, savedItem.isComplete());
+            // Field order must not matter: a linked task is always long-term.
+            if (item.getGoalId() != null) {
+                item.setLongTerm(true);
             }
-            if (!editedFields.isEmpty()) {
-                recordEditEvent(id, String.join(", ", editedFields));
+            TodoItem savedItem = repository.save(item);
+            // Timeline writes are best-effort so a failed event row cannot skip
+            // recurrence generation or deferred-clone cleanup below.
+            try {
+                if (completeChanged) {
+                    recordCompletionEvent(id, savedItem.isComplete());
+                }
+                if (!editedFields.isEmpty()) {
+                    recordEditEvent(id, String.join(", ", editedFields));
+                }
+            } catch (RuntimeException e) {
+                logger.warn("Failed to record timeline event for task {}: {}", id, e.getMessage());
             }
             String warning = null;
             if (completeChanged && wasComplete && !savedItem.isComplete()) {
-                warning = releaseDeferredClones(id);
+                warning = releaseDeferredClonesOrRestore(id, item, wasComplete);
             }
             logger.info("Patched task {} with {} field(s)", id, fields == null ? 0 : fields.size());
             TodoOperationResult result = new TodoOperationResult("Updated", savedItem);
@@ -299,6 +414,8 @@ public class TodoService {
                 result.setNextTask(generateNextOccurrence(savedItem));
             }
             return result;
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (IllegalArgumentException | java.time.format.DateTimeParseException e) {
             logger.error("Error patching task {}: {}", id, e.getMessage());
             return new TodoOperationResult("Error: " + e.getMessage(), null);
@@ -499,9 +616,7 @@ public class TodoService {
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("Invalid goalId");
         }
-        if (!goalRepository.existsById(goalId)) {
-            throw new IllegalArgumentException("Goal not found");
-        }
+        requireLinkableGoal(goalId);
         item.setGoalId(goalId);
         item.setLongTerm(true);
     }
@@ -553,6 +668,11 @@ public class TodoService {
         }
     }
 
+    /**
+     * Delete-only: one transaction so a mid-cleanup failure rolls back the
+     * task delete and a retry can remove every child row.
+     */
+    @Transactional
     public boolean deleteTask(Long id) {
         Optional<TodoItem> optItem = repository.findById(id);
         if (optItem.isPresent()) {
@@ -572,8 +692,9 @@ public class TodoService {
     // the dataset grows beyond roughly 10k tasks; current prod is ~519 rows.
     public List<TodoItem> queryTasks(TaskQuery query) {
         validateQuery(query);
+        // Undated backlog steps sort first on asc (nullsFirst) without NPE.
         Comparator<TodoItem> byDateThenId = Comparator
-                .comparing(TodoItem::getTaskDate)
+                .comparing(TodoItem::getTaskDate, Comparator.nullsFirst(Comparator.naturalOrder()))
                 .thenComparing(TodoItem::getId);
         if ("desc".equals(normalizeOrder(query.getOrder()))) {
             byDateThenId = byDateThenId.reversed();

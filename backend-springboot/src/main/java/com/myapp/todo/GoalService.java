@@ -118,7 +118,9 @@ public class GoalService {
      * Manual completion: archived, reopenable. When the goal is not in ROADMAP
      * mode, undated incomplete steps are draft leftovers and are deleted;
      * dated or completed steps remain as normal goal tasks.
+     * Transactional so draft cleanup rolls back with a failed goal save.
      */
+    @Transactional
     public GoalView complete(Long id) {
         Goal goal = find(id);
         if (goal.getStatus() != Goal.Status.COMPLETED) {
@@ -190,8 +192,9 @@ public class GoalService {
      */
     public TodoItem addRoadmapStep(Long goalId, String name, java.time.LocalDate date) {
         Goal goal = find(goalId);
-        if (goal.getStatus() != Goal.Status.ACTIVE) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Goal is completed");
+        if (goal.getStatus() != Goal.Status.ACTIVE || goal.getKind() != Goal.Kind.GOAL) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    goal.getKind() == Goal.Kind.SKILL ? "Skills cannot have roadmap steps" : "Goal is completed");
         }
         String trimmed = cleanTitle(name);
         List<TodoItem> linked = taskRepository.findByGoalId(goalId);
@@ -232,12 +235,21 @@ public class GoalService {
         if (orderedIds.size() != byId.size()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "orderedIds must include every roadmap step");
         }
-        int order = 1;
+        // Resolve every ID before any write so a bad id cannot partially reorder.
+        List<TodoItem> ordered = new ArrayList<>();
+        java.util.Set<Long> seen = new java.util.HashSet<>();
         for (Long taskId : orderedIds) {
+            if (!seen.add(taskId)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "orderedIds must not contain duplicates");
+            }
             TodoItem step = byId.get(taskId);
             if (step == null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Task " + taskId + " is not a roadmap step of this goal");
             }
+            ordered.add(step);
+        }
+        int order = 1;
+        for (TodoItem step : ordered) {
             step.setRoadmapOrder(order++);
             taskRepository.save(step);
         }

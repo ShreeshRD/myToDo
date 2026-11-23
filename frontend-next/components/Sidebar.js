@@ -101,13 +101,27 @@ function Sidebar({
             <FaRegCalendarAlt />
             <span> Calendar</span>
           </li>
-          <li onClick={() => setViewPage('Goals')} className={viewPage === 'Goals' ? 'active' : ''}>
-            <FaBullseye />
-            <span> Goals</span>
+          <li className={viewPage === 'Goals' ? 'active' : ''}>
+            <button
+              type="button"
+              className="sidebar__nav-button"
+              onClick={() => setViewPage('Goals')}
+              aria-current={viewPage === 'Goals' ? 'page' : undefined}
+            >
+              <FaBullseye />
+              <span> Goals</span>
+            </button>
           </li>
-          <li onClick={() => setViewPage('Skills')} className={viewPage === 'Skills' ? 'active' : ''}>
-            <FaMusic />
-            <span> Skills</span>
+          <li className={viewPage === 'Skills' ? 'active' : ''}>
+            <button
+              type="button"
+              className="sidebar__nav-button"
+              onClick={() => setViewPage('Skills')}
+              aria-current={viewPage === 'Skills' ? 'page' : undefined}
+            >
+              <FaMusic />
+              <span> Skills</span>
+            </button>
           </li>
           <li onClick={() => setViewPage('Search')} className={viewPage === 'Search' ? 'active' : ''}>
             <FaSearch />

@@ -21,12 +21,34 @@ function DescriptionEditor({ task, updateTask }) {
     // key={task.id} remounts this editor when the selected task changes,
     // so we only need a local draft — no render-time sync with the store.
     const [draft, setDraft] = useState(task.description || '');
+    const draftRef = useRef(draft);
+    const savedRef = useRef(task.description || '');
+
+    useEffect(() => {
+        draftRef.current = draft;
+    }, [draft]);
+
+    const save = () => {
+        const latest = draftRef.current;
+        if (latest === savedRef.current) return;
+        savedRef.current = latest;
+        updateTask(task.id, 'description', latest, task.taskDate);
+    };
 
     const handleBlur = () => {
-        const current = task.description || '';
-        if (draft === current) return;
-        updateTask(task.id, 'description', draft, task.taskDate);
+        save();
     };
+
+    // Escape / outside click unmounts this editor; Firefox does not fire blur
+    // on removal, so persist any unsaved draft from cleanup.
+    const taskId = task.id;
+    const taskDate = task.taskDate;
+    useEffect(() => () => {
+        const latest = draftRef.current;
+        if (latest === savedRef.current) return;
+        savedRef.current = latest;
+        updateTask(taskId, 'description', latest, taskDate);
+    }, [taskId, taskDate, updateTask]);
 
     return (
         <textarea

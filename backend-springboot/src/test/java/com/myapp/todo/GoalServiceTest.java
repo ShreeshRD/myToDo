@@ -257,6 +257,49 @@ class GoalServiceTest {
         ResponseStatusException error = assertThrows(ResponseStatusException.class,
                 () -> goalService.reorderRoadmap(1L, List.of(10L, 99L)));
         assertEquals(HttpStatus.BAD_REQUEST, error.getStatusCode());
+        verify(taskRepository, never()).save(any(TodoItem.class));
+    }
+
+    @Test
+    void testReorderRoadmapRejectsUnknownIdWithoutPartialWrite() {
+        Goal existing = activeGoal();
+        when(repository.findById(1L)).thenReturn(Optional.of(existing));
+        TodoItem a = roadmapStep(10L, 1, null, false);
+        TodoItem b = roadmapStep(11L, 2, null, false);
+        when(taskRepository.findByGoalId(1L)).thenReturn(List.of(a, b));
+
+        ResponseStatusException error = assertThrows(ResponseStatusException.class,
+                () -> goalService.reorderRoadmap(1L, List.of(10L, 99L)));
+        assertEquals(HttpStatus.BAD_REQUEST, error.getStatusCode());
+        // Valid first id must keep its original order — no partial save.
+        assertEquals(1, a.getRoadmapOrder());
+        verify(taskRepository, never()).save(any(TodoItem.class));
+    }
+
+    @Test
+    void testReorderRoadmapRejectsDuplicateIds() {
+        Goal existing = activeGoal();
+        when(repository.findById(1L)).thenReturn(Optional.of(existing));
+        when(taskRepository.findByGoalId(1L)).thenReturn(List.of(
+                roadmapStep(10L, 1, null, false),
+                roadmapStep(11L, 2, null, false)));
+
+        ResponseStatusException error = assertThrows(ResponseStatusException.class,
+                () -> goalService.reorderRoadmap(1L, List.of(10L, 10L)));
+        assertEquals(HttpStatus.BAD_REQUEST, error.getStatusCode());
+        verify(taskRepository, never()).save(any(TodoItem.class));
+    }
+
+    @Test
+    void testAddRoadmapStepRejectsSkill() {
+        Goal skill = activeGoal();
+        skill.setKind(Goal.Kind.SKILL);
+        when(repository.findById(1L)).thenReturn(Optional.of(skill));
+
+        ResponseStatusException error = assertThrows(ResponseStatusException.class,
+                () -> goalService.addRoadmapStep(1L, "Step", null));
+        assertEquals(HttpStatus.BAD_REQUEST, error.getStatusCode());
+        verify(taskRepository, never()).save(any(TodoItem.class));
     }
 
     @Test

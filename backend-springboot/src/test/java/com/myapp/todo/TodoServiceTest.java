@@ -200,6 +200,7 @@ class TodoServiceTest {
         sampleItem.setRepeatType(TodoItem.RepeatPattern.EVERY_X_DAYS);
         sampleItem.setRepeatDuration(1);
         when(repository.findById(1L)).thenReturn(Optional.of(sampleItem));
+        when(repository.markCompleteIfOpen(eq(1L), any(java.time.LocalDateTime.class))).thenReturn(1);
         when(repository.findByTaskDate(any(LocalDate.class))).thenReturn(new ArrayList<>());
         when(repository.save(any(TodoItem.class))).thenAnswer(invocation -> {
             TodoItem item = invocation.getArgument(0);
@@ -351,6 +352,7 @@ class TodoServiceTest {
         done.setDone(true);
         Subtask open = new Subtask(1L, "Still open", 1);
         when(repository.findById(1L)).thenReturn(Optional.of(sampleItem));
+        when(repository.markCompleteIfOpen(eq(1L), any(java.time.LocalDateTime.class))).thenReturn(1);
         when(repository.findByTaskDate(destination)).thenReturn(new ArrayList<>());
         when(repository.save(any(TodoItem.class))).thenAnswer(invocation -> {
             TodoItem item = invocation.getArgument(0);
@@ -395,6 +397,7 @@ class TodoServiceTest {
         sampleItem.setRoadmapOrder(2);
         sampleItem.setGoalId(7L);
         when(repository.findById(1L)).thenReturn(Optional.of(sampleItem));
+        when(repository.markCompleteIfOpen(eq(1L), any(java.time.LocalDateTime.class))).thenReturn(1);
         when(repository.findByTaskDate(destination)).thenReturn(new ArrayList<>());
         when(repository.save(any(TodoItem.class))).thenAnswer(invocation -> {
             TodoItem item = invocation.getArgument(0);
@@ -482,6 +485,7 @@ class TodoServiceTest {
     void testPushTask_DefaultsToOneDay() {
         // Arrange
         when(repository.findById(1L)).thenReturn(Optional.of(sampleItem));
+        when(repository.markCompleteIfOpen(eq(1L), any(java.time.LocalDateTime.class))).thenReturn(1);
         when(repository.findByTaskDate(any(LocalDate.class))).thenReturn(new ArrayList<>());
         when(repository.save(any(TodoItem.class))).thenAnswer(invocation -> {
             TodoItem item = invocation.getArgument(0);
@@ -525,6 +529,75 @@ class TodoServiceTest {
                 () -> todoService.pushTask(1L, "Again", LocalDate.now().plusDays(3)));
         assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, error.getStatusCode());
         verify(repository, never()).save(any(TodoItem.class));
+        verify(repository, never()).markCompleteIfOpen(anyLong(), any());
+    }
+
+    @Test
+    void testPushTask_CompensatesWhenCloneSaveFails() {
+        LocalDate destination = LocalDate.now().plusDays(3);
+        when(repository.findById(1L)).thenReturn(Optional.of(sampleItem));
+        when(repository.markCompleteIfOpen(eq(1L), any(java.time.LocalDateTime.class))).thenReturn(1);
+        when(repository.save(any(TodoItem.class))).thenThrow(new RuntimeException("db busy"));
+
+        org.springframework.web.server.ResponseStatusException error = assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
+                () -> todoService.pushTask(1L, "Later", destination));
+        assertEquals(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, error.getStatusCode());
+        // Original left open so the client can retry.
+        assertFalse(sampleItem.isComplete());
+        assertNull(sampleItem.getCompletedAt());
+    }
+
+    @Test
+    void testPatchTaskForcesLongTermWhenGoalLinkedRegardlessOfFieldOrder() {
+        when(repository.findById(1L)).thenReturn(Optional.of(sampleItem));
+        when(repository.save(any(TodoItem.class))).thenReturn(sampleItem);
+        Goal goal = new Goal("Linked");
+        goal.setId(7L);
+        when(goalRepository.findById(7L)).thenReturn(Optional.of(goal));
+
+        java.util.Map<String, String> fields = new java.util.LinkedHashMap<>();
+        fields.put("goalId", "7");
+        fields.put("longTerm", "false");
+
+        TodoOperationResult result = todoService.patchTask(1L, fields);
+
+        assertEquals("Updated", result.getStatus());
+        assertEquals(7L, sampleItem.getGoalId());
+        assertTrue(sampleItem.isLongTerm());
+    }
+
+    @Test
+    void testAddTaskRejectsSkillGoal() {
+        when(repository.findByTaskDate(any(LocalDate.class))).thenReturn(new ArrayList<>());
+        Goal skill = new Goal("Practice");
+        skill.setId(9L);
+        skill.setKind(Goal.Kind.SKILL);
+        when(goalRepository.findById(9L)).thenReturn(Optional.of(skill));
+
+        org.springframework.web.server.ResponseStatusException error = assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
+                () -> todoService.addTask("Work", "T", LocalDate.now(),
+                        TodoItem.RepeatPattern.NONE, 0, 0, false, 9L));
+        assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, error.getStatusCode());
+        verify(repository, never()).save(any(TodoItem.class));
+    }
+
+    @Test
+    void testQueryTasksSortsUndatedBacklogWithoutError() {
+        TodoItem dated = new TodoItem(LocalDate.of(2026, 10, 28), 1, "None", "Dated");
+        dated.setId(1L);
+        TodoItem backlog = new TodoItem(null, 0, "None", "Backlog");
+        backlog.setId(2L);
+        backlog.setRoadmapOrder(1);
+        when(repository.findAll()).thenReturn(Arrays.asList(dated, backlog));
+
+        com.myapp.todo.dto.TaskQuery query = new com.myapp.todo.dto.TaskQuery();
+        List<TodoItem> result = todoService.queryTasks(query);
+
+        assertEquals(2, result.size());
+        assertEquals(2L, result.get(0).getId()); // undated first (nullsFirst)
+        assertEquals(1L, result.get(1).getId());
     }
 
     @Test
