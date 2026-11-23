@@ -1,6 +1,6 @@
 ---
 name: Todo Advanced Features
-status: in-progress
+status: completed
 ---
 
 # Advanced Task Lifecycle — Implementation Plan
