@@ -2,17 +2,20 @@
 
 import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { useTasks } from "../contexts/TaskContext";
 import dayjs from 'dayjs';
 import { RiCheckboxBlankCircleLine, RiCheckboxCircleFill } from "react-icons/ri";
 import DeleteIcon from '@mui/icons-material/Delete';
 import CustomCheckbox from "./CustomCheckbox";
 import CustomContextMenu from "./CustomContextMenu";
+import { useTasks } from "../contexts/TaskContext";
 import { useUI } from "../contexts/UIContext";
 import { useStopwatch } from "../contexts/StopwatchContext";
+import { getGoals } from "../service";
+import { goalProgressLabel } from "./GoalsView";
 import { formatTimeTaken } from "../lib/dateHelpers";
 import '../styles/todoitem.css';
 import '../styles/todayview.scss';
+import '../styles/GoalsView.scss';
 
 // Generate time slots every 90 minutes from 00:00 to 00:00 (next day)
 const generateTimeSlots = () => {
@@ -32,14 +35,69 @@ const generateTimeSlots = () => {
 const TIME_SLOTS = generateTimeSlots();
 
 function TodayView() {
-    const { taskDays, updateTask, removeTask, callPopup } = useTasks();
-    const { theme } = useUI();
+    const { taskDays, updateTask, removeTask, callPopup, openDetail, openPush, subtaskCounts } = useTasks();
+    const { theme, openGoal } = useUI();
     const { toggleStopwatch, stopStopwatch } = useStopwatch();
     const [todayTasks, setTodayTasks] = useState([]);
     const [assignedTasks, setAssignedTasks] = useState({});
     const [overdueTasks, setOverdueTasks] = useState([]);
     const [currentTime, setCurrentTime] = useState(dayjs());
     const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, task: null });
+    const [warnTask, setWarnTask] = useState(null);
+    const [goals, setGoals] = useState([]);
+    const warnTimer = React.useRef(null);
+    const goalsCancelledRef = React.useRef(false);
+    const goalsRequestRef = React.useRef(0);
+
+    useEffect(() => () => clearTimeout(warnTimer.current), []);
+
+    const loadGoals = React.useCallback(async () => {
+        const requestId = ++goalsRequestRef.current;
+        try {
+            const rows = await getGoals();
+            if (!goalsCancelledRef.current && requestId === goalsRequestRef.current) {
+                setGoals(Array.isArray(rows) ? rows : []);
+            }
+        } catch (err) {
+            console.error('getGoals failed:', err);
+        }
+    }, []);
+
+    useEffect(() => {
+        goalsCancelledRef.current = false;
+        const timer = setTimeout(loadGoals, 0);
+        return () => {
+            goalsCancelledRef.current = true;
+            clearTimeout(timer);
+        };
+    }, [loadGoals]);
+
+    // Slim strip: only goals with at least one task scheduled today.
+    const todayGoalStrip = (() => {
+        const today = dayjs().format('YYYY-MM-DD');
+        const scheduledToday = taskDays[today] || [];
+        if (scheduledToday.length === 0) return [];
+        const byGoal = new Map();
+        scheduledToday.forEach((task) => {
+            if (task.goalId == null) return;
+            const key = String(task.goalId);
+            byGoal.set(key, (byGoal.get(key) || 0) + 1);
+        });
+        if (byGoal.size === 0) return [];
+        return goals
+            .filter((g) => g.kind !== 'SKILL' && g.status === 'ACTIVE' && byGoal.has(String(g.id)))
+            .map((g) => ({
+                goal: g,
+                taskCount: byGoal.get(String(g.id)),
+            }));
+    })();
+
+    // Inline row notice (open checklist items, kept deferred copy, …).
+    const showRowWarning = (taskId, message) => {
+        setWarnTask({ id: taskId, message });
+        clearTimeout(warnTimer.current);
+        warnTimer.current = setTimeout(() => setWarnTask(null), 4000);
+    };
 
     // Update current time every minute
     useEffect(() => {
@@ -274,6 +332,20 @@ function TodayView() {
         handleCloseContextMenu();
     };
 
+    const handlePush = () => {
+        if (contextMenu.task) {
+            openPush(contextMenu.task);
+        }
+        handleCloseContextMenu();
+    };
+
+    // Right-clicking the checkbox pushes directly, without the context menu.
+    const handlePushFromCheckbox = (e, task) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openPush(task);
+    };
+
     const handleTimeMe = () => {
         if (contextMenu.task) {
             toggleStopwatch(contextMenu.task);
@@ -296,13 +368,14 @@ function TodayView() {
                     {...provided.draggableProps}
                     {...provided.dragHandleProps}
                     ref={provided.innerRef}
-                    onClick={() => !task.complete && callPopup(dayjs().format('YYYY-MM-DD'), task)}
+                    onClick={() => openDetail(task)}
                     onContextMenu={(e) => !task.complete && handleContextMenu(e, task)}
                     style={{ ...provided.draggableProps.style, marginBottom: '8px' }}
                 >
                     <div className="todo_item_inner">
                         <CustomCheckbox
                             checked={task.complete}
+                            onContextMenu={(e) => !task.complete && handlePushFromCheckbox(e, task)}
                             onChange={async (e) => {
                                 e.stopPropagation();
                                 const newComplete = !task.complete;
@@ -310,8 +383,19 @@ function TodayView() {
                                     // Detach any running timer; the complete update
                                     // below records timeTaken from the in-progress session
                                     await stopStopwatch(task);
+                                    const counts = subtaskCounts[task.id];
+                                    if (counts && counts.total > counts.done) {
+                                        showRowWarning(task.id, 'Completed with open checklist items');
+                                    }
                                 }
-                                await updateTask(task.id, "complete", newComplete, task.taskDate);
+                                const result = await updateTask(task.id, "complete", newComplete, task.taskDate);
+                                if (result?.warning) {
+                                    showRowWarning(task.id, result.warning);
+                                }
+                                // Goal strip progress depends on linked-task completions.
+                                if (task.goalId != null) {
+                                    loadGoals();
+                                }
                             }}
                             icon={<RiCheckboxBlankCircleLine className="checkbox_icon_unchecked" />}
                             checkedIcon={<RiCheckboxCircleFill className="checkbox_icon_checked" />}
@@ -331,9 +415,21 @@ function TodayView() {
                             <DeleteIcon className="todo_delete_icon" />
                         </button>
                     </div>
-                    {task.complete && task.timeTaken > 0 && (
+                    {(task.complete && task.timeTaken > 0) || (subtaskCounts[task.id] && subtaskCounts[task.id].total > 0) || task.pushCount > 0 ? (
                         <div className="task_infobar">
-                            <span>{` • ${formatTimeTaken(task.timeTaken)}`}</span>
+                            <span>
+                                {subtaskCounts[task.id] && subtaskCounts[task.id].total > 0 &&
+                                    `${subtaskCounts[task.id].done}/${subtaskCounts[task.id].total} subtasks`}
+                                {task.complete && task.timeTaken > 0 && ` • ${formatTimeTaken(task.timeTaken)}`}
+                            </span>
+                            {task.pushCount > 0 && (
+                                <span className="push-badge">Pushed {task.pushCount}×</span>
+                            )}
+                        </div>
+                    ) : null}
+                    {warnTask && warnTask.id === task.id && (
+                        <div className="subtask-warning">
+                            {warnTask.message}
                         </div>
                     )}
                 </div>
@@ -372,101 +468,122 @@ function TodayView() {
 
     return (
         <div className={`today-view ${theme}`}>
-            <DragDropContext onDragEnd={onDragEnd}>
-                {/* Tasks Column */}
-                <div className="tasks-column">
+            {todayGoalStrip.length > 0 && (
+                <div className="today-goal-strip" aria-label="Goals with work today">
+                    {todayGoalStrip.map(({ goal, taskCount }) => (
+                        <button
+                            key={goal.id}
+                            type="button"
+                            className="goal-strip-chip"
+                            onClick={() => openGoal(goal.id)}
+                            title={`Open ${goal.title}`}
+                        >
+                            <span className="goal-strip-name">{goal.title}</span>
+                            <span className="goal-strip-progress">{goalProgressLabel(goal)}</span>
+                            <span className="goal-strip-count">
+                                {taskCount} task{taskCount === 1 ? '' : 's'}
+                            </span>
+                        </button>
+                    ))}
+                </div>
+            )}
+            <div className="today-main">
+                <DragDropContext onDragEnd={onDragEnd}>
+                    {/* Tasks Column */}
+                    <div className="tasks-column">
 
-                    {/* Overdue Section */}
-                    {overdueTasks.length > 0 && (
-                        <div className="overdue-section">
-                            <h3>Overdue</h3>
-                            <Droppable droppableId="overdue">
+                        {/* Overdue Section */}
+                        {overdueTasks.length > 0 && (
+                            <div className="overdue-section">
+                                <h3>Overdue</h3>
+                                <Droppable droppableId="overdue">
+                                    {(provided) => (
+                                        <div
+                                            ref={provided.innerRef}
+                                            {...provided.droppableProps}
+                                            className="overdue-list"
+                                        >
+                                            {overdueTasks.map((task, index) => renderTask(task, index))}
+                                            {provided.placeholder}
+                                        </div>
+                                    )}
+                                </Droppable>
+                            </div>
+                        )}
+
+                        {/* Unassigned Tasks */}
+                        <div className="unassigned-section">
+                            <h3>Tasks</h3>
+                            <Droppable droppableId="unassigned">
                                 {(provided) => (
                                     <div
                                         ref={provided.innerRef}
                                         {...provided.droppableProps}
-                                        className="overdue-list"
+                                        className="unassigned-list"
                                     >
-                                        {overdueTasks.map((task, index) => renderTask(task, index))}
+                                        {todayTasks.map((task, index) => renderTask(task, index))}
                                         {provided.placeholder}
                                     </div>
                                 )}
                             </Droppable>
                         </div>
-                    )}
-
-                    {/* Unassigned Tasks */}
-                    <div className="unassigned-section">
-                        <h3>Tasks</h3>
-                        <Droppable droppableId="unassigned">
-                            {(provided) => (
-                                <div
-                                    ref={provided.innerRef}
-                                    {...provided.droppableProps}
-                                    className="unassigned-list"
-                                >
-                                    {todayTasks.map((task, index) => renderTask(task, index))}
-                                    {provided.placeholder}
-                                </div>
-                            )}
-                        </Droppable>
                     </div>
-                </div>
 
-                {/* Schedule Column */}
-                <div className="schedule-column">
-                    <h3>Schedule</h3>
-                    <div className="slots-container">
-                        {TIME_SLOTS.map((slot) => {
-                            const isPast = isSlotInPast(slot);
-                            const lineStyle = getCurrentTimeLineStyle(slot);
-                            const hasTasks = assignedTasks[slot] && assignedTasks[slot].length > 0;
+                    {/* Schedule Column */}
+                    <div className="schedule-column">
+                        <h3>Schedule</h3>
+                        <div className="slots-container">
+                            {TIME_SLOTS.map((slot) => {
+                                const isPast = isSlotInPast(slot);
+                                const lineStyle = getCurrentTimeLineStyle(slot);
+                                const hasTasks = assignedTasks[slot] && assignedTasks[slot].length > 0;
 
-                            // Hide past slots if they have no tasks
-                            if (isPast && !hasTasks) {
-                                return null;
-                            }
+                                // Hide past slots if they have no tasks
+                                if (isPast && !hasTasks) {
+                                    return null;
+                                }
 
-                            return (
-                                <div key={slot} className="time-slot">
-                                    <div className="slot-label">
-                                        {slot}
-                                    </div>
-                                    <Droppable droppableId={slot}>
-                                        {(provided, snapshot) => (
-                                            <div
-                                                ref={provided.innerRef}
-                                                {...provided.droppableProps}
-                                                className={`slot-droppable${snapshot.isDraggingOver ? ' dragging-over' : ''}${isPast ? ' past' : ''}`}
-                                            >
-                                                {/* Dark Overlay for Past Slots or Dragging Over */}
-                                                {(isPast || snapshot.isDraggingOver) && !lineStyle && (
-                                                    <div className="dark-overlay" style={{ height: '100%' }} />
-                                                )}
+                                return (
+                                    <div key={slot} className="time-slot">
+                                        <div className="slot-label">
+                                            {slot}
+                                        </div>
+                                        <Droppable droppableId={slot}>
+                                            {(provided, snapshot) => (
+                                                <div
+                                                    ref={provided.innerRef}
+                                                    {...provided.droppableProps}
+                                                    className={`slot-droppable${snapshot.isDraggingOver ? ' dragging-over' : ''}${isPast ? ' past' : ''}`}
+                                                >
+                                                    {/* Dark Overlay for Past Slots or Dragging Over */}
+                                                    {(isPast || snapshot.isDraggingOver) && !lineStyle && (
+                                                        <div className="dark-overlay" style={{ height: '100%' }} />
+                                                    )}
 
-                                                {lineStyle && (
-                                                    <>
-                                                        {/* Darken area before line */}
-                                                        <div className="dark-overlay" style={{ height: lineStyle.top }} />
-                                                        {/* The Line */}
-                                                        <div className="current-time-line" style={{ top: lineStyle.top }} />
-                                                    </>
-                                                )}
+                                                    {lineStyle && (
+                                                        <>
+                                                            {/* Darken area before line */}
+                                                            <div className="dark-overlay" style={{ height: lineStyle.top }} />
+                                                            {/* The Line */}
+                                                            <div className="current-time-line" style={{ top: lineStyle.top }} />
+                                                        </>
+                                                    )}
 
-                                                {/* Content */}
-                                                <div className="slot-content">
-                                                    {assignedTasks[slot] && assignedTasks[slot].map((task, index) => renderTask(task, index))}
+                                                    {/* Content */}
+                                                    <div className="slot-content">
+                                                        {assignedTasks[slot] && assignedTasks[slot].map((task, index) => renderTask(task, index))}
+                                                    </div>
+                                                    {provided.placeholder}
                                                 </div>
-                                                {provided.placeholder}
-                                            </div>
-                                        )}
-                                    </Droppable>
-                                </div>
-                            );
-                        })}
+                                            )}
+                                        </Droppable>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
-                </div>
-            </DragDropContext>
+                </DragDropContext>
+            </div>
             <CustomContextMenu
                 visible={contextMenu.visible}
                 x={contextMenu.x}
@@ -477,6 +594,7 @@ function TodayView() {
                 onToggleLongTerm={handleToggleLongTerm}
                 onEdit={handleEdit}
                 onTimeMe={handleTimeMe}
+                onPush={handlePush}
             />
         </div>
     );

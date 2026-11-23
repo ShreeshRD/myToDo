@@ -4,10 +4,11 @@ HTTP MCP server that lets local AI clients read and manage tasks through the Spr
 
 ## What it does
 
-- Exposes 10 MCP tools over stateless Streamable HTTP at `http://127.0.0.1:8765/mcp`.
+- Exposes 26 MCP tools over stateless Streamable HTTP at `http://127.0.0.1:8765/mcp`.
 - Reads today/week tasks, counts, and single-task lookups.
-- Creates, updates, completes, uncompletes, and deletes tasks.
-- Continues recurring chains when a recurring task is completed.
+- Creates, updates, completes, uncompletes, pushes, and deletes tasks.
+- Continues recurring chains when a recurring task is completed (backend creates the next instance).
+- Manages goals, roadmap steps, subtasks (checklists), and skill occurrences.
 - Never touches SQLite; every call goes through the REST API at `TODO_API_URL`.
 
 ## Prerequisites
@@ -74,12 +75,28 @@ console.log(JSON.parse(result.content[0].text));
 | `get_week` | Current week (Mon–Sun). `week_offset` shifts weeks. |
 | `count_tasks` | Counts only; never returns task lists. |
 | `find_task` | One task by filters; use `exact_name` for recurring names. |
-| `create_task` | Create a non-recurring task on today or a future date. |
-| `update_task` | Update name/date/project/priority/long_term by id. |
-| `complete_task` | Mark complete; creates the next recurring instance when applicable. |
-| `uncomplete_task` | Mark incomplete and clear completion time. |
-| `delete_task` | Delete by id; requires exact current name as a safety check. |
 | `list_projects` | Project names (backend `category`) with task counts. |
+| `list_goals` | Goals and skills with progress; filter by `kind`/`status`. |
+| `list_subtasks` | Checklist rows for one task. |
+| `list_skill_occurrences` | Logged occurrences for one skill (newest first, capped). |
+| `create_task` | Create a non-recurring task on today or a future date. |
+| `update_task` | Update name/date/project/priority/long_term/description/goal_id by id. |
+| `complete_task` | Mark complete; returns the backend-created next recurring instance when applicable. |
+| `uncomplete_task` | Mark incomplete and clear completion time. |
+| `push_task` | Complete now and create a deferred copy on a later date (required reason). |
+| `delete_task` | Delete by id; requires exact current name as a safety check. |
+| `create_goal` | Create a goal or skill (`kind`). |
+| `update_goal` | Update title/mode/metric/reps fields by id. |
+| `delete_goal` | Delete a goal; requires exact current title as a safety check. |
+| `complete_goal` | Archive a goal (`reopen=true` reverses). |
+| `add_roadmap_step` | Add a roadmap step (omit `date` for backlog). |
+| `reorder_roadmap` | Reorder all roadmap step ids for a goal. |
+| `add_subtask` | Add a checklist row to a task. |
+| `update_subtask` | Rename or toggle a checklist row. |
+| `delete_subtask` | Delete a checklist row. |
+| `log_skill_occurrence` | Log practice (duration minutes > 0 and rating 1–5 required). |
+| `update_skill_occurrence` | Edit date/duration/rating on a logged occurrence. |
+| `delete_skill_occurrence` | Delete a logged occurrence by id. |
 
 ## Classify tasks with a local model
 

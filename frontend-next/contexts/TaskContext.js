@@ -1,8 +1,8 @@
 'use client'
 
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import useTaskManagement from '../hooks/useTaskManagement';
-import { addTask } from "../service";
+import { addTask, updateTaskFields, getSubtaskCounts } from "../service";
 import { startInProgressSession } from "../lib/inProgressTimer";
 import { useUI } from './UIContext';
 import { calculatePredecessor, calculatePredecessorUnfiltered } from '../lib/dragUtils';
@@ -18,6 +18,31 @@ export const TaskProvider = ({ children }) => {
     const [showPopup, setShowPopup] = useState(false);
     const [popupDate, setPopupDate] = useState("");
     const [popupTaskItem, setPopupTaskItem] = useState(null);
+    const [detailTaskId, setDetailTaskId] = useState(null);
+    const [subtaskCounts, setSubtaskCounts] = useState({});
+    const [pushTaskItem, setPushTaskItem] = useState(null);
+
+    // Checklist badges for every task row, refreshed whenever the task lists
+    // reload so totals stay correct without a per-row request.
+    const refreshSubtaskCounts = useCallback(async () => {
+        try {
+            const rows = await getSubtaskCounts();
+            const next = {};
+            (Array.isArray(rows) ? rows : []).forEach(({ taskId, total, done }) => {
+                next[taskId] = { total, done };
+            });
+            setSubtaskCounts(next);
+        } catch (err) {
+            console.error('getSubtaskCounts backend failed:', err);
+        }
+    }, []);
+
+    useEffect(() => {
+        // Defer one tick: the fetch resolves later and must not set state during
+        // the effect body (cascading-render guard).
+        const timer = setTimeout(refreshSubtaskCounts, 0);
+        return () => clearTimeout(timer);
+    }, [refreshSubtaskCounts, taskManagement.taskDays, taskManagement.completedTasks, taskManagement.overdueTasks]);
 
     const toggleProject = (project) => {
         setSelectedProjects(prev => {
@@ -61,39 +86,98 @@ export const TaskProvider = ({ children }) => {
         setShowPopup(true);
     };
 
-    const onPopupClose = async (deleteid = -1, taskDate, taskName = '', dateChoice, projectChoice = "None", priority = 0, repeatType = "NONE", repeatDuration = 0, taskOrder = 0, assignedTime = null, inProgress = false, timeTaken = 0, longTerm = false) => {
+    // Resolve the live task so the drawer reflects list edits and completion.
+    const findTaskById = (id) => {
+        if (id === null || id === undefined) return null;
+        const targetId = id.toString();
+        for (const date in taskManagement.taskDays) {
+            const match = taskManagement.taskDays[date].find(t => t.id.toString() === targetId);
+            if (match) return match;
+        }
+        for (const date in taskManagement.completedTasks) {
+            const match = taskManagement.completedTasks[date].find(t => t.id.toString() === targetId);
+            if (match) return match;
+        }
+        return (taskManagement.overdueTasks.overdue || []).find(t => t.id.toString() === targetId) || null;
+    };
+
+    const detailTask = findTaskById(detailTaskId);
+
+    const openDetail = (task) => {
+        if (task && task.id !== undefined && task.id !== null) {
+            setDetailTaskId(task.id);
+        }
+    };
+
+    const closeDetail = () => setDetailTaskId(null);
+
+    // Push dialog: only open tasks can be pushed ("not in my hands").
+    const openPush = (task) => {
+        if (task && task.id !== undefined && task.id !== null && !task.complete) {
+            setPushTaskItem(task);
+        }
+    };
+
+    const closePush = () => setPushTaskItem(null);
+
+    const handlePushed = async () => {
+        setPushTaskItem(null);
+        await taskManagement.fetchTasks();
+        refreshSubtaskCounts();
+    };
+
+    // If the open detail task is deleted, findTaskById returns null and the
+    // drawer hides itself; detailTaskId is cleared the next time a task is opened.
+
+    const onPopupClose = async (taskID = -1, taskName = '', dateChoice, projectChoice = "None", priority = 0, repeatType = "NONE", repeatDuration = 0, taskOrder = 0, assignedTime = null, inProgress = false, timeTaken = 0, longTerm = false, goalId = null) => {
+        const isEditing = taskID !== -1 && taskID !== "-1" && taskID !== null && taskID !== undefined;
+
         if (taskName.trim() !== '') {
-            let task;
-            try {
-                task = await addTask(taskName, dateChoice, projectChoice, priority, repeatType, repeatDuration, longTerm);
-            } catch (err) {
-                console.error('addTask backend failed:', err);
-                return;
-            }
-
-            if (assignedTime) {
-                task.assignedTime = assignedTime;
-                await taskManagement.updateBackend(task.id, "assignedTime", assignedTime);
-            }
-
-            if (inProgress) {
-                task.inProgress = true;
-                await taskManagement.updateBackend(task.id, "inProgress", true);
-                startInProgressSession(task.id);
-            }
-
-            if (timeTaken > 0) {
-                task.timeTaken = timeTaken;
-                await taskManagement.updateBackend(task.id, "timeTaken", timeTaken);
-            }
-
-            if (deleteid !== -1 && deleteid !== "-1" && deleteid !== null && deleteid !== undefined) {
-                await taskManagement.removeTask(deleteid, taskDate, true);
-                task.dayOrder = taskOrder;
-                taskManagement.updateBackend(task.id, "dayOrder", taskOrder);
-                // Refresh from backend so old task is gone before new one appears
-                await taskManagement.fetchTasks();
+            if (isEditing) {
+                // Update in place so the task keeps its ID. History, subtasks and
+                // push chains all depend on a stable identity.
+                try {
+                    await updateTaskFields(taskID, {
+                        taskName,
+                        taskDate: dateChoice,
+                        category: projectChoice,
+                        priority: String(priority),
+                        repeatType,
+                        repeatDuration: String(repeatDuration),
+                        dayOrder: String(taskOrder),
+                        assignedTime: assignedTime || "null",
+                        goalId: goalId == null ? "null" : String(goalId),
+                    });
+                    await taskManagement.fetchTasks();
+                } catch (err) {
+                    console.error('updateTaskFields backend failed:', err);
+                    return;
+                }
             } else {
+                let task;
+                try {
+                    task = await addTask(taskName, dateChoice, projectChoice, priority, repeatType, repeatDuration, longTerm, goalId);
+                } catch (err) {
+                    console.error('addTask backend failed:', err);
+                    return;
+                }
+
+                if (assignedTime) {
+                    task.assignedTime = assignedTime;
+                    await taskManagement.updateBackend(task.id, "assignedTime", assignedTime);
+                }
+
+                if (inProgress) {
+                    task.inProgress = true;
+                    await taskManagement.updateBackend(task.id, "inProgress", true);
+                    startInProgressSession(task.id);
+                }
+
+                if (timeTaken > 0) {
+                    task.timeTaken = timeTaken;
+                    await taskManagement.updateBackend(task.id, "timeTaken", timeTaken);
+                }
+
                 taskManagement.addToFrontend(task);
             }
         }
@@ -151,8 +235,9 @@ export const TaskProvider = ({ children }) => {
     };
 
     const updateTaskWithDeletedProjectCheck = async (id, field, value, date) => {
-        // Normal update (complete=true also clears inProgress inside updateTask)
-        await taskManagement.updateTask(id, field, value, date);
+        // Normal update (complete=true also clears inProgress inside updateTask).
+        // Pass through failed so callers (e.g. Notes save) can retry.
+        return taskManagement.updateTask(id, field, value, date);
     };
 
     const handleDragEnd = (result) => {
@@ -212,6 +297,15 @@ export const TaskProvider = ({ children }) => {
             setPopupTaskItem,
             callPopup,
             onPopupClose,
+            detailTask,
+            openDetail,
+            closeDetail,
+            pushTaskItem,
+            openPush,
+            closePush,
+            handlePushed,
+            subtaskCounts,
+            refreshSubtaskCounts,
             darkMode,
             selectedProjects,
             toggleProject,

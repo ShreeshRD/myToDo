@@ -1,6 +1,7 @@
 package com.myapp.todo;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Convert;
 import jakarta.persistence.GeneratedValue;
@@ -10,6 +11,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -31,6 +33,11 @@ public class TodoItem {
     private boolean inProgress;
     private boolean longTerm;
 
+    @Column(columnDefinition = "TEXT")
+    private String description;
+    private LocalDateTime createdAt;
+    private LocalDateTime completedAt;
+
     public TodoItem() {
     }
 
@@ -40,6 +47,7 @@ public class TodoItem {
         this.category = category;
         this.name = name;
         this.complete = false;
+        this.createdAt = LocalDateTime.now();
     }
 
     @Override
@@ -166,4 +174,24 @@ public class TodoItem {
     public void setTimeTaken(Long timeTaken) {
         this.timeTaken = timeTaken;
     }
+
+    /**
+     * Push chain bookkeeping. A pushed task is completed and a deferred clone is
+     * created for the chosen date; both rows share the chain root.
+     */
+    private Long chainRootId;
+    private Long pushedFromId;
+    private Integer pushCount;
+
+    /**
+     * Optional goal link; setting it also marks the task long-term.
+     */
+    private Long goalId;
+
+    /**
+     * Position within a goal's roadmap (null = not a step). A step with a null
+     * {@link #taskDate} is backlog and never appears in day lists; a dated step
+     * is a normal day-to-day task. Push moves this field to the clone.
+     */
+    private Integer roadmapOrder;
 }

@@ -14,6 +14,13 @@ All files under `frontend-next/`.
 - TypeScript for new files; JavaScript for existing
 - Context-based state management (`TaskContext`, `UIContext`, `StopwatchContext`)
 - Direct sync with Spring Boot backend via REST API (configured in `lib/constants.js`)
+- Task rows open `TaskDetailDrawer` (notes, checklist, metadata, activity); checklist counts live in `TaskContext` (`subtaskCounts`) and refresh after checklist mutations
+- Recurrence is server-side: completing a task returns `nextTask` from the backend and the hook inserts it into local state (no client-side repeat math)
+- Pushing a task ("not in my hands") is available from the row checkbox (right-click), the row context menu (`Push…`), and the detail drawer. `PushTaskPopup` requires a reason, defaults the destination to the task date `+1` day, offers `+1d / +3d / +1w` chips relative to the task date, and submits with `Ctrl/Cmd+Enter` (guarded against double-submit while saving); rows show a `Pushed N×` badge and an inline warning when un-completing keeps an active deferred copy
+- Task detail Notes persist on blur and on drawer close (Escape/outside click), not only blur — unmount must not drop the draft
+- Sidebar Goals and Skills entries are native buttons (`aria-current` for the active view) so they are keyboard-reachable
+- Global heatmap (`Heatmap`) counts only `longTerm` completions; callers may pass `tasksByDate` for a per-skill heatmap (skill occurrences only)
+- Goals live in the Goals view (`GoalsView`/`GoalDetail`): metric/roadmap/reps modes, Today strip only for goals with tasks today. Skills live only in the Skills view (`SkillsView`/`SkillDetail`): `+1 occurrence` form (date, duration, rating 1–5), per-skill heatmap, occurrence list. Skills are filtered out of Goals, the task goal picker, and the Today strip; they never link to tasks
 - Tests in `__tests__/` using Jest
 
 ## Work Guidance

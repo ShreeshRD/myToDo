@@ -88,6 +88,28 @@ li {
     }
 }
 
+/* Keyboard-reachable nav entries (Goals / Skills) keep the li look. */
+.sidebar__nav-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.sidebar__nav-button:focus-visible {
+    outline: 2px solid #6366f1;
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
 .dark {
     li {
         padding: 7px 12px;

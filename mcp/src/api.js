@@ -109,4 +109,84 @@ export class TodoApi {
   delete(id) {
     return this.request("DELETE", `/todo/delete/${id}`);
   }
+
+  push(id, reason, date) {
+    return this.request("POST", "/todo/push", {
+      params: { id, reason, date },
+    });
+  }
+
+  patch(id, fields) {
+    return this.request("POST", `/todo/patch/${id}`, { body: fields });
+  }
+
+  listGoals() {
+    return this.request("GET", "/todo/goals");
+  }
+
+  getGoal(id) {
+    return this.request("GET", `/todo/goals/${id}`);
+  }
+
+  createGoal(body) {
+    return this.request("POST", "/todo/goals", { body });
+  }
+
+  updateGoal(id, fields) {
+    return this.request("PATCH", `/todo/goals/${id}`, { body: fields });
+  }
+
+  deleteGoal(id) {
+    return this.request("DELETE", `/todo/goals/${id}`);
+  }
+
+  completeGoal(id) {
+    return this.request("POST", `/todo/goals/${id}/complete`);
+  }
+
+  reopenGoal(id) {
+    return this.request("POST", `/todo/goals/${id}/reopen`);
+  }
+
+  addRoadmapStep(goalId, body) {
+    return this.request("POST", `/todo/goals/${goalId}/roadmap/steps`, { body });
+  }
+
+  reorderRoadmap(goalId, orderedIds) {
+    return this.request("POST", `/todo/goals/${goalId}/roadmap/reorder`, {
+      body: orderedIds,
+    });
+  }
+
+  listSubtasks(taskId) {
+    return this.request("GET", `/todo/subtasks/${taskId}`);
+  }
+
+  addSubtask(taskId, body) {
+    return this.request("POST", `/todo/subtasks/${taskId}`, { body });
+  }
+
+  updateSubtask(id, fields) {
+    return this.request("PATCH", `/todo/subtasks/item/${id}`, { body: fields });
+  }
+
+  deleteSubtask(id) {
+    return this.request("DELETE", `/todo/subtasks/item/${id}`);
+  }
+
+  listSkillOccurrences(skillId) {
+    return this.request("GET", `/todo/skills/${skillId}/occurrences`);
+  }
+
+  logSkillOccurrence(skillId, body) {
+    return this.request("POST", `/todo/skills/${skillId}/occurrences`, { body });
+  }
+
+  updateSkillOccurrence(id, fields) {
+    return this.request("PATCH", `/todo/skills/occurrences/${id}`, { body: fields });
+  }
+
+  deleteSkillOccurrence(id) {
+    return this.request("DELETE", `/todo/skills/occurrences/${id}`);
+  }
 }

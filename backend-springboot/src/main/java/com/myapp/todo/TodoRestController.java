@@ -1,11 +1,13 @@
 package com.myapp.todo;
 
 import com.myapp.todo.dto.ProjectCount;
+import com.myapp.todo.dto.PushResult;
 import com.myapp.todo.dto.TaskCounts;
 import com.myapp.todo.dto.TaskQuery;
 import com.myapp.todo.dto.TodoOperationResult;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 
@@ -39,9 +41,10 @@ public class TodoRestController {
             @RequestParam(required = false) TodoItem.RepeatPattern repeatType,
             @RequestParam(required = false) Integer repeatDuration,
             @RequestParam(required = false) Integer priority,
-            @RequestParam(required = false) Boolean longTerm) {
+            @RequestParam(required = false) Boolean longTerm,
+            @RequestParam(required = false) Long goalId) {
 
-        return todoService.addTask(category, name, taskDate, repeatType, repeatDuration, priority, longTerm);
+        return todoService.addTask(category, name, taskDate, repeatType, repeatDuration, priority, longTerm, goalId);
     }
 
     @PostMapping("/update")
@@ -50,6 +53,21 @@ public class TodoRestController {
             @RequestParam String field,
             @RequestParam String value) {
         return todoService.updateTaskField(id, field, value);
+    }
+
+    @PostMapping("/patch/{id}")
+    public @ResponseBody TodoOperationResult patchItem(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> fields) {
+        return todoService.patchTask(id, fields);
+    }
+
+    @PostMapping("/push")
+    public @ResponseBody PushResult pushItem(
+            @RequestParam long id,
+            @RequestParam String reason,
+            @RequestParam(required = false) LocalDate date) {
+        return todoService.pushTask(id, reason, date);
     }
 
     @DeleteMapping("/delete/{id}")

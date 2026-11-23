@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import '../styles/CustomContextMenu.css';
 
-const CustomContextMenu = ({ x, y, visible, onClose, onMarkInProgress, onToggleLongTerm, task, onEdit, onTimeMe }) => {
+const CustomContextMenu = ({ x, y, visible, onClose, onMarkInProgress, onToggleLongTerm, task, onEdit, onTimeMe, onPush }) => {
     const menuRef = useRef(null);
 
     useEffect(() => {
@@ -41,6 +41,11 @@ const CustomContextMenu = ({ x, y, visible, onClose, onMarkInProgress, onToggleL
             <div className="menu-item" onClick={onTimeMe}>
                 Time me
             </div>
+            {onPush && (
+                <div className="menu-item" onClick={onPush}>
+                    Push…
+                </div>
+            )}
             <div className="menu-item" onClick={onEdit}>
                 Edit
             </div>

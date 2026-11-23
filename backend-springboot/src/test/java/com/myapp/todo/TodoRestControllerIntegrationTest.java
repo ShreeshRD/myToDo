@@ -12,6 +12,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -42,12 +43,20 @@ class TodoRestControllerIntegrationTest {
         @Autowired
         private TodoItemRepository repository;
 
+        @Autowired
+        private TaskEventRepository taskEventRepository;
+
+        @Autowired
+        private SubtaskRepository subtaskRepository;
+
         private String baseUrl;
 
         @BeforeEach
         void setUp() {
                 baseUrl = "http://127.0.0.1:" + port + "/todo";
                 repository.deleteAll();
+                taskEventRepository.deleteAll();
+                subtaskRepository.deleteAll();
         }
 
         @Test
@@ -475,6 +484,362 @@ class TodoRestControllerIntegrationTest {
                 assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
                 assertThat(response.getBody().getStatus()).contains("Error");
                 assertThat(response.getBody().getItem()).isNull();
+        }
+
+        @Test
+        @Order(17)
+        @DisplayName("POST /todo/patch/{id} - should update multiple fields and keep the task id")
+        void testPatchTask() {
+                // Arrange
+                TodoItem createdTask = createTask("Original", "Work");
+                Long taskId = createdTask.getId();
+
+                java.util.Map<String, String> fields = new java.util.LinkedHashMap<>();
+                fields.put("taskName", "Patched");
+                fields.put("category", "Personal");
+                fields.put("priority", "3");
+                fields.put("description", "Details");
+
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                HttpEntity<java.util.Map<String, String>> request = new HttpEntity<>(fields, headers);
+
+                // Act
+                ResponseEntity<TodoOperationResult> response = restTemplate.postForEntity(
+                                baseUrl + "/patch/" + taskId, request, TodoOperationResult.class);
+
+                // Assert
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody()).isNotNull();
+                TodoItem patched = response.getBody().getItem();
+                assertThat(patched.getId()).isEqualTo(taskId);
+                assertThat(patched.getName()).isEqualTo("Patched");
+                assertThat(patched.getCategory()).isEqualTo("Personal");
+                assertThat(patched.getPriority()).isEqualTo(3);
+                assertThat(patched.getDescription()).isEqualTo("Details");
+        }
+
+        @Test
+        @Order(18)
+        @DisplayName("POST /todo/update - completion sets completedAt and preserves assignedTime")
+        void testCompletionTimestamps() {
+                // Arrange
+                TodoItem createdTask = createTask("Timed completion", "Work");
+                Long taskId = createdTask.getId();
+
+                java.net.URI timeUrl = UriComponentsBuilder.fromUriString(baseUrl + "/update")
+                                .queryParam("id", taskId)
+                                .queryParam("field", "assignedTime")
+                                .queryParam("value", "09:00:00")
+                                .build()
+                                .toUri();
+                restTemplate.postForEntity(timeUrl, null, TodoOperationResult.class);
+
+                java.net.URI completeUrl = UriComponentsBuilder.fromUriString(baseUrl + "/update")
+                                .queryParam("id", taskId)
+                                .queryParam("field", "complete")
+                                .queryParam("value", "true")
+                                .build()
+                                .toUri();
+
+                // Act
+                ResponseEntity<TodoOperationResult> response = restTemplate.postForEntity(
+                                completeUrl, null, TodoOperationResult.class);
+
+                // Assert
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody()).isNotNull();
+                assertThat(response.getBody().getItem().getCompletedAt()).isNotNull();
+                assertThat(response.getBody().getItem().getAssignedTime()).isEqualTo(java.time.LocalTime.of(9, 0));
+        }
+
+        @Test
+        @Order(19)
+        @DisplayName("GET /todo/events/{taskId} - records created, edited and completed events")
+        void testTaskEventsTimeline() {
+                // Arrange
+                TodoItem createdTask = createTask("Timeline task", "Work");
+                Long taskId = createdTask.getId();
+
+                java.net.URI renameUrl = UriComponentsBuilder.fromUriString(baseUrl + "/update")
+                                .queryParam("id", taskId)
+                                .queryParam("field", "taskName")
+                                .queryParam("value", "Renamed task")
+                                .build()
+                                .toUri();
+                restTemplate.postForEntity(renameUrl, null, TodoOperationResult.class);
+
+                java.net.URI completeUrl = UriComponentsBuilder.fromUriString(baseUrl + "/update")
+                                .queryParam("id", taskId)
+                                .queryParam("field", "complete")
+                                .queryParam("value", "true")
+                                .build()
+                                .toUri();
+                restTemplate.postForEntity(completeUrl, null, TodoOperationResult.class);
+
+                // Act
+                ResponseEntity<List<TaskEvent>> response = restTemplate.exchange(
+                                baseUrl + "/events/" + taskId, HttpMethod.GET, null,
+                                new ParameterizedTypeReference<List<TaskEvent>>() {
+                                });
+
+                // Assert
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody()).isNotNull();
+                assertThat(response.getBody()).extracting(TaskEvent::getType)
+                                .containsExactly("CREATED", "EDITED", "COMPLETED");
+                assertThat(response.getBody().get(1).getDetail()).contains("name");
+        }
+
+        @Test
+        @Order(20)
+        @DisplayName("Subtask checklist - CRUD, order, counts and delete cascade")
+        void testSubtaskChecklist() {
+                // Arrange
+                TodoItem task = createTask("Checklist parent", "Work");
+                Long taskId = task.getId();
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+
+                // Act - add two rows
+                ResponseEntity<Subtask> firstResponse = restTemplate.postForEntity(
+                                baseUrl + "/subtasks/" + taskId,
+                                new HttpEntity<>(java.util.Map.of("title", "First"), headers),
+                                Subtask.class);
+                ResponseEntity<Subtask> secondResponse = restTemplate.postForEntity(
+                                baseUrl + "/subtasks/" + taskId,
+                                new HttpEntity<>(java.util.Map.of("title", "Second"), headers),
+                                Subtask.class);
+
+                // Assert - appended in order
+                assertThat(firstResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(secondResponse.getBody()).isNotNull();
+                Subtask first = Objects.requireNonNull(firstResponse.getBody());
+                Subtask second = Objects.requireNonNull(secondResponse.getBody());
+                assertThat(second.getSortOrder()).isEqualTo(1);
+
+                ResponseEntity<List<Subtask>> listResponse = restTemplate.exchange(
+                                baseUrl + "/subtasks/" + taskId, HttpMethod.GET, null,
+                                new ParameterizedTypeReference<List<Subtask>>() {
+                                });
+                assertThat(listResponse.getBody()).extracting(Subtask::getTitle)
+                                .containsExactly("First", "Second");
+
+                // Act - check a row
+                ResponseEntity<Subtask> toggled = restTemplate.exchange(
+                                baseUrl + "/subtasks/item/" + first.getId(), HttpMethod.PATCH,
+                                new HttpEntity<>(java.util.Map.of("done", "true"), headers),
+                                Subtask.class);
+
+                // Assert
+                assertThat(toggled.getBody()).isNotNull();
+                assertThat(toggled.getBody().isDone()).isTrue();
+
+                // Act - reorder
+                restTemplate.postForEntity(
+                                baseUrl + "/subtasks/" + taskId + "/reorder",
+                                new HttpEntity<>(Arrays.asList(second.getId(), first.getId()), headers),
+                                List.class);
+
+                // Assert - counts endpoint reflects totals
+                ResponseEntity<List<com.myapp.todo.dto.SubtaskCount>> countsResponse = restTemplate.exchange(
+                                baseUrl + "/subtasks/counts/all", HttpMethod.GET, null,
+                                new ParameterizedTypeReference<List<com.myapp.todo.dto.SubtaskCount>>() {
+                                });
+                assertThat(countsResponse.getBody()).anySatisfy(count -> {
+                        assertThat(count.getTaskId()).isEqualTo(taskId);
+                        assertThat(count.getTotal()).isEqualTo(2);
+                        assertThat(count.getDone()).isEqualTo(1);
+                });
+
+                // Act - deleting the parent removes its checklist rows
+                restTemplate.delete(baseUrl + "/delete/" + taskId);
+
+                // Assert
+                assertThat(subtaskRepository.countByTaskId(taskId)).isZero();
+        }
+
+        @Test
+        @Order(21)
+        @DisplayName("POST /todo/push - completes original, clones unchecked checklist and records reason")
+        void testPushTask() {
+                // Arrange
+                TodoItem task = createTask("Push parent", "Work");
+                Long taskId = task.getId();
+                LocalDate destination = LocalDate.now().plusDays(3);
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+
+                Subtask doneRow = Objects.requireNonNull(restTemplate.postForEntity(
+                                baseUrl + "/subtasks/" + taskId,
+                                new HttpEntity<>(java.util.Map.of("title", "Done row"), headers),
+                                Subtask.class).getBody());
+                restTemplate.exchange(
+                                baseUrl + "/subtasks/item/" + doneRow.getId(), HttpMethod.PATCH,
+                                new HttpEntity<>(java.util.Map.of("done", "true"), headers),
+                                Subtask.class);
+                restTemplate.postForEntity(
+                                baseUrl + "/subtasks/" + taskId,
+                                new HttpEntity<>(java.util.Map.of("title", "Open row"), headers),
+                                Subtask.class);
+
+                java.net.URI pushUrl = UriComponentsBuilder.fromUriString(baseUrl + "/push")
+                                .queryParam("id", taskId)
+                                .queryParam("reason", "Waiting on client")
+                                .queryParam("date", destination.toString())
+                                .build()
+                                .toUri();
+
+                // Act
+                ResponseEntity<com.myapp.todo.dto.PushResult> response = restTemplate.postForEntity(
+                                pushUrl, null, com.myapp.todo.dto.PushResult.class);
+
+                // Assert - original completed and chained
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                com.myapp.todo.dto.PushResult body = Objects.requireNonNull(response.getBody());
+                TodoItem original = body.getOriginal();
+                TodoItem clone = body.getClone();
+                assertThat(original.isComplete()).isTrue();
+                assertThat(original.getPushCount()).isEqualTo(1);
+                assertThat(original.getChainRootId()).isEqualTo(taskId);
+
+                // Assert - clone copies fields and only unchecked subtasks
+                assertThat(clone.getId()).isNotEqualTo(taskId);
+                assertThat(clone.getTaskDate()).isEqualTo(destination);
+                assertThat(clone.isComplete()).isFalse();
+                assertThat(clone.getPushedFromId()).isEqualTo(taskId);
+                assertThat(clone.getChainRootId()).isEqualTo(taskId);
+                assertThat(clone.getPushCount()).isEqualTo(1);
+
+                ResponseEntity<List<Subtask>> cloneRows = restTemplate.exchange(
+                                baseUrl + "/subtasks/" + clone.getId(), HttpMethod.GET, null,
+                                new ParameterizedTypeReference<List<Subtask>>() {
+                                });
+                assertThat(cloneRows.getBody()).extracting(Subtask::getTitle)
+                                .containsExactly("Open row");
+
+                // Assert - checked row stays with the completed original
+                assertThat(subtaskRepository.countByTaskId(taskId)).isEqualTo(2);
+
+                // Assert - original timeline records the reason and destination
+                ResponseEntity<List<TaskEvent>> events = restTemplate.exchange(
+                                baseUrl + "/events/" + taskId, HttpMethod.GET, null,
+                                new ParameterizedTypeReference<List<TaskEvent>>() {
+                                });
+                assertThat(events.getBody()).anySatisfy(event -> {
+                        assertThat(event.getType()).isEqualTo("PUSHED");
+                        assertThat(event.getDetail()).contains("Waiting on client");
+                });
+        }
+
+        @Test
+        @Order(22)
+        @DisplayName("POST /todo/update - uncompleting a pushed task deletes an untouched clone")
+        void testUncompletePushedTaskDeletesUntouchedClone() {
+                // Arrange
+                TodoItem task = createTask("Push then reopen", "Work");
+                Long taskId = task.getId();
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+
+                java.net.URI pushUrl = UriComponentsBuilder.fromUriString(baseUrl + "/push")
+                                .queryParam("id", taskId)
+                                .queryParam("reason", "Later")
+                                .queryParam("date", LocalDate.now().plusDays(3).toString())
+                                .build()
+                                .toUri();
+                com.myapp.todo.dto.PushResult pushed = Objects.requireNonNull(
+                                restTemplate.postForEntity(pushUrl, null, com.myapp.todo.dto.PushResult.class)
+                                                .getBody());
+                Long cloneId = pushed.getClone().getId();
+
+                java.net.URI reopenUrl = UriComponentsBuilder.fromUriString(baseUrl + "/update")
+                                .queryParam("id", taskId)
+                                .queryParam("field", "complete")
+                                .queryParam("value", "false")
+                                .build()
+                                .toUri();
+
+                // Act
+                ResponseEntity<TodoOperationResult> response = restTemplate.postForEntity(
+                                reopenUrl, null, TodoOperationResult.class);
+
+                // Assert
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(Objects.requireNonNull(response.getBody()).getWarning()).isNull();
+                ResponseEntity<String> cloneLookup = restTemplate.getForEntity(
+                                baseUrl + "/item/" + cloneId, String.class);
+                assertThat(cloneLookup.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        }
+
+        @Test
+        @Order(23)
+        @DisplayName("POST /todo/update - uncompleting keeps a clone that has activity and warns")
+        void testUncompletePushedTaskKeepsActiveClone() {
+                // Arrange
+                TodoItem task = createTask("Push then active", "Work");
+                Long taskId = task.getId();
+
+                java.net.URI pushUrl = UriComponentsBuilder.fromUriString(baseUrl + "/push")
+                                .queryParam("id", taskId)
+                                .queryParam("reason", "Later")
+                                .queryParam("date", LocalDate.now().plusDays(3).toString())
+                                .build()
+                                .toUri();
+                com.myapp.todo.dto.PushResult pushed = Objects.requireNonNull(
+                                restTemplate.postForEntity(pushUrl, null, com.myapp.todo.dto.PushResult.class)
+                                                .getBody());
+                Long cloneId = pushed.getClone().getId();
+
+                // Give the clone activity so it must be preserved
+                java.net.URI completeCloneUrl = UriComponentsBuilder.fromUriString(baseUrl + "/update")
+                                .queryParam("id", cloneId)
+                                .queryParam("field", "timeTaken")
+                                .queryParam("value", "120000")
+                                .build()
+                                .toUri();
+                restTemplate.postForEntity(completeCloneUrl, null, TodoOperationResult.class);
+
+                java.net.URI reopenUrl = UriComponentsBuilder.fromUriString(baseUrl + "/update")
+                                .queryParam("id", taskId)
+                                .queryParam("field", "complete")
+                                .queryParam("value", "false")
+                                .build()
+                                .toUri();
+
+                // Act
+                ResponseEntity<TodoOperationResult> response = restTemplate.postForEntity(
+                                reopenUrl, null, TodoOperationResult.class);
+
+                // Assert
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(Objects.requireNonNull(response.getBody()).getWarning()).isNotNull();
+
+                ResponseEntity<TodoItem> cloneLookup = restTemplate.getForEntity(
+                                baseUrl + "/item/" + cloneId, TodoItem.class);
+                assertThat(cloneLookup.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(cloneLookup.getBody()).isNotNull();
+        }
+
+        @Test
+        @Order(24)
+        @DisplayName("POST /todo/push - reason is required")
+        void testPushTaskRequiresReason() {
+                // Arrange
+                TodoItem task = createTask("Push without reason", "Work");
+
+                java.net.URI pushUrl = UriComponentsBuilder.fromUriString(baseUrl + "/push")
+                                .queryParam("id", task.getId())
+                                .queryParam("reason", "   ")
+                                .build()
+                                .toUri();
+
+                // Act
+                ResponseEntity<String> response = restTemplate.postForEntity(
+                                pushUrl, null, String.class);
+
+                // Assert
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         }
 
         /**

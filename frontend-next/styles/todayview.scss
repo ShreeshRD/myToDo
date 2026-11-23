@@ -1,9 +1,19 @@
 .today-view {
     display: flex;
+    flex-direction: column;
     height: calc(100vh - 105px);
     // padding: 20px; // Removed to fix scroll clipping
-    gap: 20px;
+    gap: 0;
     box-sizing: border-box;
+    overflow: hidden;
+}
+
+// Column wrapper for tasks + schedule so the goal strip can sit above both.
+.today-main {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    gap: 20px;
     overflow: hidden;
 }
 

@@ -120,7 +120,7 @@ export async function findTask(args = {}, ctx) {
     today,
     week,
     found,
-    task: found ? compactTask(rows[0], today) : null,
+    task: found ? compactTask(rows[0], today, { includeDescription: true }) : null,
     filters: echoFilters(args),
   });
 }

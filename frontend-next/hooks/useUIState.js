@@ -7,6 +7,8 @@ const useUIState = () => {
     const [showSidebar, setShowSidebar] = useState(true);
     const [theme, setTheme] = useState('light'); // 'light', 'dark', 'glass'
     const [viewPage, setViewPage] = useState('Upcoming');
+    const [selectedGoalId, setSelectedGoalId] = useState(null);
+    const [selectedSkillId, setSelectedSkillId] = useState(null);
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -49,6 +51,22 @@ const useUIState = () => {
 
     const darkMode = theme === 'dark';
 
+    // Navigate to Goals and open a specific goal (Today strip, cards).
+    const openGoal = (id) => {
+        setSelectedGoalId(id);
+        setViewPage('Goals');
+    };
+
+    const closeGoal = () => setSelectedGoalId(null);
+
+    // Navigate to Skills and open a specific skill.
+    const openSkill = (id) => {
+        setSelectedSkillId(id);
+        setViewPage('Skills');
+    };
+
+    const closeSkill = () => setSelectedSkillId(null);
+
     return {
         showSidebar,
         setShowSidebar,
@@ -57,6 +75,14 @@ const useUIState = () => {
         darkMode, // Exported for consumers expecting boolean
         viewPage,
         setViewPage,
+        selectedGoalId,
+        setSelectedGoalId,
+        openGoal,
+        closeGoal,
+        selectedSkillId,
+        setSelectedSkillId,
+        openSkill,
+        closeSkill,
         mounted // Expose mounted state if needed
     };
 };

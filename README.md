@@ -21,6 +21,8 @@ Run and build backend with:
 ```
 Set profile with - SPRING_PROFILES_ACTIVE=prod
 
+Windows: run both dev servers with `dev.cmd` or `.\dev.ps1` (Ctrl+C stops both).
+
 Pre-Requisites - 
 Java Version 21
 SQLite database file (`todo.db` in `backend-springboot/`)

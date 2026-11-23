@@ -10,12 +10,11 @@ jest.mock('../service', () => ({
     getTasks: jest.fn(),
     updateField: jest.fn(),
     deleteTask: jest.fn(),
-    addTask: jest.fn(),
 }));
 
 // Import after mocking
 import useTaskManagement from '../hooks/useTaskManagement';
-import { getTasks, updateField, deleteTask, addTask } from '../service';
+import { getTasks, updateField, deleteTask } from '../service';
 import dayjs from 'dayjs';
 
 // Define interfaces for type safety
@@ -35,8 +34,7 @@ interface TaskManagementHook {
     taskDays: Record<string, Task[]>;
     completedTasks: Record<string, Task[]>;
     overdueTasks: { overdue: Task[] };
-    updateTask: (id: number | string, field: string, value: unknown, date: string) => Promise<void>;
-    addNextRepeat: (task: Task) => Promise<void>;
+    updateTask: (id: number | string, field: string, value: unknown, date: string) => Promise<{ warning: string | null; nextTask: Task | null }>;
     moveTask: (taskId: string, destDate: string, predecessorTaskId: string | null) => void;
     removeTask: (taskId: number, date: string, update?: boolean) => Promise<void>;
     fetchTasks: () => Promise<void>;
@@ -47,7 +45,6 @@ describe('useTaskManagement Hook', () => {
     const mockGetTasks = getTasks as jest.Mock;
     const mockUpdateField = updateField as jest.Mock;
     const mockDeleteTask = deleteTask as jest.Mock;
-    const mockAddTask = addTask as jest.Mock;
 
     const today = dayjs().format('YYYY-MM-DD');
     const yesterday = dayjs().subtract(1, 'day').format('YYYY-MM-DD');
@@ -250,69 +247,37 @@ describe('useTaskManagement Hook', () => {
         });
     });
 
-    describe('addNextRepeat - Bug 802 duplicate prevention', () => {
-        it('should NOT create duplicate recurring task when one already exists', async () => {
+    describe('server-side recurrence (nextTask from backend)', () => {
+        it('adds the backend-provided next occurrence to the UI', async () => {
             const existingTask = {
                 id: 1,
                 name: 'Recurring Task',
                 category: 'Work',
-                complete: true,
+                complete: false,
                 taskDate: today,
                 repeatType: 'EVERY_X_DAYS',
                 repeatDuration: 1
             };
-
-            // Task already exists for tomorrow
-            const mockTasks = {
-                itemsByDate: {
-                    [today]: [existingTask],
-                    [tomorrow]: [
-                        { id: 2, name: 'Recurring Task', category: 'Work', complete: false, taskDate: tomorrow }
-                    ]
-                }
-            };
-            mockGetTasks.mockResolvedValue(mockTasks);
-
-            const { result } = renderHook(() => useTaskManagement()) as unknown as { result: { current: TaskManagementHook } };
-
-            await waitFor(() => {
-                expect(result.current.taskDays[today]).toBeDefined();
-            });
-
-            // Attempt to add next repeat - should be prevented by duplicate check
-            await act(async () => {
-                await result.current.addNextRepeat({ ...existingTask });
-            });
-
-            // addTask should NOT have been called since task already exists
-            expect(mockAddTask).not.toHaveBeenCalled();
-        });
-
-        it('should create new recurring task when none exists for target date', async () => {
-            const task = {
-                id: 1,
-                name: 'Recurring Task',
-                category: 'Work',
-                complete: true,
-                taskDate: today,
-                repeatType: 'EVERY_X_DAYS',
-                repeatDuration: 1,
-                priority: 0,
-                longTerm: false
-            };
-
-            const mockTasks = {
-                itemsByDate: {
-                    [today]: [{ ...task, id: 1 }],
-                    [tomorrow]: [] // Needed for mock getTasks return structure where tasks list is empty
-                }
-            };
-            mockGetTasks.mockResolvedValue(mockTasks);
-            mockAddTask.mockResolvedValue({
+            const nextTask = {
                 id: 2,
                 name: 'Recurring Task',
                 category: 'Work',
-                taskDate: tomorrow
+                complete: false,
+                taskDate: tomorrow,
+                repeatType: 'EVERY_X_DAYS',
+                repeatDuration: 1,
+                dayOrder: 1
+            };
+
+            mockGetTasks.mockResolvedValue({
+                itemsByDate: {
+                    [today]: [{ ...existingTask }]
+                }
+            });
+            mockUpdateField.mockResolvedValue({
+                status: 'Updated',
+                item: { ...existingTask, complete: true },
+                nextTask
             });
 
             const { result } = renderHook(() => useTaskManagement()) as unknown as { result: { current: TaskManagementHook } };
@@ -322,19 +287,43 @@ describe('useTaskManagement Hook', () => {
             });
 
             await act(async () => {
-                await result.current.addNextRepeat({ ...task });
+                await result.current.updateTask(1, 'complete', true, today);
             });
 
-            // addTask should have been called
-            expect(mockAddTask).toHaveBeenCalledWith(
-                'Recurring Task', // task
-                tomorrow,         // tdate
-                'Work',           // category
-                0,                // priority
-                'EVERY_X_DAYS',   // repeatType
-                1,                // repeatDuration
-                false             // longTerm
-            );
+            // Next occurrence appears without any frontend addTask call
+            expect(result.current.taskDays[tomorrow]).toHaveLength(1);
+            expect(result.current.taskDays[tomorrow][0].id).toBe(2);
+            expect(result.current.taskDays[tomorrow][0].complete).toBe(false);
+            expect(mockUpdateField).toHaveBeenCalledWith(1, 'complete', true);
+        });
+
+        it('does not invent a next occurrence when backend returns none', async () => {
+            mockGetTasks.mockResolvedValue({
+                itemsByDate: {
+                    [today]: [
+                        { id: 1, name: 'Plain Task', complete: false, taskDate: today, repeatType: 'NONE' },
+                    ]
+                }
+            });
+            mockUpdateField.mockResolvedValue({
+                status: 'Updated',
+                item: { id: 1, name: 'Plain Task', complete: true, taskDate: today, repeatType: 'NONE' },
+                nextTask: null
+            });
+
+            const { result } = renderHook(() => useTaskManagement()) as unknown as { result: { current: TaskManagementHook } };
+
+            await waitFor(() => {
+                expect(result.current.taskDays[today]).toBeDefined();
+            });
+
+            await act(async () => {
+                await result.current.updateTask(1, 'complete', true, today);
+            });
+
+            expect(result.current.taskDays[today]).toHaveLength(1);
+            expect(result.current.taskDays[today][0].complete).toBe(true);
+            expect(mockUpdateField).not.toHaveBeenCalledWith(1, 'taskDate', expect.anything());
         });
     });
 

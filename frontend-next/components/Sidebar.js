@@ -10,7 +10,9 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { BsLayoutSidebar } from "react-icons/bs";
 import { CiHashtag } from "react-icons/ci";
 import { FaRegStickyNote } from "react-icons/fa";
+import { FaBullseye } from "react-icons/fa";
 import { FaSearch } from "react-icons/fa";
+import { FaMusic } from "react-icons/fa";
 import { IoIosArrowDown } from "react-icons/io";
 import '../styles/sidebar.scss'
 import { useState, useRef, useEffect } from "react";
@@ -98,6 +100,28 @@ function Sidebar({
           <li onClick={() => setViewPage('Calendar')} className={viewPage === 'Calendar' ? 'active' : ''}>
             <FaRegCalendarAlt />
             <span> Calendar</span>
+          </li>
+          <li className={viewPage === 'Goals' ? 'active' : ''}>
+            <button
+              type="button"
+              className="sidebar__nav-button"
+              onClick={() => setViewPage('Goals')}
+              aria-current={viewPage === 'Goals' ? 'page' : undefined}
+            >
+              <FaBullseye />
+              <span> Goals</span>
+            </button>
+          </li>
+          <li className={viewPage === 'Skills' ? 'active' : ''}>
+            <button
+              type="button"
+              className="sidebar__nav-button"
+              onClick={() => setViewPage('Skills')}
+              aria-current={viewPage === 'Skills' ? 'page' : undefined}
+            >
+              <FaMusic />
+              <span> Skills</span>
+            </button>
           </li>
           <li onClick={() => setViewPage('Search')} className={viewPage === 'Search' ? 'active' : ''}>
             <FaSearch />

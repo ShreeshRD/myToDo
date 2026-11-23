@@ -5,9 +5,13 @@ import Sidebar from "./Sidebar";
 import Header from "./Header";
 import CalendarView from "./CalendarView";
 import CreateTaskPopup from "./CreateTaskPopup";
+import TaskDetailDrawer from "./TaskDetailDrawer";
+import PushTaskPopup from "./PushTaskPopup";
 import Upcoming from "./Upcoming";
 import Search from "./Search";
 import TodayView from "./TodayView";
+import GoalsView from "./GoalsView";
+import SkillsView from "./SkillsView";
 import Scratchpad from "./Scratchpad/index";
 import { useUI } from "../contexts/UIContext";
 import { useTasks } from "../contexts/TaskContext";
@@ -97,6 +101,8 @@ function MainView() {
 			<div className={`app-container ${theme}`}>
 				<Sidebar setShowPopup={callPopup} show={showSidebar} setShowSidebar={setShowSidebar} setTheme={setTheme} theme={theme} viewPage={viewPage} setViewPage={setViewPage} projects={projects} addProject={addProject} removeProject={removeProject} reorderProjects={reorderProjects} deleteProjectWithTasks={deleteProjectWithTasks} popupBlur={showPopup && theme === 'glass'} />
 				{showPopup && (<CreateTaskPopup setTrigger={onPopupClose} onPopupClose={onPopupClose} date={popupDate} projects={projects} theme={theme} task={popupTaskItem} />)}
+				<TaskDetailDrawer />
+				<PushTaskPopup />
 				<div className={`content${showSidebar ? '' : ' hidden'} ${theme}${showPopup && theme === 'glass' ? ' popup-blur' : ''}`}>
 					{viewPage === 'Upcoming' ? (
 						<>
@@ -115,6 +121,10 @@ function MainView() {
 						</>
 					) : viewPage === 'Search' ? (
 						<Search />
+					) : viewPage === 'Goals' ? (
+						<GoalsView />
+					) : viewPage === 'Skills' ? (
+						<SkillsView />
 					) : viewPage === 'Scratchpad' ? (
 						<Scratchpad theme={theme} />
 					) : "Something went wrong"
