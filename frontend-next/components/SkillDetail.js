@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import dayjs from 'dayjs';
 import {
 	getGoal,
@@ -48,6 +48,7 @@ function OccurrenceRow({ occurrence, onSave, onDelete, disabled }) {
 			<input
 				type="date"
 				className="occurrence-date"
+				aria-label="Occurrence date"
 				value={date}
 				onChange={(e) => setDate(e.target.value)}
 				onBlur={commit}
@@ -108,19 +109,23 @@ function SkillDetail({ skillId, onBack, onChanged }) {
 	const [formError, setFormError] = useState('');
 	const [logging, setLogging] = useState(false);
 	const [toDelete, setToDelete] = useState(null);
+	const latestRefreshId = useRef(0);
 
 	const refresh = useCallback(async () => {
+		const requestId = ++latestRefreshId.current;
 		try {
 			const [s, rows] = await Promise.all([getGoal(skillId), getSkillOccurrences(skillId)]);
+			if (requestId !== latestRefreshId.current) return;
 			setSkill(s);
 			setOccurrences(Array.isArray(rows) ? rows : []);
-			setTitleDraft(s.title ?? '');
+			setTitleDraft((prev) => (!prev || prev === (s.title ?? '') ? (s.title ?? '') : prev));
 			setError('');
 		} catch (err) {
 			console.error('SkillDetail load failed:', err);
+			if (requestId !== latestRefreshId.current) return;
 			setError('Could not load skill');
 		} finally {
-			setLoading(false);
+			if (requestId === latestRefreshId.current) setLoading(false);
 		}
 	}, [skillId]);
 
@@ -181,13 +186,14 @@ function SkillDetail({ skillId, onBack, onChanged }) {
 	const handleSaveOccurrence = async (id, fields) => {
 		try {
 			await updateSkillOccurrence(id, fields);
-			setError('');
 			await refresh();
+			// Set mutation error after refresh so a successful reload cannot clear it.
+			setError('');
 			onChanged?.();
 		} catch (err) {
 			console.error('updateSkillOccurrence failed:', err);
-			setError('Could not update occurrence');
 			await refresh();
+			setError('Could not update occurrence');
 		}
 	};
 
@@ -269,9 +275,12 @@ function SkillDetail({ skillId, onBack, onChanged }) {
 				)}
 			</div>
 
+			<label htmlFor="skill-title-input" className="skill-title-label">Skill name</label>
 			<input
+				id="skill-title-input"
 				type="text"
 				className="skill-title-input"
+				aria-label="Skill name"
 				value={titleDraft}
 				onChange={(e) => setTitleDraft(e.target.value)}
 				onBlur={saveTitle}

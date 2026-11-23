@@ -11,28 +11,44 @@ function SkillCard({ skill, onOpen, onDelete }) {
 	const count = skill.occurrenceCount ?? 0;
 	const isDone = skill.status === 'COMPLETED';
 	return (
-		<div
-			className={`skill-card${isDone ? ' done' : ''}`}
-			onClick={() => onOpen(skill.id)}
-			role="button"
-			tabIndex={0}
-			onKeyDown={(e) => { if (e.key === 'Enter') onOpen(skill.id); }}
-		>
+		<div className={`skill-card${isDone ? ' done' : ''}`}>
 			<div className="skill-card-header">
-				<span className="skill-card-title">{skill.title}</span>
+				<button
+					type="button"
+					className="skill-card-open"
+					onClick={() => onOpen(skill.id)}
+				>
+					<span className="skill-card-title">{skill.title}</span>
+				</button>
 				{isDone && <span className="skill-card-badge">Done</span>}
 			</div>
-			<div className="skill-card-meta">
+			<button
+				type="button"
+				className="skill-card-body"
+				onClick={() => onOpen(skill.id)}
+				onKeyDown={(e) => {
+					if (e.key === 'Enter' || e.key === ' ') {
+						e.preventDefault();
+						onOpen(skill.id);
+					}
+				}}
+			>
 				<span className="skill-card-count">
 					{count} occurrence{count === 1 ? '' : 's'}
 				</span>
-			</div>
+			</button>
 			<button
+				type="button"
 				className="skill-card-delete"
 				title="Delete skill"
+				aria-label={`Delete skill ${skill.title}`}
 				onClick={(e) => {
 					e.stopPropagation();
 					onDelete(skill);
+				}}
+				onKeyDown={(e) => {
+					// Keep Delete focused; do not bubble Enter to open the card.
+					e.stopPropagation();
 				}}
 			>
 				×
@@ -45,17 +61,24 @@ function SkillsView() {
 	const { theme, selectedSkillId, openSkill, closeSkill } = useUI();
 	const [skills, setSkills] = useState([]);
 	const [loading, setLoading] = useState(true);
+	const [loadFailed, setLoadFailed] = useState(false);
 	const [showCreate, setShowCreate] = useState(false);
 	const [newTitle, setNewTitle] = useState('');
 	const [error, setError] = useState('');
+	const [listError, setListError] = useState('');
+	const [creating, setCreating] = useState(false);
 	const [skillToDelete, setSkillToDelete] = useState(null);
 
 	const refresh = useCallback(async () => {
 		try {
 			const rows = await getGoals();
 			setSkills((Array.isArray(rows) ? rows : []).filter((g) => g.kind === 'SKILL'));
+			setLoadFailed(false);
+			setListError('');
 		} catch (err) {
 			console.error('getGoals failed:', err);
+			setLoadFailed(true);
+			setListError('Could not load skills');
 		} finally {
 			setLoading(false);
 		}
@@ -68,7 +91,8 @@ function SkillsView() {
 
 	const handleCreate = async () => {
 		const title = newTitle.trim();
-		if (!title) return;
+		if (!title || creating) return;
+		setCreating(true);
 		try {
 			const created = await createGoal(title, 'SKILL');
 			setNewTitle('');
@@ -81,6 +105,8 @@ function SkillsView() {
 		} catch (err) {
 			console.error('createGoal(skill) failed:', err);
 			setError('Could not create skill');
+		} finally {
+			setCreating(false);
 		}
 	};
 
@@ -96,6 +122,7 @@ function SkillsView() {
 			await refresh();
 		} catch (err) {
 			console.error('deleteGoal(skill) failed:', err);
+			setListError(`Could not delete "${skill.title}"`);
 		}
 	};
 
@@ -143,13 +170,28 @@ function SkillsView() {
 						maxLength={255}
 						autoFocus
 					/>
-					<button className="btn btn-primary" onClick={handleCreate}>Create</button>
+					<button
+						className="btn btn-primary"
+						onClick={handleCreate}
+						disabled={creating || !newTitle.trim()}
+					>
+						{creating ? 'Creating…' : 'Create'}
+					</button>
 					{error && <p className="myerror">{error}</p>}
 				</div>
 			)}
 
+			{listError && <p className="myerror skills-list-error">{listError}</p>}
+
 			{loading ? (
 				<p className="skills-empty">Loading…</p>
+			) : loadFailed ? (
+				<div className="skills-empty">
+					<p>{listError || 'Could not load skills'}</p>
+					<button className="btn btn-secondary" onClick={() => { setLoading(true); refresh(); }}>
+						Retry
+					</button>
+				</div>
 			) : active.length === 0 && archived.length === 0 ? (
 				<p className="skills-empty">No skills yet. Create one to log practice occurrences.</p>
 			) : (

@@ -59,9 +59,13 @@ class SkillOccurrenceServiceTest {
         when(goalRepository.findById(1L)).thenReturn(Optional.of(skill()));
         when(repository.save(any(SkillOccurrence.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
+        LocalDate before = LocalDate.now();
         SkillOccurrence created = skillOccurrenceService.create(1L, null, "10", "3");
+        LocalDate after = LocalDate.now();
 
-        assertEquals(LocalDate.now(), created.getDate());
+        // Midnight-safe: the default date must be today or tomorrow if the
+        // clock crossed midnight between the call and the assertion.
+        assertTrue(created.getDate().equals(before) || created.getDate().equals(after));
     }
 
     @Test

@@ -126,13 +126,38 @@
     padding: 4px;
 }
 
-.skill-card:hover .skill-card-delete {
+.skill-card:hover .skill-card-delete,
+.skill-card:focus-within .skill-card-delete {
     opacity: 0.55;
 }
 
-.skill-card-delete:hover {
+.skill-card-delete:hover,
+.skill-card-delete:focus-visible {
     opacity: 1 !important;
     color: #d1453b;
+    outline: 2px solid #6366f1;
+    outline-offset: 1px;
+}
+
+.skill-card-open,
+.skill-card-body {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    padding: 0;
+    cursor: pointer;
+}
+
+.skill-card-open:focus-visible,
+.skill-card-body:focus-visible,
+.goal-card-open:focus-visible,
+.goal-card-body:focus-visible,
+.goal-task-open:focus-visible {
+    outline: 2px solid #6366f1;
+    outline-offset: 2px;
+    border-radius: 4px;
 }
 
 /* ----- Detail ----- */

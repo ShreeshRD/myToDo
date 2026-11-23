@@ -46,23 +46,27 @@ function TodayView() {
     const [warnTask, setWarnTask] = useState(null);
     const [goals, setGoals] = useState([]);
     const warnTimer = React.useRef(null);
+    const goalsCancelledRef = React.useRef(false);
 
     useEffect(() => () => clearTimeout(warnTimer.current), []);
 
+    const loadGoals = React.useCallback(async () => {
+        try {
+            const rows = await getGoals();
+            if (!goalsCancelledRef.current) setGoals(Array.isArray(rows) ? rows : []);
+        } catch (err) {
+            console.error('getGoals failed:', err);
+        }
+    }, []);
+
     useEffect(() => {
-        let cancelled = false;
-        const timer = setTimeout(() => {
-            getGoals()
-                .then((rows) => {
-                    if (!cancelled) setGoals(Array.isArray(rows) ? rows : []);
-                })
-                .catch((err) => console.error('getGoals failed:', err));
-        }, 0);
+        goalsCancelledRef.current = false;
+        const timer = setTimeout(loadGoals, 0);
         return () => {
-            cancelled = true;
+            goalsCancelledRef.current = true;
             clearTimeout(timer);
         };
-    }, []);
+    }, [loadGoals]);
 
     // Slim strip: only goals with at least one task scheduled today.
     const todayGoalStrip = (() => {
@@ -383,6 +387,10 @@ function TodayView() {
                                 const result = await updateTask(task.id, "complete", newComplete, task.taskDate);
                                 if (result?.warning) {
                                     showRowWarning(task.id, result.warning);
+                                }
+                                // Goal strip progress depends on linked-task completions.
+                                if (task.goalId != null) {
+                                    loadGoals();
                                 }
                             }}
                             icon={<RiCheckboxBlankCircleLine className="checkbox_icon_unchecked" />}

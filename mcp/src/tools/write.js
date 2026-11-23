@@ -65,15 +65,25 @@ export async function createTask(args = {}, ctx) {
   }
 
   let item = result.item;
+  const warnings = [];
   if (args.description != null && String(args.description) !== "") {
-    await api.patch(item.id, { description: String(args.description) });
-    item = await api.getItem(item.id);
+    try {
+      const patched = await api.patch(item.id, { description: String(args.description) });
+      if (patched?.status && String(patched.status).startsWith("Error")) {
+        warnings.push("description_not_saved");
+      } else {
+        item = await api.getItem(item.id);
+      }
+    } catch {
+      warnings.push("description_not_saved");
+    }
   }
 
   return ok({
     today,
     week,
-    task: compactTask(item, today),
+    task: compactTask(item, today, { includeDescription: true }),
+    warnings,
   });
 }
 
@@ -113,7 +123,8 @@ export async function updateTask(args = {}, ctx) {
     } else if (field === "project") {
       value = normalizeProject(value);
     } else if (field === "description") {
-      value = value == null ? "" : String(value);
+      // Empty string is dropped by buildUrl; send "null" so the backend clears it.
+      value = value == null || String(value) === "" ? "null" : String(value);
     } else if (field === "goal_id") {
       if (value == null) {
         value = "null";
@@ -138,7 +149,7 @@ export async function updateTask(args = {}, ctx) {
       throw new ToolError("backend_error", result.status, {
         failed_field: field,
         updated_fields: updated,
-        task: refreshed ? compactTask(refreshed, today) : null,
+        task: refreshed ? compactTask(refreshed, today, { includeDescription: true }) : null,
       });
     }
     updated.push(field);
@@ -148,7 +159,7 @@ export async function updateTask(args = {}, ctx) {
   return ok({
     today,
     week,
-    task: compactTask(task, today),
+    task: compactTask(task, today, { includeDescription: true }),
     updated_fields: updated,
     warnings,
   });
@@ -165,7 +176,7 @@ export async function completeTask(args = {}, ctx) {
     return ok({
       today,
       week,
-      task: compactTask(task, today),
+      task: compactTask(task, today, { includeDescription: true }),
       next_task: null,
       warnings: ["already_complete"],
     });
@@ -193,8 +204,8 @@ export async function completeTask(args = {}, ctx) {
   return ok({
     today,
     week,
-    task: compactTask(task, today),
-    next_task: nextTask ? compactTask(nextTask, today) : null,
+    task: compactTask(task, today, { includeDescription: true }),
+    next_task: nextTask ? compactTask(nextTask, today, { includeDescription: true }) : null,
     warnings,
   });
 }
@@ -210,7 +221,7 @@ export async function uncompleteTask(args = {}, ctx) {
     return ok({
       today,
       week,
-      task: compactTask(task, today),
+      task: compactTask(task, today, { includeDescription: true }),
       warnings: ["already_incomplete"],
     });
   }
@@ -227,7 +238,7 @@ export async function uncompleteTask(args = {}, ctx) {
   return ok({
     today,
     week,
-    task: compactTask(task, today),
+    task: compactTask(task, today, { includeDescription: true }),
     warnings,
   });
 }
@@ -258,8 +269,8 @@ export async function pushTask(args = {}, ctx) {
   return ok({
     today,
     week,
-    task: compactTask(original, today),
-    clone: result?.clone ? compactTask(result.clone, today) : null,
+    task: compactTask(original, today, { includeDescription: true }),
+    clone: result?.clone ? compactTask(result.clone, today, { includeDescription: true }) : null,
     warnings: [],
   });
 }
@@ -300,7 +311,7 @@ export async function deleteTask(args = {}, ctx) {
     today,
     week,
     deleted: true,
-    task: compactTask(task, today),
+    task: compactTask(task, today, { includeDescription: true }),
   });
 }
 
@@ -316,7 +327,7 @@ async function fetchGoal(api, id) {
   try {
     return await api.getGoal(id);
   } catch (error) {
-    if (error?.status === 404 || error?.code === "backend_error") {
+    if (error?.status === 404) {
       throw new ToolError("goal_not_found", `Goal ${id} not found`);
     }
     throw error;
@@ -401,7 +412,7 @@ export async function addRoadmapStep(args = {}, ctx) {
   const body = { name };
   if (args.date) body.date = args.date;
   const step = await api.addRoadmapStep(args.goal_id, body);
-  return ok({ today, week, task: compactTask(step, today) });
+  return ok({ today, week, task: compactTask(step, today, { includeDescription: true }) });
 }
 
 export async function reorderRoadmap(args = {}, ctx) {
@@ -486,14 +497,17 @@ export async function logSkillOccurrence(args = {}, ctx) {
 }
 
 export async function listSkillOccurrences(args = {}, ctx) {
-  const { api, today, week } = ctx;
+  const { api, today, week, config } = ctx;
   assertPositiveId(args.skill_id, "skill_id");
   const rows = await api.listSkillOccurrences(args.skill_id);
+  const cap = config?.maxTasks ?? 50;
   return ok({
     today,
     week,
     skill_id: args.skill_id,
-    occurrences: rows.map(compactOccurrence),
+    total: rows.length,
+    truncated: rows.length > cap,
+    occurrences: rows.slice(0, cap).map(compactOccurrence),
   });
 }
 

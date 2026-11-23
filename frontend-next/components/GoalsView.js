@@ -37,14 +37,17 @@ export function goalProgressPercent(goal) {
 	if (!goal) return null;
 	if (goal.mode === 'METRIC') {
 		if (goal.metricTarget == null || goal.metricTarget <= 0) return null;
-		return Math.min(100, Math.round(((goal.metricCurrent ?? 0) / goal.metricTarget) * 100));
+		const pct = Math.round(((goal.metricCurrent ?? 0) / goal.metricTarget) * 100);
+		return Math.min(100, Math.max(0, pct));
 	}
 	if (goal.mode === 'REPS') {
 		if (goal.repsTarget == null || goal.repsTarget <= 0) return null;
-		return Math.min(100, Math.round((goal.repsCount / goal.repsTarget) * 100));
+		const pct = Math.round((goal.repsCount / goal.repsTarget) * 100);
+		return Math.min(100, Math.max(0, pct));
 	}
 	if (goal.roadmapTotal > 0) {
-		return Math.min(100, Math.round((goal.roadmapCompleted / goal.roadmapTotal) * 100));
+		const pct = Math.round((goal.roadmapCompleted / goal.roadmapTotal) * 100);
+		return Math.min(100, Math.max(0, pct));
 	}
 	return null;
 }
@@ -53,31 +56,39 @@ function GoalCard({ goal, onOpen, onDelete }) {
 	const percent = goalProgressPercent(goal);
 	const isDone = goal.status === 'COMPLETED';
 	return (
-		<div
-			className={`goal-card${isDone ? ' done' : ''}`}
-			onClick={() => onOpen(goal.id)}
-			role="button"
-			tabIndex={0}
-			onKeyDown={(e) => { if (e.key === 'Enter') onOpen(goal.id); }}
-		>
+		<div className={`goal-card${isDone ? ' done' : ''}`}>
 			<div className="goal-card-header">
-				<span className="goal-card-title">{goal.title}</span>
+				<button
+					type="button"
+					className="goal-card-open"
+					onClick={() => onOpen(goal.id)}
+				>
+					<span className="goal-card-title">{goal.title}</span>
+				</button>
 				{isDone && <span className="goal-card-badge">Done</span>}
 			</div>
-			<div className="goal-card-meta">
-				<span className="goal-card-progress">{goalProgressLabel(goal)}</span>
-				<span className="goal-card-tasks">
-					{goal.linkedTotal} task{goal.linkedTotal === 1 ? '' : 's'}
-				</span>
-			</div>
-			{percent != null && (
-				<div className="goal-progress-track">
-					<div className="goal-progress-fill" style={{ width: `${percent}%` }} />
-				</div>
-			)}
 			<button
+				type="button"
+				className="goal-card-body"
+				onClick={() => onOpen(goal.id)}
+			>
+				<span className="goal-card-meta">
+					<span className="goal-card-progress">{goalProgressLabel(goal)}</span>
+					<span className="goal-card-tasks">
+						{goal.linkedTotal} task{goal.linkedTotal === 1 ? '' : 's'}
+					</span>
+				</span>
+				{percent != null && (
+					<span className="goal-progress-track">
+						<span className="goal-progress-fill" style={{ width: `${percent}%` }} />
+					</span>
+				)}
+			</button>
+			<button
+				type="button"
 				className="goal-card-delete"
 				title="Delete goal"
+				aria-label={`Delete goal ${goal.title}`}
 				onClick={(e) => {
 					e.stopPropagation();
 					onDelete(goal);
@@ -93,9 +104,12 @@ function GoalsView() {
 	const { theme, selectedGoalId, openGoal, closeGoal } = useUI();
 	const [goals, setGoals] = useState([]);
 	const [loading, setLoading] = useState(true);
+	const [loadFailed, setLoadFailed] = useState(false);
 	const [showCreate, setShowCreate] = useState(false);
 	const [newTitle, setNewTitle] = useState('');
 	const [error, setError] = useState('');
+	const [listError, setListError] = useState('');
+	const [creating, setCreating] = useState(false);
 	const [goalToDelete, setGoalToDelete] = useState(null);
 
 	const refresh = useCallback(async () => {
@@ -103,8 +117,12 @@ function GoalsView() {
 			const rows = await getGoals();
 			// Skills live only in the Skills view.
 			setGoals((Array.isArray(rows) ? rows : []).filter((g) => g.kind !== 'SKILL'));
+			setLoadFailed(false);
+			setListError('');
 		} catch (err) {
 			console.error('getGoals failed:', err);
+			setLoadFailed(true);
+			setListError('Could not load goals');
 		} finally {
 			setLoading(false);
 		}
@@ -117,7 +135,8 @@ function GoalsView() {
 
 	const handleCreate = async () => {
 		const title = newTitle.trim();
-		if (!title) return;
+		if (!title || creating) return;
+		setCreating(true);
 		try {
 			const created = await createGoal(title);
 			setNewTitle('');
@@ -130,6 +149,8 @@ function GoalsView() {
 		} catch (err) {
 			console.error('createGoal failed:', err);
 			setError('Could not create goal');
+		} finally {
+			setCreating(false);
 		}
 	};
 
@@ -145,6 +166,7 @@ function GoalsView() {
 			await refresh();
 		} catch (err) {
 			console.error('deleteGoal failed:', err);
+			setListError(`Could not delete "${goal.title}"`);
 		}
 	};
 
@@ -193,13 +215,28 @@ function GoalsView() {
 						maxLength={255}
 						autoFocus
 					/>
-					<button className="btn btn-primary" onClick={handleCreate}>Create</button>
+					<button
+						className="btn btn-primary"
+						onClick={handleCreate}
+						disabled={creating || !newTitle.trim()}
+					>
+						{creating ? 'Creating…' : 'Create'}
+					</button>
 					{error && <p className="myerror">{error}</p>}
 				</div>
 			)}
 
+			{listError && <p className="myerror goals-list-error">{listError}</p>}
+
 			{loading ? (
 				<p className="goals-empty">Loading…</p>
+			) : loadFailed ? (
+				<div className="goals-empty">
+					<p>{listError || 'Could not load goals'}</p>
+					<button className="btn btn-secondary" onClick={() => { setLoading(true); refresh(); }}>
+						Retry
+					</button>
+				</div>
 			) : active.length === 0 && archived.length === 0 ? (
 				<p className="goals-empty">No goals yet. Create one to track growth work.</p>
 			) : (

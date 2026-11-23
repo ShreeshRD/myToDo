@@ -323,7 +323,7 @@ function TaskChecklist({ task, refreshSubtaskCounts }) {
 }
 
 function TaskDetailDrawer() {
-    const { detailTask, closeDetail, updateTask, openPush, showPopup, refreshSubtaskCounts } = useTasks();
+    const { detailTask, closeDetail, updateTask, openPush, showPopup, refreshSubtaskCounts, callPopup } = useTasks();
     const { theme } = useUI();
     const drawerRef = useRef(null);
     const task = detailTask;
@@ -395,8 +395,15 @@ function TaskDetailDrawer() {
                     <button className="drawer-close" onClick={closeDetail} aria-label="Close details">×</button>
                 </div>
 
-                {!task.complete && (
-                    <div className="drawer-actions">
+                <div className="drawer-actions">
+                    <button
+                        type="button"
+                        className="drawer-edit"
+                        onClick={() => callPopup(task.taskDate, task)}
+                    >
+                        Edit…
+                    </button>
+                    {!task.complete && (
                         <button
                             type="button"
                             className="drawer-push"
@@ -404,8 +411,8 @@ function TaskDetailDrawer() {
                         >
                             Push to another day…
                         </button>
-                    </div>
-                )}
+                    )}
+                </div>
 
                 <div className="drawer-body">
                     <section className="drawer-section">

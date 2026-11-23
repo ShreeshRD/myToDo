@@ -126,13 +126,36 @@
     padding: 4px;
 }
 
-.goal-card:hover .goal-card-delete {
+.goal-card:hover .goal-card-delete,
+.goal-card:focus-within .goal-card-delete {
     opacity: 0.55;
 }
 
-.goal-card-delete:hover {
+.goal-card-delete:hover,
+.goal-card-delete:focus-visible {
     opacity: 1 !important;
     color: #d1453b;
+    outline: 2px solid #6366f1;
+    outline-offset: 1px;
+}
+
+.goal-card-open,
+.goal-card-body,
+.goal-task-open {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    padding: 0;
+    cursor: pointer;
+    width: 100%;
+}
+
+.goal-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .goal-progress-track {

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useUI } from '../contexts/UIContext';
 import { useTasks } from '../contexts/TaskContext';
@@ -50,7 +50,12 @@ function RoadmapStepRow({ step, index, isDone, onRename, onToggle, onSchedule, o
 		}
 		setSaving(true);
 		try {
-			await onRename(step.id, trimmed);
+			const okResult = await onRename(step.id, trimmed);
+			if (okResult === false) {
+				setNameDraft(step.name ?? '');
+			} else {
+				setNameDraft(trimmed);
+			}
 		} finally {
 			setSaving(false);
 		}
@@ -129,27 +134,40 @@ function GoalDetail({ goalId, onBack, onChanged }) {
 	const [newStepName, setNewStepName] = useState('');
 	const [newStepDate, setNewStepDate] = useState('');
 	const [stepToDelete, setStepToDelete] = useState(null);
+	const [addingStep, setAddingStep] = useState(false);
+	const latestRefreshId = useRef(0);
 
 	const refresh = useCallback(async () => {
+		const requestId = ++latestRefreshId.current;
 		try {
 			const [g, linked] = await Promise.all([getGoal(goalId), getGoalTasks(goalId)]);
+			if (requestId !== latestRefreshId.current) return;
 			setGoal(g);
 			setTasks(Array.isArray(linked) ? linked : []);
-			setTitleDraft(g.title ?? '');
-			setMetricCurrent(g.metricCurrent != null ? String(g.metricCurrent) : '');
-			setMetricTarget(g.metricTarget != null ? String(g.metricTarget) : '');
-			setMetricUnit(g.metricUnit ?? '');
-			setRepsTarget(g.repsTarget != null ? String(g.repsTarget) : '');
+			// Preserve dirty drafts; clean fields still track server state.
+			setTitleDraft((prev) => (!prev || prev === (g.title ?? '') ? (g.title ?? '') : prev));
+			setMetricCurrent((prev) => (!prev && prev !== '0' ? (g.metricCurrent != null ? String(g.metricCurrent) : '') : prev));
+			setMetricTarget((prev) => (!prev ? (g.metricTarget != null ? String(g.metricTarget) : '') : prev));
+			setMetricUnit((prev) => (!prev ? (g.metricUnit ?? '') : prev));
+			setRepsTarget((prev) => (!prev ? (g.repsTarget != null ? String(g.repsTarget) : '') : prev));
 			setError('');
 		} catch (err) {
 			console.error('GoalDetail load failed:', err);
+			if (requestId !== latestRefreshId.current) return;
 			setError('Could not load goal');
 		} finally {
-			setLoading(false);
+			if (requestId === latestRefreshId.current) setLoading(false);
 		}
 	}, [goalId]);
 
 	useEffect(() => {
+		// Switching goals resets drafts so stale edits cannot carry over.
+		setTitleDraft('');
+		setMetricCurrent('');
+		setMetricTarget('');
+		setMetricUnit('');
+		setRepsTarget('');
+		setError('');
 		const timer = setTimeout(refresh, 0);
 		return () => clearTimeout(timer);
 	}, [refresh]);
@@ -175,11 +193,17 @@ function GoalDetail({ goalId, onBack, onChanged }) {
 			setTitleDraft(goal.title);
 			return;
 		}
-		await patch({ title: trimmed });
+		const updated = await patch({ title: trimmed });
+		if (updated) setTitleDraft(updated.title ?? trimmed);
 	};
 
 	const saveMetricField = async (field, value) => {
-		await patch({ [field]: value === '' ? 'null' : value });
+		const updated = await patch({ [field]: value === '' ? 'null' : value });
+		if (!updated) return;
+		if (field === 'metricCurrent') setMetricCurrent(updated.metricCurrent != null ? String(updated.metricCurrent) : '');
+		if (field === 'metricTarget') setMetricTarget(updated.metricTarget != null ? String(updated.metricTarget) : '');
+		if (field === 'metricUnit') setMetricUnit(updated.metricUnit ?? '');
+		if (field === 'repsTarget') setRepsTarget(updated.repsTarget != null ? String(updated.repsTarget) : '');
 	};
 
 	const handleModeSwitch = async (mode) => {
@@ -196,8 +220,10 @@ function GoalDetail({ goalId, onBack, onChanged }) {
 			await refresh();
 			onChanged?.();
 			fetchTasks?.();
+			setError('');
 		} catch (err) {
 			console.error('completeGoal failed:', err);
+			setError('Could not complete goal — it was not changed');
 		}
 	};
 
@@ -207,8 +233,10 @@ function GoalDetail({ goalId, onBack, onChanged }) {
 			setGoal(updated);
 			await refresh();
 			onChanged?.();
+			setError('');
 		} catch (err) {
 			console.error('reopenGoal failed:', err);
+			setError('Could not reopen goal — it was not changed');
 		}
 	};
 
@@ -220,7 +248,8 @@ function GoalDetail({ goalId, onBack, onChanged }) {
 
 	const handleAddStep = async () => {
 		const name = newStepName.trim();
-		if (!name) return;
+		if (!name || addingStep) return;
+		setAddingStep(true);
 		try {
 			await addRoadmapStep(goalId, name, newStepDate || null);
 			setNewStepName('');
@@ -232,6 +261,8 @@ function GoalDetail({ goalId, onBack, onChanged }) {
 		} catch (err) {
 			console.error('addRoadmapStep failed:', err);
 			setError('Could not add step');
+		} finally {
+			setAddingStep(false);
 		}
 	};
 
@@ -240,10 +271,14 @@ function GoalDetail({ goalId, onBack, onChanged }) {
 			await updateTaskFields(id, { taskName: name });
 			setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, name } : t)));
 			onChanged?.();
+			fetchTasks?.();
+			setError('');
+			return true;
 		} catch (err) {
 			console.error('rename step failed:', err);
 			setError('Could not rename step');
 			await refresh();
+			return false;
 		}
 	};
 
@@ -251,12 +286,10 @@ function GoalDetail({ goalId, onBack, onChanged }) {
 		if (goal?.status === 'COMPLETED') return;
 		try {
 			const result = await updateField(step.id, 'complete', String(!step.complete));
-			if (result?.warning) {
-				setError(result.warning);
-			} else {
-				setError('');
-			}
+			const warning = result?.warning || null;
 			await refresh();
+			// Apply mutation feedback after reconciliation so refresh cannot clear it.
+			setError(warning || '');
 			onChanged?.();
 			fetchTasks?.();
 		} catch (err) {
@@ -366,12 +399,12 @@ function GoalDetail({ goalId, onBack, onChanged }) {
 				maxLength={255}
 			/>
 
-			<div className="goal-mode-switch" role="tablist" aria-label="Progress mode">
+			<div className="goal-mode-switch" role="group" aria-label="Progress mode">
 				{MODE_OPTIONS.map((opt) => (
 					<button
 						key={opt.value}
-						role="tab"
-						aria-selected={goal.mode === opt.value}
+						type="button"
+						aria-pressed={goal.mode === opt.value}
 						className={`goal-mode-btn${goal.mode === opt.value ? ' active' : ''}`}
 						onClick={() => handleModeSwitch(opt.value)}
 						disabled={isDone}
@@ -489,11 +522,12 @@ function GoalDetail({ goalId, onBack, onChanged }) {
 							title="Optional date — leave empty for backlog"
 						/>
 						<button
+							type="button"
 							className="btn btn-primary"
 							onClick={handleAddStep}
-							disabled={isDone || !newStepName.trim()}
+							disabled={isDone || addingStep || !newStepName.trim()}
 						>
-							Add step
+							{addingStep ? 'Adding…' : 'Add step'}
 						</button>
 					</div>
 
@@ -541,9 +575,11 @@ function GoalDetail({ goalId, onBack, onChanged }) {
 					<>
 						<ul className="goal-task-list">
 							{activeTasks.map((t) => (
-								<li key={t.id} onClick={() => openDetail(t)}>
-									<span className="goal-task-name">{t.name}</span>
-									<span className="goal-task-date">{t.taskDate ?? 'Backlog'}</span>
+								<li key={t.id}>
+									<button type="button" className="goal-task-open" onClick={() => openDetail(t)}>
+										<span className="goal-task-name">{t.name}</span>
+										<span className="goal-task-date">{t.taskDate ?? 'Backlog'}</span>
+									</button>
 								</li>
 							))}
 						</ul>
@@ -552,9 +588,11 @@ function GoalDetail({ goalId, onBack, onChanged }) {
 								<h4 className="goal-tasks-subhead">Completed</h4>
 								<ul className="goal-task-list done">
 									{doneTasks.map((t) => (
-										<li key={t.id} onClick={() => openDetail(t)}>
-											<span className="goal-task-name">{t.name}</span>
-											<span className="goal-task-date">{t.taskDate ?? '—'}</span>
+										<li key={t.id}>
+											<button type="button" className="goal-task-open" onClick={() => openDetail(t)}>
+												<span className="goal-task-name">{t.name}</span>
+												<span className="goal-task-date">{t.taskDate ?? '—'}</span>
+											</button>
 										</li>
 									))}
 								</ul>

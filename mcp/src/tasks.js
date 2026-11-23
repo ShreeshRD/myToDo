@@ -10,7 +10,7 @@ export function normalizeProject(value) {
   return String(value).trim();
 }
 
-export function compactTask(raw, today) {
+export function compactTask(raw, today, { includeDescription = false } = {}) {
   const date = raw.taskDate ?? raw.date ?? null;
   const project =
     raw.category == null || String(raw.category).trim() === ""
@@ -58,7 +58,8 @@ export function compactTask(raw, today) {
   if (raw.roadmapOrder != null) {
     compact.roadmap_order = raw.roadmapOrder;
   }
-  if (raw.description != null && raw.description !== "") {
+  // Descriptions can be 4k chars; keep them off list responses (40k context).
+  if (includeDescription && raw.description != null && raw.description !== "") {
     compact.description = raw.description;
   }
   if (Array.isArray(raw.subtasks)) {

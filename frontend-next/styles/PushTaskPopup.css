@@ -16,6 +16,8 @@
 
 .push-popup {
     width: min(420px, 100%);
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
     box-sizing: border-box;
     background-color: #fcfaf8;
     color: #202020;

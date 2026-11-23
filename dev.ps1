@@ -82,6 +82,8 @@ function Start-DevServer {
     Write-Dev ("starting {0} ({1}): {2} {3}" -f $Name.PadRight(8), $Directory, $FilePath, ($Arguments -join ' '))
     $process = Start-Process -FilePath $FilePath -ArgumentList $Arguments `
         -WorkingDirectory $Directory -PassThru -NoNewWindow
+    # Cache the handle so ExitCode is available later (avoids [int]$null → 0).
+    $null = $process.Handle
     $script:Children += $process
     return $process
 }

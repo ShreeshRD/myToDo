@@ -263,6 +263,13 @@ const useTaskManagement = () => {
                         addToFrontend(nextTask);
                     }
                 }
+                // Reopen may delete an untouched deferred clone on the backend;
+                // refetch so the clone disappears from local lists immediately.
+                if (field === "complete" && value === false) {
+                    fetchTasks().catch((error) => {
+                        console.error("Error refreshing tasks after reopen:", error);
+                    });
+                }
                 return { warning: result?.warning || null, nextTask: result?.nextTask || null };
             })
             .catch((error) => {
