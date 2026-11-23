@@ -537,15 +537,36 @@ class TodoServiceTest {
         LocalDate destination = LocalDate.now().plusDays(3);
         when(repository.findById(1L)).thenReturn(Optional.of(sampleItem));
         when(repository.markCompleteIfOpen(eq(1L), any(java.time.LocalDateTime.class))).thenReturn(1);
-        when(repository.save(any(TodoItem.class))).thenThrow(new RuntimeException("db busy"));
+        when(repository.findByTaskDate(any(LocalDate.class))).thenReturn(new ArrayList<>());
+
+        // First save (original) succeeds; second save (clone) fails; restore succeeds.
+        final int[] saveCount = { 0 };
+        final TodoItem[] restored = { null };
+        when(repository.save(any(TodoItem.class))).thenAnswer(invocation -> {
+            TodoItem item = invocation.getArgument(0);
+            saveCount[0]++;
+            if (saveCount[0] == 1) {
+                return item;
+            }
+            if (saveCount[0] == 2) {
+                throw new RuntimeException("db busy");
+            }
+            restored[0] = item;
+            return item;
+        });
 
         org.springframework.web.server.ResponseStatusException error = assertThrows(
                 org.springframework.web.server.ResponseStatusException.class,
                 () -> todoService.pushTask(1L, "Later", destination));
         assertEquals(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, error.getStatusCode());
-        // Original left open so the client can retry.
+        // Original left open so the client can retry — verify the restore write.
+        assertNotNull(restored[0]);
+        assertFalse(restored[0].isComplete());
+        assertNull(restored[0].getCompletedAt());
         assertFalse(sampleItem.isComplete());
         assertNull(sampleItem.getCompletedAt());
+        // original save + failed clone + restore
+        assertEquals(3, saveCount[0]);
     }
 
     @Test

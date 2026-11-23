@@ -270,11 +270,15 @@ const useTaskManagement = () => {
                         console.error("Error refreshing tasks after reopen:", error);
                     });
                 }
-                return { warning: result?.warning || null, nextTask: result?.nextTask || null };
+                return {
+                    warning: result?.warning || null,
+                    nextTask: result?.nextTask || null,
+                    failed: false,
+                };
             })
             .catch((error) => {
                 console.error(`Error updating task with id ${id}:`, error);
-                return { warning: null, nextTask: null };
+                return { warning: null, nextTask: null, failed: true };
             });
     };
 

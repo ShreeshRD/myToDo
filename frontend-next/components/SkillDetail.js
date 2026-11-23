@@ -110,6 +110,8 @@ function SkillDetail({ skillId, onBack, onChanged }) {
 	const [logging, setLogging] = useState(false);
 	const [toDelete, setToDelete] = useState(null);
 	const latestRefreshId = useRef(0);
+	// Last title synchronized from the server — draft equal to this is clean.
+	const syncedTitleRef = useRef('');
 
 	const refresh = useCallback(async () => {
 		const requestId = ++latestRefreshId.current;
@@ -118,7 +120,10 @@ function SkillDetail({ skillId, onBack, onChanged }) {
 			if (requestId !== latestRefreshId.current) return;
 			setSkill(s);
 			setOccurrences(Array.isArray(rows) ? rows : []);
-			setTitleDraft((prev) => (!prev || prev === (s.title ?? '') ? (s.title ?? '') : prev));
+			const serverTitle = s.title ?? '';
+			// Replace only a clean draft; keep actual unsaved edits.
+			setTitleDraft((prev) => (prev === syncedTitleRef.current ? serverTitle : prev));
+			syncedTitleRef.current = serverTitle;
 			setError('');
 		} catch (err) {
 			console.error('SkillDetail load failed:', err);
@@ -130,6 +135,8 @@ function SkillDetail({ skillId, onBack, onChanged }) {
 	}, [skillId]);
 
 	useEffect(() => {
+		syncedTitleRef.current = '';
+		setTitleDraft('');
 		const timer = setTimeout(refresh, 0);
 		return () => clearTimeout(timer);
 	}, [refresh]);
@@ -141,9 +148,13 @@ function SkillDetail({ skillId, onBack, onChanged }) {
 			setTitleDraft(skill.title);
 			return;
 		}
+		const submitted = trimmed;
 		try {
-			const updated = await updateGoal(skillId, { title: trimmed });
+			const updated = await updateGoal(skillId, { title: submitted });
 			setSkill(updated);
+			// Apply response only if the draft still matches what we submitted.
+			setTitleDraft((prev) => (prev.trim() === submitted ? (updated.title ?? submitted) : prev));
+			syncedTitleRef.current = updated.title ?? submitted;
 			setError('');
 			onChanged?.();
 		} catch (err) {

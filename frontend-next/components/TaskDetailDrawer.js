@@ -23,16 +23,26 @@ function DescriptionEditor({ task, updateTask }) {
     const [draft, setDraft] = useState(task.description || '');
     const draftRef = useRef(draft);
     const savedRef = useRef(task.description || '');
+    const savingRef = useRef(false);
 
     useEffect(() => {
         draftRef.current = draft;
     }, [draft]);
 
-    const save = () => {
+    const save = async () => {
         const latest = draftRef.current;
-        if (latest === savedRef.current) return;
-        savedRef.current = latest;
-        updateTask(task.id, 'description', latest, task.taskDate);
+        if (latest === savedRef.current || savingRef.current) return;
+        savingRef.current = true;
+        try {
+            const result = await updateTask(task.id, 'description', latest, task.taskDate);
+            // Only mark saved after the backend write succeeds; on failure keep
+            // the draft eligible for a later blur/close retry.
+            if (result && result.failed !== true) {
+                savedRef.current = latest;
+            }
+        } finally {
+            savingRef.current = false;
+        }
     };
 
     const handleBlur = () => {
@@ -46,7 +56,10 @@ function DescriptionEditor({ task, updateTask }) {
     useEffect(() => () => {
         const latest = draftRef.current;
         if (latest === savedRef.current) return;
-        savedRef.current = latest;
+        // Fire-and-forget on unmount: if it fails, next open remounts with
+        // task.description from the store (still the old value) and the draft
+        // is lost only if the store also never had it — callers that care
+        // should blur first. We still attempt the write.
         updateTask(taskId, 'description', latest, taskDate);
     }, [taskId, taskDate, updateTask]);
 

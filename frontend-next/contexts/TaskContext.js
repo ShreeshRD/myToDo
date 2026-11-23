@@ -235,8 +235,9 @@ export const TaskProvider = ({ children }) => {
     };
 
     const updateTaskWithDeletedProjectCheck = async (id, field, value, date) => {
-        // Normal update (complete=true also clears inProgress inside updateTask)
-        await taskManagement.updateTask(id, field, value, date);
+        // Normal update (complete=true also clears inProgress inside updateTask).
+        // Pass through failed so callers (e.g. Notes save) can retry.
+        return taskManagement.updateTask(id, field, value, date);
     };
 
     const handleDragEnd = (result) => {

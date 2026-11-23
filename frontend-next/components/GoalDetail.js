@@ -136,6 +136,14 @@ function GoalDetail({ goalId, onBack, onChanged }) {
 	const [stepToDelete, setStepToDelete] = useState(null);
 	const [addingStep, setAddingStep] = useState(false);
 	const latestRefreshId = useRef(0);
+	// Last values synchronized from the server — drafts equal to these are clean.
+	const syncedRef = useRef({
+		title: '',
+		metricCurrent: '',
+		metricTarget: '',
+		metricUnit: '',
+		repsTarget: '',
+	});
 
 	const refresh = useCallback(async () => {
 		const requestId = ++latestRefreshId.current;
@@ -144,12 +152,25 @@ function GoalDetail({ goalId, onBack, onChanged }) {
 			if (requestId !== latestRefreshId.current) return;
 			setGoal(g);
 			setTasks(Array.isArray(linked) ? linked : []);
-			// Preserve dirty drafts; clean fields still track server state.
-			setTitleDraft((prev) => (!prev || prev === (g.title ?? '') ? (g.title ?? '') : prev));
-			setMetricCurrent((prev) => (!prev && prev !== '0' ? (g.metricCurrent != null ? String(g.metricCurrent) : '') : prev));
-			setMetricTarget((prev) => (!prev ? (g.metricTarget != null ? String(g.metricTarget) : '') : prev));
-			setMetricUnit((prev) => (!prev ? (g.metricUnit ?? '') : prev));
-			setRepsTarget((prev) => (!prev ? (g.repsTarget != null ? String(g.repsTarget) : '') : prev));
+			// Only overwrite drafts that are still clean (equal to last sync).
+			setTitleDraft((prev) => (prev === syncedRef.current.title ? (g.title ?? '') : prev));
+			setMetricCurrent((prev) => (prev === syncedRef.current.metricCurrent
+				? (g.metricCurrent != null ? String(g.metricCurrent) : '')
+				: prev));
+			setMetricTarget((prev) => (prev === syncedRef.current.metricTarget
+				? (g.metricTarget != null ? String(g.metricTarget) : '')
+				: prev));
+			setMetricUnit((prev) => (prev === syncedRef.current.metricUnit ? (g.metricUnit ?? '') : prev));
+			setRepsTarget((prev) => (prev === syncedRef.current.repsTarget
+				? (g.repsTarget != null ? String(g.repsTarget) : '')
+				: prev));
+			syncedRef.current = {
+				title: g.title ?? '',
+				metricCurrent: g.metricCurrent != null ? String(g.metricCurrent) : '',
+				metricTarget: g.metricTarget != null ? String(g.metricTarget) : '',
+				metricUnit: g.metricUnit ?? '',
+				repsTarget: g.repsTarget != null ? String(g.repsTarget) : '',
+			};
 			setError('');
 		} catch (err) {
 			console.error('GoalDetail load failed:', err);
@@ -162,6 +183,13 @@ function GoalDetail({ goalId, onBack, onChanged }) {
 
 	useEffect(() => {
 		// Switching goals resets drafts so stale edits cannot carry over.
+		syncedRef.current = {
+			title: '',
+			metricCurrent: '',
+			metricTarget: '',
+			metricUnit: '',
+			repsTarget: '',
+		};
 		setTitleDraft('');
 		setMetricCurrent('');
 		setMetricTarget('');
@@ -193,17 +221,35 @@ function GoalDetail({ goalId, onBack, onChanged }) {
 			setTitleDraft(goal.title);
 			return;
 		}
-		const updated = await patch({ title: trimmed });
-		if (updated) setTitleDraft(updated.title ?? trimmed);
+		const submitted = trimmed;
+		const updated = await patch({ title: submitted });
+		if (!updated) return;
+		// Apply response only if the draft still matches what we submitted.
+		setTitleDraft((prev) => (prev.trim() === submitted ? (updated.title ?? submitted) : prev));
+		syncedRef.current = {
+			...syncedRef.current,
+			title: updated.title ?? submitted,
+		};
 	};
 
 	const saveMetricField = async (field, value) => {
+		const submitted = value;
 		const updated = await patch({ [field]: value === '' ? 'null' : value });
 		if (!updated) return;
-		if (field === 'metricCurrent') setMetricCurrent(updated.metricCurrent != null ? String(updated.metricCurrent) : '');
-		if (field === 'metricTarget') setMetricTarget(updated.metricTarget != null ? String(updated.metricTarget) : '');
-		if (field === 'metricUnit') setMetricUnit(updated.metricUnit ?? '');
-		if (field === 'repsTarget') setRepsTarget(updated.repsTarget != null ? String(updated.repsTarget) : '');
+		const serverValue = field === 'metricCurrent'
+			? (updated.metricCurrent != null ? String(updated.metricCurrent) : '')
+			: field === 'metricTarget'
+				? (updated.metricTarget != null ? String(updated.metricTarget) : '')
+				: field === 'metricUnit'
+					? (updated.metricUnit ?? '')
+					: (updated.repsTarget != null ? String(updated.repsTarget) : '');
+		// Apply only if the user has not typed a newer value while saving.
+		const applyIfCurrent = (prev) => (prev === submitted ? serverValue : prev);
+		if (field === 'metricCurrent') setMetricCurrent(applyIfCurrent);
+		if (field === 'metricTarget') setMetricTarget(applyIfCurrent);
+		if (field === 'metricUnit') setMetricUnit(applyIfCurrent);
+		if (field === 'repsTarget') setRepsTarget(applyIfCurrent);
+		syncedRef.current = { ...syncedRef.current, [field]: serverValue };
 	};
 
 	const handleModeSwitch = async (mode) => {

@@ -147,7 +147,9 @@ try {
         $exited = $script:Children | Where-Object { $_.HasExited } | Select-Object -First 1
         if ($exited) {
             $code = 0
-            try { $code = [int]$exited.ExitCode } catch { $code = 1 }
+            try {
+                $code = if ($null -eq $exited.ExitCode) { 1 } else { [int]$exited.ExitCode }
+            } catch { $code = 1 }
             Write-Dev ("a server exited (status {0}); stopping the others." -f $code)
             $exitCode = $code
             break

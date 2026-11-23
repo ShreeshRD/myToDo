@@ -106,7 +106,7 @@ Verify: create/edit task with estimate; clear estimate; drawer shows fallback af
 
 ### [ ] Step 3 — Day capacity bar component + wire into Upcoming & Today
 Files:
-- New `frontend-next/components/DayCapacityBar.js` (or `.tsx`)
+- New `frontend-next/components/DayCapacityBar.tsx`
   - Props: `tasks: Task[]`
   - Computes pending/done/free/scale as in §1; renders a single horizontal bar with three segments + accessible `title`
   - Hidden when no estimated tasks
@@ -161,7 +161,7 @@ Prod (only when user asks): backup prod DB → `./update-prod.sh` → smoke-test
 
 ## 5. Risks
 - **SQLite `ddl-auto=update`**: new nullable `Integer` column is low-risk; still backup prod before deploy.
-- **Create path shape**: if `POST /todo/add` is query-param only, estimate must be set via a follow-up `PATCH /todo/patch/{id}` (same pattern MCP uses for `description`).
+- **Create path shape**: if `POST /todo/add` is query-param only, estimate must be set via a follow-up `POST /todo/patch/{id}` (same pattern MCP uses for `description`).
 - **Bar overcounting in Today**: assigned + unassigned + schedule slots can double-list if not deduped by task `id`; overdue must stay out of the 3h budget.
 - **Units mix-up**: `timeTaken` is ms, estimate is minutes — convert only in `effectiveEstimateMinutes`; never store ms in `estimatedMinutes`.
 - **Filter interaction**: project sidebar filters (`isTaskVisible`) already filter `taskDays`; bar uses the same lists so filtered-out projects correctly leave the bar (document this as intended).
@@ -216,7 +216,7 @@ export function dayCapacitySegments(tasks) {
 | Check | Expected |
 |---|---|
 | Task with `estimatedMinutes=30`, incomplete | Orange segment +30m on its day |
-| Same task completed | Turquoise +30m; green grows only if total still &lt; 180 |
+| Same task completed | Turquoise +30m; green unchanged |
 | Task with only `timeTaken=900000` (15m), no explicit | Counts as 15m effective |
 | Explicit `60` + `timeTaken=900000` | Counts as 60m (explicit wins) |
 | Day with only unestimated tasks | No bar |

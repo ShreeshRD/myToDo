@@ -47,13 +47,17 @@ function TodayView() {
     const [goals, setGoals] = useState([]);
     const warnTimer = React.useRef(null);
     const goalsCancelledRef = React.useRef(false);
+    const goalsRequestRef = React.useRef(0);
 
     useEffect(() => () => clearTimeout(warnTimer.current), []);
 
     const loadGoals = React.useCallback(async () => {
+        const requestId = ++goalsRequestRef.current;
         try {
             const rows = await getGoals();
-            if (!goalsCancelledRef.current) setGoals(Array.isArray(rows) ? rows : []);
+            if (!goalsCancelledRef.current && requestId === goalsRequestRef.current) {
+                setGoals(Array.isArray(rows) ? rows : []);
+            }
         } catch (err) {
             console.error('getGoals failed:', err);
         }

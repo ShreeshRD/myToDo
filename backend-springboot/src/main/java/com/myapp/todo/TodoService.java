@@ -311,12 +311,13 @@ public class TodoService {
         TodoItem item = optItem.get();
         try {
             boolean wasComplete = item.isComplete();
+            java.time.LocalDateTime previousCompletedAt = item.getCompletedAt();
             applyField(item, field, value);
             TodoItem savedItem = repository.save(item);
             recordFieldEvent(id, field, savedItem);
             String warning = null;
             if ("complete".equals(field) && wasComplete && !savedItem.isComplete()) {
-                warning = releaseDeferredClonesOrRestore(id, item, wasComplete);
+                warning = releaseDeferredClonesOrRestore(id, item, wasComplete, previousCompletedAt);
             }
             logger.info("Updated task {} field: {}", id, field);
             TodoOperationResult result = new TodoOperationResult("Updated", savedItem);
@@ -335,19 +336,20 @@ public class TodoService {
 
     /**
      * Runs deferred-copy cleanup after a reopen has already been saved. If
-     * cleanup fails, restores the completed state so a retry can finish the
-     * operation instead of leaving an open task with orphaned clones.
+     * cleanup fails, restores the completed state (including the original
+     * completion timestamp) so a retry can finish the operation instead of
+     * leaving an open task with orphaned clones.
      */
-    private String releaseDeferredClonesOrRestore(Long id, TodoItem item, boolean wasComplete) {
+    private String releaseDeferredClonesOrRestore(Long id, TodoItem item, boolean wasComplete,
+            java.time.LocalDateTime previousCompletedAt) {
         try {
             return releaseDeferredClones(id);
         } catch (RuntimeException e) {
             logger.error("Deferred-copy cleanup failed for task {}: {}", id, e.getMessage());
             item.setComplete(wasComplete);
             if (wasComplete) {
-                item.setCompletedAt(item.getCompletedAt() != null
-                        ? item.getCompletedAt()
-                        : LocalDateTime.now(COMPLETION_ZONE));
+                // Prefer the pre-reopen timestamp; never invent "now" here.
+                item.setCompletedAt(previousCompletedAt);
             }
             try {
                 repository.save(item);
@@ -374,6 +376,7 @@ public class TodoService {
         TodoItem item = optItem.get();
         try {
             boolean wasComplete = item.isComplete();
+            java.time.LocalDateTime previousCompletedAt = item.getCompletedAt();
             Set<String> editedFields = new LinkedHashSet<>();
             boolean completeChanged = false;
             if (fields != null) {
@@ -405,7 +408,7 @@ public class TodoService {
             }
             String warning = null;
             if (completeChanged && wasComplete && !savedItem.isComplete()) {
-                warning = releaseDeferredClonesOrRestore(id, item, wasComplete);
+                warning = releaseDeferredClonesOrRestore(id, item, wasComplete, previousCompletedAt);
             }
             logger.info("Patched task {} with {} field(s)", id, fields == null ? 0 : fields.size());
             TodoOperationResult result = new TodoOperationResult("Updated", savedItem);
